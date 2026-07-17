@@ -1,18 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { brand } from '../data/content.js'
 import { setAuthed, isLkHost } from '../auth.js'
-import { login as apiLogin } from '../api.js'
+import { login as apiLogin, me } from '../api.js'
 import PhoneInput from '../components/PhoneInput.jsx'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [checkingSession, setCheckingSession] = useState(true)
   const [step, setStep] = useState('login') // 'login' | 'password'
   const [method, setMethod] = useState('email') // 'email' | 'phone'
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Если серверная сессия ещё жива, форму входа не показываем и сразу открываем кабинет.
+  // Проверяем именно API, а не только localStorage: его значение могло устареть.
+  useEffect(() => {
+    let alive = true
+    me()
+      .then(() => {
+        if (!alive) return
+        setAuthed(true)
+        navigate(isLkHost() ? '/' : '/cabinet', { replace: true })
+      })
+      .catch(() => {
+        if (!alive) return
+        setAuthed(false)
+        setCheckingSession(false)
+      })
+    return () => { alive = false }
+  }, [navigate])
 
   const toPassword = (e) => {
     e.preventDefault()
@@ -32,6 +51,8 @@ export default function LoginPage() {
       setBusy(false)
     }
   }
+
+  if (checkingSession) return null
 
   return (
     <div className="login">
