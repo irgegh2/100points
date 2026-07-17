@@ -1,22 +1,24 @@
 <?php
 // GET /courses_list.php?type=<тип>&subject=<slug>
-// Каталог курсов для раздела «Курсы». Фильтры необязательные:
+// Курсы, реально открытые текущему ученику. Фильтры необязательные:
 //   type    — тип курса («Вводные»/«Основные»/«Летняя школа»/«Профориентация»); «Все»/пусто = без фильтра;
 //   subject — slug предмета (math/rus/…); пусто = все предметы.
-// Доступ к самому контенту (по подписке) появится на Этапе 3 — здесь только витрина.
 require __DIR__ . '/bootstrap.php';
-release_session(); // витрина, в сессию не пишем — снимаем лок сразу
+$uid = require_user();
 
 $type    = trim($_GET['type'] ?? '');
 $subject = trim($_GET['subject'] ?? '');
+$today   = date('Y-m-d');
 
 $sql = "SELECT c.id, c.title, c.type, c.color, c.price,
                s.name AS subject, s.icon, s.slug AS subject_slug,
                (SELECT COUNT(*) FROM blocks b WHERE b.course_id = c.id) AS blocks
         FROM courses c
-        JOIN subjects s ON s.id = c.subject_id";
+        JOIN subjects s ON s.id = c.subject_id
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
+             AND (e.expires_at IS NULL OR e.expires_at = '' OR e.expires_at >= ?)";
 $where = [];
-$args = [];
+$args = [$uid, $today];
 if ($type !== '' && $type !== 'Все') { $where[] = 'c.type = ?';   $args[] = $type; }
 if ($subject !== '')                 { $where[] = 's.slug = ?';   $args[] = $subject; }
 if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);

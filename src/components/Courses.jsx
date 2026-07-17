@@ -58,7 +58,11 @@ export default function Courses() {
 
       {loading && <div className="courses-lk__empty">Загружаем курсы…</div>}
       {error && <div className="courses-lk__empty">Не удалось загрузить курсы: {error}</div>}
-      {!loading && !error && list.length === 0 && <div className="courses-lk__empty">В этой категории пока нет курсов.</div>}
+      {!loading && !error && list.length === 0 && (
+        <div className="courses-lk__empty">
+          {tab === 'Все' ? 'У тебя пока нет доступных курсов.' : 'В этой категории пока нет доступных курсов.'}
+        </div>
+      )}
 
       <div className="courses-lk__grid" key={tab}>
         {list.map((c, i) => (
