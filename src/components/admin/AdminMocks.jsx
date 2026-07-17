@@ -79,7 +79,7 @@ export default function AdminMocks() {
           {mocks.length === 0 && <div className="admin__empty">Пока нет пробников</div>}
           {mocks.map((m) => (
             <div className="admin__mockrow" key={m.id}>
-              <div className="admin__row3">
+              <div className="admin__mock-fields">
                 <label>Курс
                   <select className="admin__inp" value={m.course_id} onChange={(e) => patch(m.id, 'course_id', Number(e.target.value))}>
                     {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
