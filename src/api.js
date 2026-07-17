@@ -81,6 +81,18 @@ export const homeworksList = () => call('/homeworks_list.php')
 export const homeworkGet = (id) => call(`/homework_get.php?id=${id}`)
 export const homeworkSubmit = (homeworkId, answers) => call('/homework_submit.php', { method: 'POST', body: { homework_id: homeworkId, answers } })
 export const homeworkResult = (id) => call(`/homework_result.php?id=${id}`)
+export async function answerFileUpload(questionId, file, assignmentId = null) {
+  const fd = new FormData()
+  fd.append('question_id', questionId)
+  if (assignmentId) fd.append('assignment_id', assignmentId)
+  fd.append('file', file)
+  const res = await fetch(BASE + '/answer_file_upload.php', { method: 'POST', credentials: 'include', body: fd })
+  let payload = {}; try { payload = await res.json() } catch { /* пусто */ }
+  if (!res.ok || payload.ok === false) throw new Error(payload.error || 'Не удалось загрузить файл')
+  return payload.data ?? payload
+}
+export const answerFileDelete = (uploadId) => call('/answer_file_delete.php', { method: 'POST', body: { upload_id: uploadId } })
+export const answerFilePending = (questionId) => call(`/answer_file_pending.php?question_id=${questionId}`)
 
 // ── Пробники (Этап 6) ─────────────────────────────────────
 export const mockList = ({ subject, month } = {}) => {
@@ -276,6 +288,13 @@ export const reviewQueue = ({ subject, user_id } = {}) => {
 }
 export const reviewGet = (submissionId) => call(`/review_get.php?submission_id=${submissionId}`)
 export const reviewGrade = (submissionId, grades) => call('/review_grade.php', { method: 'POST', body: { submission_id: submissionId, grades } })
+export async function adminReviewImageUpload(file) {
+  const fd = new FormData(); fd.append('image', file)
+  const res = await fetch(BASE + '/admin_review_image_upload.php', { method: 'POST', credentials: 'include', body: fd })
+  let payload = {}; try { payload = await res.json() } catch { /* пусто */ }
+  if (!res.ok || payload.ok === false) throw new Error(payload.error || 'Не удалось загрузить изображение')
+  return payload.data ?? payload
+}
 
 // Админ: доступ к контенту (подписки + зачисления)
 export const adminAccessGet = (userId) => call(`/admin_access_get.php?user_id=${userId}`)

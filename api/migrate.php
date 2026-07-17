@@ -275,7 +275,7 @@ $MIGRATIONS = [
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     ) {ENGINE}", $driver));
 
-    // Вопрос ДЗ. type: single|multi|text|textarea. options/correct — JSON.
+    // Вопрос ДЗ. type: single|multi|text|textarea|file. options/correct — JSON.
     //   single  → correct = индекс (число); multi → correct = массив индексов;
     //   text    → correct = массив допустимых строк; textarea → correct = null (ручная проверка).
     // optional — необязательный; hard — пометка «повышенной сложности» у вопроса.
@@ -998,6 +998,30 @@ $MIGRATIONS = [
       payload TEXT NOT NULL,
       created_at {TS},
       FOREIGN KEY (assignment_id) REFERENCES mock_assignments(id)
+    ) {ENGINE}", $driver));
+  },
+
+  // v29 — ручной ответ «развёрнутый текст + заданное количество файлов».
+  29 => function (PDO $pdo, string $driver) {
+    if (!column_exists($pdo, $driver, 'questions', 'file_limit')) {
+      $pdo->exec("ALTER TABLE questions ADD COLUMN file_limit INT DEFAULT 1");
+    }
+
+    // Файл сначала принадлежит черновику ученика, после сдачи привязывается к submission.
+    // URL в answers никогда не принимаем на доверии: при сдаче он восстанавливается из этой таблицы.
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS answer_uploads (
+      id {PK},
+      user_id INT NOT NULL,
+      question_id INT NOT NULL,
+      submission_id INT,
+      url VARCHAR(500) NOT NULL,
+      original_name VARCHAR(255) NOT NULL,
+      mime VARCHAR(120),
+      size INT DEFAULT 0,
+      created_at {TS},
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (question_id) REFERENCES questions(id),
+      FOREIGN KEY (submission_id) REFERENCES submissions(id)
     ) {ENGINE}", $driver));
   },
 

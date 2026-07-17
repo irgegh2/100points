@@ -29,7 +29,7 @@ if (!user_has_course_access($uid, (int)$hw['course_id'])) ok(['locked' => 'cours
 if ($hw['level'] === 'hard' && !user_has_hard_access($uid)) ok(['locked' => 'subscription', 'homework' => $meta]);
 
 // Вопросы без correct/solution.
-$qs = db()->prepare("SELECT id, type, text, options, points, optional, hard FROM questions WHERE homework_id = ? ORDER BY position, id");
+$qs = db()->prepare("SELECT id, type, text, options, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE homework_id = ? ORDER BY position, id");
 $qs->execute([$id]);
 $questions = [];
 foreach ($qs as $q) {
@@ -41,6 +41,7 @@ foreach ($qs as $q) {
     'points'   => (int)$q['points'],
     'optional' => (int)$q['optional'] === 1,
     'hard'     => (int)$q['hard'] === 1,
+    'file_limit' => max(1, min(10, (int)$q['file_limit'])),
   ];
 }
 

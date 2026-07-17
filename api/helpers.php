@@ -199,13 +199,13 @@ function norm_text($s) {
 }
 
 // Автопроверка одного вопроса. $correct/$value — уже декодированные из JSON.
-// Возвращает [is_correct, earned]: для textarea — [null, 0] (ручная проверка наставником).
+// Возвращает [is_correct, earned]: для textarea/file — [null, 0] (ручная проверка наставником).
 //   single — у вопроса может быть НЕСКОЛЬКО допустимых вариантов (correct — массив индексов
 //            или одно число); ответ верный, если выбран любой из допустимых.
 //   multi  — режим $mode: 'full' (всё или ничего) | 'partial' (+1 за верный, −1 за неверный, не ниже 0).
 //   text   — несколько допустимых строк; $caseSensitive — учитывать ли регистр.
 function grade_question(string $type, $correct, $value, int $points, bool $caseSensitive = false, string $mode = 'full'): array {
-  if ($type === 'textarea') return [null, 0];
+  if ($type === 'textarea' || $type === 'file') return [null, 0];
 
   if ($type === 'single') {
     $set = is_array($correct) ? array_map('intval', $correct) : [(int)$correct];
@@ -234,6 +234,43 @@ function grade_question(string $type, $correct, $value, int $points, bool $caseS
   $cmp = $caseSensitive ? fn($s) => trim((string)$s) : fn($s) => norm_text($s);
   foreach ($accepted as $c) if ($cmp($c) === $cmp($value)) return [true, $points];
   return [false, 0];
+}
+
+// Проверяет файловый ответ и заменяет присланные клиентом метаданные каноническими из БД.
+// Требуются и развёрнутая подпись, и ровно file_limit файлов этого ученика/вопроса.
+function canonical_file_answer(int $uid, int $questionId, $value, int $fileLimit): array {
+  $limit = max(1, min(10, $fileLimit));
+  if (!is_array($value)) fail('Добавь файлы и подпись для проверяющего', 400);
+  $note = trim((string)($value['note'] ?? ''));
+  if ($note === '') fail('Напиши развёрнутую подпись для проверяющего', 400);
+  if (mb_strlen($note) > 10000) fail('Подпись слишком длинная (максимум 10 000 знаков)', 400);
+
+  $incoming = is_array($value['files'] ?? null) ? $value['files'] : [];
+  $ids = [];
+  foreach ($incoming as $file) {
+    $id = is_array($file) ? (int)($file['id'] ?? 0) : (int)$file;
+    if ($id > 0 && !in_array($id, $ids, true)) $ids[] = $id;
+  }
+  if (count($ids) !== $limit) fail("Нужно прикрепить ровно $limit файл(а)", 400);
+
+  $ph = implode(',', array_fill(0, count($ids), '?'));
+  $st = db()->prepare("SELECT id, url, original_name, size, mime FROM answer_uploads WHERE user_id = ? AND question_id = ? AND submission_id IS NULL AND id IN ($ph)");
+  $st->execute(array_merge([$uid, $questionId], $ids));
+  $found = [];
+  foreach ($st as $r) $found[(int)$r['id']] = [
+    'id' => (int)$r['id'], 'url' => $r['url'], 'name' => $r['original_name'],
+    'size' => (int)$r['size'], 'mime' => $r['mime'],
+  ];
+  if (count($found) !== $limit) fail('Один из файлов не найден или принадлежит другой работе', 400);
+  return ['note' => $note, 'files' => array_map(fn($id) => $found[$id], $ids)];
+}
+
+function bind_answer_files(int $uid, int $questionId, array $value, int $submissionId): void {
+  $ids = array_values(array_filter(array_map(fn($f) => (int)($f['id'] ?? 0), $value['files'] ?? [])));
+  if (!$ids) return;
+  $ph = implode(',', array_fill(0, count($ids), '?'));
+  db()->prepare("UPDATE answer_uploads SET submission_id = ? WHERE user_id = ? AND question_id = ? AND submission_id IS NULL AND id IN ($ph)")
+      ->execute(array_merge([$submissionId, $uid, $questionId], $ids));
 }
 
 // Черновик ответов (автосохранение): загрузка и очистка.

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Plus, Trash2, Save, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 
-const TYPES = [['single', 'Один из вариантов'], ['multi', 'Несколько вариантов'], ['text', 'Короткий ответ (строка)'], ['textarea', 'Развёрнутый (ручная проверка)']]
+const TYPES = [['single', 'Один из вариантов'], ['multi', 'Несколько вариантов'], ['text', 'Короткий ответ (строка)'], ['textarea', 'Развёрнутый (ручная проверка)'], ['file', 'Развёрнутый + файл(ы)']]
 
 // Преобразование строки БД → форма редактирования.
 function toForm(q) {
@@ -16,6 +16,7 @@ function toForm(q) {
     id: q.id, type: q.type, text: q.text || '', points: q.points ?? 1,
     optional: !!q.optional, hard: !!q.hard, solution: q.solution || '',
     case_sensitive: !!q.case_sensitive, grade_mode: q.grade_mode || 'full',
+    file_limit: Math.max(1, Math.min(10, Number(q.file_limit) || 1)),
     options: options.length ? options : ['', ''], correctSet, accepted: accepted.length ? accepted : [''],
     _dirty: false, _rev: 0,
   }
@@ -29,6 +30,7 @@ function toPayload(f, parentKey, parentId, position) {
     [parentKey]: parentId, type: f.type, text: f.text, points: f.points,
     optional: f.optional ? 1 : 0, hard: f.hard ? 1 : 0, solution: f.solution,
     case_sensitive: f.case_sensitive ? 1 : 0, grade_mode: f.grade_mode, position,
+    file_limit: Math.max(1, Math.min(10, Number(f.file_limit) || 1)),
   }
   if (f.type === 'single' || f.type === 'multi') {
     p.options = JSON.stringify(f.options.map((o) => o.trim()).filter(Boolean))
@@ -44,6 +46,7 @@ function toPayload(f, parentKey, parentId, position) {
 
 // parent: { key: 'homework_id'|'mock_id', id, title, level? }
 export default function AdminQuestionsModal({ parent, onClose }) {
+  const types = parent.key === 'subtopic_id' ? TYPES.filter(([value]) => value !== 'file') : TYPES
   const [items, setItems] = useState([])
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -96,7 +99,7 @@ export default function AdminQuestionsModal({ parent, onClose }) {
   const addQuestion = async () => {
     setBusy(true)
     try {
-      const d = await catCreate('questions', toPayload({ type: 'single', text: 'Новый вопрос', points: 1, optional: false, hard: false, solution: '', case_sensitive: false, grade_mode: 'full', options: ['', ''], correctSet: [], accepted: [''] }, parent.key, parent.id, itemsRef.current.length))
+      const d = await catCreate('questions', toPayload({ type: 'single', text: 'Новый вопрос', points: 1, optional: false, hard: false, solution: '', case_sensitive: false, grade_mode: 'full', file_limit: 1, options: ['', ''], correctSet: [], accepted: [''] }, parent.key, parent.id, itemsRef.current.length))
       setItems((list) => [...list, toForm(d.item)]); setOpenId(d.item.id)
     } catch (e) { alert(e.message) } finally { setBusy(false) }
   }
@@ -141,7 +144,7 @@ export default function AdminQuestionsModal({ parent, onClose }) {
             {openId === q.id && <div className="admin__qcard-body">
             <div className="admin__qcard-head">
               <select className="admin__inp admin__inp--sm" style={{ width: 'auto' }} value={q.type} onChange={(e) => patch(q.id, 'type', e.target.value)}>
-                {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {types.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
               <label className="admin__chk"><input type="checkbox" checked={q.optional} onChange={(e) => patch(q.id, 'optional', e.target.checked)} /> необяз.</label>
               <label className="admin__chk"><input type="checkbox" checked={q.hard} onChange={(e) => patch(q.id, 'hard', e.target.checked)} /> сложный</label>
@@ -188,7 +191,16 @@ export default function AdminQuestionsModal({ parent, onClose }) {
               </div>
             )}
 
-            {q.type !== 'textarea' && (
+            {q.type === 'file' && (
+              <div className="admin__file-config">
+                <label className="admin__field">Сколько файлов обязан приложить ученик
+                  <input className="admin__inp admin__inp--n" type="number" min={1} max={10} value={q.file_limit} onChange={(e) => patch(q.id, 'file_limit', e.target.value)} />
+                </label>
+                <p className="admin__hint">Ученик загрузит ровно это количество файлов и напишет развёрнутую подпись для проверяющего. Ответ попадёт в «Проверку работ».</p>
+              </div>
+            )}
+
+            {!['textarea', 'file'].includes(q.type) && (
               <label className="admin__field">Решение (показывается после сдачи)
                 <textarea className="admin__textarea" rows={2} value={q.solution} onChange={(e) => patch(q.id, 'solution', e.target.value)} placeholder="Почему именно так" />
               </label>

@@ -34,7 +34,7 @@ $q->execute([$subId]);
 $results = [];
 foreach ($q as $r) {
   $type = $r['type']; $earned = (int)$r['earned']; $pts = (int)$r['points'];
-  if ($type === 'textarea') {
+  if ($type === 'textarea' || $type === 'file') {
     $status = ($r['mentor_comment'] !== null && $r['mentor_comment'] !== '') || $r['is_correct'] !== null ? 'graded' : 'pending';
   } else {
     $status = $earned >= $pts ? 'correct' : ($earned > 0 ? 'partial' : 'wrong');

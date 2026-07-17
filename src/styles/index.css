@@ -971,6 +971,24 @@ iframe.lesson__video { border: 0; display: block; }
 
 /* подсказка под развёрнутым ответом в тесте */
 .test__hint { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.file-answer { display: grid; gap: 12px; }
+.file-answer__intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; }
+.file-answer__intro > div { display: flex; align-items: center; gap: 7px; color: var(--ink); }
+.file-answer__intro span { white-space: nowrap; }
+.file-answer__list { display: grid; gap: 8px; }
+.file-answer__file { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; }
+.file-answer__file > svg { color: var(--blue); flex: none; }
+.file-answer__file > span { min-width: 0; display: grid; flex: 1; }
+.file-answer__file b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.file-answer__file small { color: var(--muted); font-size: 12px; }
+.file-answer__file button { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; color: #c0392b; }
+.file-answer__file button:hover { background: #fdecec; }
+.file-answer__upload { min-height: 88px; border: 1.5px dashed color-mix(in srgb, var(--blue) 55%, var(--line)); border-radius: 14px; color: var(--blue); display: flex; align-items: center; justify-content: center; gap: 10px; background: color-mix(in srgb, var(--blue) 5%, var(--surface)); }
+.file-answer__upload:hover:not(:disabled) { background: color-mix(in srgb, var(--blue) 10%, var(--surface)); }
+.file-answer__upload span { display: grid; text-align: left; }
+.file-answer__upload small { color: var(--muted); font-weight: 500; }
+.file-answer__note { display: grid; gap: 7px; font-size: 14px; font-weight: 800; }
+.file-answer__error { color: #c0392b; background: #fdecec; border-radius: 10px; padding: 9px 12px; font-size: 13px; }
 
 /* ============================================================
    РЕЗУЛЬТАТЫ ТЕСТА
@@ -998,6 +1016,8 @@ iframe.lesson__video { border: 0; display: block; }
 .rescard__mentor { margin-top: 12px; border-left: 3px solid var(--blue); background: #f7f9ff; border-radius: 0 12px 12px 0; padding: 12px 16px; }
 .rescard__mentor-head { font-weight: 800; font-size: 13px; color: var(--blue); margin-bottom: 4px; }
 .rescard__mentor p { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-wrap; }
+.rescard__files { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.rescard__files a { padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--blue); font-weight: 700; font-size: 13px; background: var(--surface); }
 
 .result__side { position: sticky; top: 20px; }
 .result__panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px 22px; text-align: center; display: grid; gap: 10px; justify-items: center; }
@@ -1593,6 +1613,42 @@ select.admin__inp { padding: 0 6px; }
 .admin__reviewq-pts { color: var(--muted); font-weight: 600; font-size: 13px; }
 .admin__reviewq-ans { background: var(--bg-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; white-space: pre-wrap; }
 .admin__reviewq-sol { font-size: 13px; color: #555; }
+.admin__review-answer { display: grid; gap: 9px; }
+.admin__reviewq-ans p { margin-top: 5px; line-height: 1.55; }
+.admin__review-files { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 8px; }
+.admin__review-files a { min-width: 0; display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--ink); background: var(--surface); }
+.admin__review-files a > svg:first-child { color: var(--blue); flex: none; }
+.admin__review-files a > svg:last-child { color: var(--muted); flex: none; }
+.admin__review-files a span { min-width: 0; flex: 1; display: grid; }
+.admin__review-files a b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.admin__review-files a small { color: var(--muted); }
+.admin__review-points { width: min(240px,100%); display: grid; gap: 5px; font-size: 13px; font-weight: 700; }
+.admin__review-comment { margin-top: 5px; font-size: 13px; font-weight: 800; }
+.admin__file-config { border: 1px solid var(--line); border-radius: 11px; background: var(--bg-soft); padding: 12px; display: grid; grid-template-columns: 220px minmax(0,1fr); align-items: center; gap: 12px; }
+.admin__file-config .admin__field { display: grid; gap: 5px; }
+.admin__file-config .admin__hint { margin: 0; }
+
+/* Markdown-разбор проверяющего: редактирование и безопасный предпросмотр рядом. */
+.rich-review { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rich-review__bar { min-height: 42px; padding: 5px 7px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; background: var(--bg-soft); border-bottom: 1px solid var(--line); }
+.rich-review__bar button { min-width: 32px; height: 31px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border-radius: 7px; color: var(--ink); }
+.rich-review__bar button:hover:not(:disabled) { background: var(--surface); }
+.rich-review__bar > span { margin-left: auto; padding-right: 5px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.rich-review__grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); min-height: 270px; }
+.rich-review__grid > textarea { border: 0; border-radius: 0; min-height: 270px; }
+.rich-review__grid > textarea:focus { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--orange) 55%, transparent); }
+.rich-review__preview { min-width: 0; padding: 12px 14px; border-left: 1px solid var(--line); overflow: auto; background: var(--surface); }
+.rich-review__preview > span { display: block; margin-bottom: 9px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.rich-review__error { color: #c0392b; background: #fdecec; padding: 8px 11px; font-size: 12px; }
+.markdown { display: grid; gap: 7px; color: var(--ink); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.markdown h3 { font-size: 18px; }.markdown h4 { font-size: 16px; }.markdown h5 { font-size: 15px; }
+.markdown a { color: var(--blue); text-decoration: underline; }
+.markdown code { background: var(--bg-soft); border-radius: 5px; padding: 2px 5px; font-size: .92em; }
+.markdown blockquote { border-left: 3px solid var(--blue); padding: 7px 10px; color: var(--muted); background: var(--bg-soft); border-radius: 0 8px 8px 0; }
+.markdown__li { display: grid; grid-template-columns: 20px minmax(0,1fr); gap: 3px; }
+.markdown__image { display: block; width: min(100%,720px); max-height: 520px; object-fit: contain; border: 1px solid var(--line); border-radius: 10px; margin: 5px 0; background: var(--bg-soft); }
+.markdown__space { height: 3px; }.markdown__empty { color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) { .rich-review__grid { grid-template-columns: 1fr; }.rich-review__preview { border-left: 0; border-top: 1px solid var(--line); }.admin__file-config { grid-template-columns: 1fr; } }
 .admin__reviewauto { margin: 10px 0; font-size: 14px; }
 .admin__reviewauto summary { cursor: pointer; font-weight: 700; color: var(--muted); }
 .admin__ok { color: #1d8c41; font-weight: 800; }

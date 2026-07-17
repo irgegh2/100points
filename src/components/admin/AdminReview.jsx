@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Clock, Check, ChevronLeft, GraduationCap, Download } from 'lucide-react'
+import { Clock, Check, ChevronLeft, GraduationCap, Download, ExternalLink, FileText } from 'lucide-react'
 import { reviewQueue, reviewGet, reviewGrade, adminExportUrl } from '../../api.js'
+import RichReviewEditor from './RichReviewEditor.jsx'
 
 function ansText(a) {
   const v = a.your_value
   if (a.type === 'single') return v != null ? a.options[v] : '—'
   if (a.type === 'multi') return Array.isArray(v) && v.length ? v.map((i) => a.options[i]).join(', ') : '—'
+  if (a.type === 'file') return v?.note || '— нет подписи'
   return v && String(v).trim() ? v : '— нет ответа'
 }
 
@@ -24,7 +26,7 @@ export default function AdminReview() {
       const d = await reviewGet(id)
       setOpen(d)
       const g = {}
-      d.answers.filter((a) => a.type === 'textarea').forEach((a) => { g[a.id] = { points: a.earned || 0, comment: a.mentor_comment || '' } })
+      d.answers.filter((a) => ['textarea', 'file'].includes(a.type)).forEach((a) => { g[a.id] = { points: a.earned || 0, comment: a.mentor_comment || '' } })
       setGrades(g)
     } catch (e) { alert(e.message) }
   }
@@ -42,8 +44,8 @@ export default function AdminReview() {
 
   // Экран проверки одной работы.
   if (open) {
-    const open_qs = open.answers.filter((a) => a.type === 'textarea')
-    const auto = open.answers.filter((a) => a.type !== 'textarea')
+    const open_qs = open.answers.filter((a) => ['textarea', 'file'].includes(a.type))
+    const auto = open.answers.filter((a) => !['textarea', 'file'].includes(a.type))
     return (
       <div className="admin-wrap">
         <button className="lesson__back" onClick={() => setOpen(null)}><ChevronLeft size={17} /> К очереди</button>
@@ -54,12 +56,14 @@ export default function AdminReview() {
           {open_qs.map((a) => (
             <div className="admin__reviewq" key={a.id}>
               <div className="admin__reviewq-text">{a.text} <span className="admin__reviewq-pts">макс {a.points} б.</span></div>
-              <div className="admin__reviewq-ans">{ansText(a)}</div>
+              {a.type === 'file' ? <div className="admin__review-answer">
+                <div className="admin__reviewq-ans"><b>Подпись ученика</b><p>{ansText(a)}</p></div>
+                <div className="admin__review-files">{(a.your_value?.files || []).map((file) => <a href={file.url} target="_blank" rel="noreferrer" key={file.id}><FileText size={18} /><span><b>{file.name}</b><small>{Math.max(1, Math.round((file.size || 0) / 1024))} КБ</small></span><ExternalLink size={15} /></a>)}</div>
+              </div> : <div className="admin__reviewq-ans">{ansText(a)}</div>}
               {a.solution && <div className="admin__reviewq-sol"><b>Эталон:</b> {a.solution}</div>}
-              <div className="admin__row2">
-                <label>Баллы (0–{a.points}) <input className="admin__inp" type="number" min={0} max={a.points} value={grades[a.id]?.points ?? 0} onChange={(e) => setG(a.id, 'points', e.target.value)} /></label>
-                <label>Комментарий эксперта <input className="admin__inp" value={grades[a.id]?.comment ?? ''} onChange={(e) => setG(a.id, 'comment', e.target.value)} placeholder="Что хорошо, что доработать" /></label>
-              </div>
+              <label className="admin__review-points">Баллы за ответ (0–{a.points}) <input className="admin__inp" type="number" min={0} max={a.points} value={grades[a.id]?.points ?? 0} onChange={(e) => setG(a.id, 'points', e.target.value)} /></label>
+              <label className="admin__review-comment">Разбор эксперта</label>
+              <RichReviewEditor value={grades[a.id]?.comment ?? ''} onChange={(value) => setG(a.id, 'comment', value)} />
             </div>
           ))}
 
@@ -88,7 +92,7 @@ export default function AdminReview() {
           <h2><Clock size={18} /> Очередь проверки <span className="admin__count">{queue.length}</span></h2>
           <a className="btn btn-light btn-sm" href={adminExportUrl('results')}><Download size={15} /> Все результаты (CSV)</a>
         </div>
-        <p className="admin__hint">Работы с развёрнутыми ответами, ожидающие ручной проверки.</p>
+        <p className="admin__hint">Работы с развёрнутыми и файловыми ответами, ожидающие ручной проверки.</p>
         {loading && <div className="admin__empty">Загрузка…</div>}
         {!loading && queue.length === 0 && <div className="admin__empty"><Check size={18} /> Очередь пуста — все работы проверены.</div>}
         <div className="admin__list">

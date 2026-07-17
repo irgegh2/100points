@@ -219,7 +219,7 @@ function g_already_awarded(int $uid, string $kind, int $refId): bool {
   return (bool)$s->fetch();
 }
 
-// Награда за ДЗ. Порог 50% считаем ТОЛЬКО по авто-проверяемым заданиям (без textarea).
+// Награда за ДЗ. Порог 50% считаем ТОЛЬКО по авто-проверяемым заданиям (без ручных типов).
 // Если авто-заданий нет (только вторая часть) — начисляем сразу. Один раз на ДЗ.
 function g_award_homework(int $uid, int $hwId, int $autoScore, int $autoMax, int $autoCount): void {
   if ($autoCount > 0 && ($autoMax <= 0 || $autoScore / $autoMax < 0.5)) return;

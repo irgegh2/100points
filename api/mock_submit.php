@@ -28,13 +28,14 @@ if ($mk['format'] === 'proctored') {
 $given = [];
 foreach ($answersIn as $a) if (isset($a['question_id'])) $given[(int)$a['question_id']] = $a['value'] ?? null;
 
-$qs = db()->prepare("SELECT id, type, correct, points, optional, case_sensitive, grade_mode FROM questions WHERE mock_id = ? ORDER BY position, id");
+$qs = db()->prepare("SELECT id, type, correct, points, optional, case_sensitive, grade_mode, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
 $qs->execute([$mockId]);
 $rows = $qs->fetchAll();
 
 $isAnswered = function ($type, $v) {
   if ($type === 'single') return $v !== null && $v !== '';
   if ($type === 'multi') return is_array($v) && count($v) > 0;
+  if ($type === 'file') return is_array($v) && trim((string)($v['note'] ?? '')) !== '' && count($v['files'] ?? []) > 0;
   return is_string($v) && trim($v) !== '';
 };
 
@@ -44,12 +45,13 @@ foreach ($rows as $q) {
   $qid = (int)$q['id']; $type = $q['type'];
   $val = array_key_exists($qid, $given) ? $given[$qid] : null;
   if ((int)$q['optional'] === 1 && !$isAnswered($type, $val)) continue;
+  if ($type === 'file') $val = canonical_file_answer($uid, $qid, $val, (int)$q['file_limit']);
   $correct = $q['correct'] !== null ? json_decode($q['correct'], true) : null;
   [$ok, $earned] = grade_question($type, $correct, $val, (int)$q['points'], (int)$q['case_sensitive'] === 1, $q['grade_mode'] ?? 'full');
-  if ($type === 'textarea') $hasPendingTextarea = true;
+  if ($type === 'textarea' || $type === 'file') $hasPendingTextarea = true;
   else { $autoScore += $earned; $autoMax += (int)$q['points']; $autoCount++; }
   $score += $earned; $maxScore += (int)$q['points'];
-  $toGrade[] = [$qid, $val, $ok, $earned];
+  $toGrade[] = [$qid, $type, $val, $ok, $earned];
 }
 $status = $hasPendingTextarea ? 'review' : 'graded';
 
@@ -69,8 +71,9 @@ try {
       ->execute([$mockId, $uid, $status, $score, $maxScore, $gradedAt]);
   $subId = (int)$pdo->lastInsertId();
   $ai = $pdo->prepare("INSERT INTO answers (submission_id, question_id, value, is_correct, earned) VALUES (?,?,?,?,?)");
-  foreach ($toGrade as [$qid, $val, $ok, $earned]) {
+  foreach ($toGrade as [$qid, $type, $val, $ok, $earned]) {
     $ai->execute([$subId, $qid, json_encode($val, JSON_UNESCAPED_UNICODE), $ok === null ? null : ($ok ? 1 : 0), $earned]);
+    if ($type === 'file') bind_answer_files($uid, $qid, $val, $subId);
   }
   $pdo->commit();
 } catch (Exception $e) {

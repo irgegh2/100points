@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Camera, Check, Clock3, Eye, MessageSquare, Send, ShieldCheck, VideoOff } from 'lucide-react'
 import TestResult from './TestResult.jsx'
+import FileAnswer from './FileAnswer.jsx'
 import { isAnswered } from './HomeworkTest.jsx'
 import { mockSubmit, proctoredChatSend, proctoredSessionGet, proctoredSignalList, proctoredSignalSend, proctoredStudentStart, proctoredStudentSync } from '../api.js'
 
@@ -161,6 +162,7 @@ export default function ProctoredMock({ assignmentId, onBack }) {
       {q.type === 'multi' && <div className="test__opts">{q.options.map((o, i) => { const on = Array.isArray(value) && value.includes(i); return <button key={i} className={`test__opt ${on ? 'selected' : ''}`} onClick={() => toggleMulti(i)}><span className="test__check">{on && <Check size={14} />}</span><span>{o}</span></button> })}</div>}
       {q.type === 'text' && <input className="test__input" value={value || ''} onChange={(e) => setChoice(e.target.value)} placeholder="Введите ответ" />}
       {q.type === 'textarea' && <textarea className="test__textarea" rows={7} value={value || ''} onChange={(e) => setChoice(e.target.value)} placeholder="Напиши развёрнутый ответ…" />}
+      {q.type === 'file' && <FileAnswer questionId={q.id} limit={q.file_limit} value={value} onChange={(v) => setChoice({ ...v, limit: q.file_limit })} assignmentId={assignmentId} />}
       <div className="proctor-session__nav"><button className="btn btn-light" disabled={cur === 0} onClick={() => setCur((i) => i - 1)}>Назад</button>{cur < questions.length - 1 ? <button className="btn btn-blue" onClick={() => setCur((i) => i + 1)}>Следующее</button> : <button className="btn btn-orange" disabled={!requiredDone || busy} onClick={finish}>{busy ? 'Завершаем…' : 'Завершить пробник'}</button>}</div>
     </main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div><div className="test__progress"><div className="test__progress-top"><b>Прогресс</b><span>{answeredCount}/{questions.length}</span></div><div className="test__progress-bar"><span style={{ width: `${questions.length ? Math.round(answeredCount / questions.length * 100) : 0}%` }} /></div></div><div className="test__sidesteps">{questions.map((item, i) => <button key={item.id} className={`test__step ${i === cur ? 'active' : ''} ${isAnswered(item.type, answers[item.id]) ? 'done' : ''}`} onClick={() => setCur(i)}>{i + 1}</button>)}</div>
       {chatPanel}

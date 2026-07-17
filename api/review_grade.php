@@ -23,11 +23,13 @@ try {
   foreach ($grades as $g) {
     $aid = (int)($g['answer_id'] ?? 0);
     if ($aid <= 0) continue;
-    $pts = $pdo->prepare("SELECT q.points FROM answers a JOIN questions q ON q.id = a.question_id WHERE a.id = ? AND a.submission_id = ?");
+    $pts = $pdo->prepare("SELECT q.points FROM answers a JOIN questions q ON q.id = a.question_id WHERE a.id = ? AND a.submission_id = ? AND q.type IN ('textarea','file')");
     $pts->execute([$aid, $subId]);
-    $maxPts = (int)($pts->fetchColumn() ?: 0);
+    $maxRaw = $pts->fetchColumn();
+    if ($maxRaw === false) continue;
+    $maxPts = (int)$maxRaw;
     $earned = max(0, min($maxPts, (int)($g['points'] ?? 0)));
-    $comment = trim((string)($g['comment'] ?? ''));
+    $comment = mb_substr(trim((string)($g['comment'] ?? '')), 0, 50000);
     $upd->execute([$earned, $earned > 0 ? 1 : 0, $comment !== '' ? $comment : null, $aid, $subId]);
   }
 

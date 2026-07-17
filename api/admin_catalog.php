@@ -32,7 +32,7 @@ $SCHEMA = [
   // ДЗ и вопросы (Этап 4). options/correct — JSON-строки (фронт кодирует).
   'homeworks' => ['fields' => ['lesson_id','level','title','deadline','position'],
                   'parent' => 'lesson_id',  'children' => [['questions','homework_id']]],
-  'questions' => ['fields' => ['homework_id','mock_id','subtopic_id','difficulty','type','text','options','correct','solution','points','optional','hard','case_sensitive','grade_mode','position'],
+  'questions' => ['fields' => ['homework_id','mock_id','subtopic_id','difficulty','type','text','options','correct','solution','points','optional','hard','case_sensitive','grade_mode','file_limit','position'],
                   'parent' => 'homework_id','children' => []],
   // Пробники (Этап 6). Привязаны к курсу. month — метка месяца («Март», «Март 2», «Март Про»).
   'mock_exams'=> ['fields' => ['course_id','month','title','format','access_mode','position'],
@@ -81,7 +81,7 @@ $SCHEMA = [
 ];
 
 // Целочисленные поля — приводим к int (или null), чтобы в БД не падал мусор.
-$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','homework_id','mock_id','assignment_id','user_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','duration','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','level','show_features','once_only','active','reward','target'];
+$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','homework_id','mock_id','assignment_id','user_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','duration','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','file_limit','level','show_features','once_only','active','reward','target'];
 
 $in = body();
 $entity = (string)($in['entity'] ?? '');

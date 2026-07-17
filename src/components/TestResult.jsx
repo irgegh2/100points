@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, Check, X, Clock, ChevronDown, RefreshCw, GraduationCap } from 'lucide-react'
 import { homeworkResult, mockResult } from '../api.js'
+import MarkdownContent from './MarkdownContent.jsx'
 
 function answerText(r) {
   const v = r.your_value
   if (r.type === 'single') return v != null ? r.options[v] : '— нет ответа'
   if (r.type === 'multi') return Array.isArray(v) && v.length ? v.map((i) => r.options[i]).join(', ') : '— нет ответа'
+  if (r.type === 'file') return v?.note || '— нет подписи'
   return v && String(v).trim() ? v : '— нет ответа'
 }
 function correctText(r) {
@@ -58,9 +60,10 @@ export default function TestResult({ homeworkId, kind = 'homework', onBack, onRe
                 <div className="rescard__q">{idx + 1}. {r.text}{r.optional && <span className="test__opt-tag"> · необязательный</span>}</div>
               </div>
 
-              <div className="rescard__answer"><span>Твой ответ:</span> {answerText(r)}</div>
+              <div className="rescard__answer"><span>{r.type === 'file' ? 'Твоя подпись:' : 'Твой ответ:'}</span> {answerText(r)}</div>
+              {r.type === 'file' && <div className="rescard__files">{(r.your_value?.files || []).map((file) => <a href={file.url} target="_blank" rel="noreferrer" key={file.id}>{file.name}</a>)}</div>}
 
-              {r.type !== 'textarea' && (
+              {!['textarea', 'file'].includes(r.type) && (
                 <>
                   <button className="rescard__toggle" onClick={() => toggle(r.id)}>
                     Показать решение <ChevronDown size={15} className={open.has(r.id) ? 'rot' : ''} />
@@ -74,13 +77,13 @@ export default function TestResult({ homeworkId, kind = 'homework', onBack, onRe
                 </>
               )}
 
-              {r.type === 'textarea' && r.status === 'pending' && (
+              {['textarea', 'file'].includes(r.type) && r.status === 'pending' && (
                 <div className="rescard__pending"><Clock size={15} /> Развёрнутый ответ проверит эксперт — баллы появятся позже</div>
               )}
-              {r.type === 'textarea' && r.status === 'graded' && (
+              {['textarea', 'file'].includes(r.type) && r.status === 'graded' && (
                 <div className="rescard__mentor">
                   <div className="rescard__mentor-head">Комментарий эксперта · {r.earned} из {r.points} б.</div>
-                  <p>{r.mentor_comment || '—'}</p>
+                  <MarkdownContent source={r.mentor_comment} empty="—" />
                 </div>
               )}
             </div>

@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { ChevronLeft, Check, Lock, Printer } from 'lucide-react'
 import TestResult from './TestResult.jsx'
+import FileAnswer from './FileAnswer.jsx'
 import { homeworkGet, homeworkSubmit, mockGet, mockSubmit, draftSave } from '../api.js'
 import { printQuestions } from '../printQuestions.js'
 
 export function isAnswered(type, v) {
   if (type === 'single') return v != null
   if (type === 'multi') return Array.isArray(v) && v.length > 0
+  if (type === 'file') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length === Math.max(1, Number(v.limit || v.file_limit || 1)) && typeof v.note === 'string' && v.note.trim() !== ''
   return typeof v === 'string' && v.trim() !== ''
 }
 
@@ -138,6 +140,10 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
               <textarea className="test__textarea" placeholder="Напиши развёрнутый ответ…" rows={6} value={value || ''} onChange={(e) => setChoice(e.target.value)} />
               <p className="test__hint">Развёрнутый ответ проверит эксперт вручную.</p>
             </>
+          )}
+
+          {q.type === 'file' && (
+            <FileAnswer questionId={q.id} limit={q.file_limit} value={value} onChange={(v) => setChoice({ ...v, limit: q.file_limit })} />
           )}
 
           <button className="btn btn-blue test__next" disabled={!canNext} onClick={next}>

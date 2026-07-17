@@ -58,13 +58,14 @@ function p_public_assignment(array $a): array {
 }
 
 function p_questions(int $mockId): array {
-  $s = db()->prepare("SELECT id, type, text, options, points, optional, hard FROM questions WHERE mock_id = ? ORDER BY position, id");
+  $s = db()->prepare("SELECT id, type, text, options, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
   $s->execute([$mockId]);
   $out = [];
   foreach ($s as $q) $out[] = [
     'id' => (int)$q['id'], 'type' => $q['type'], 'text' => $q['text'],
     'options' => $q['options'] !== null ? json_decode($q['options'], true) : null,
     'points' => (int)$q['points'], 'optional' => (int)$q['optional'] === 1, 'hard' => (int)$q['hard'] === 1,
+    'file_limit' => max(1, min(10, (int)$q['file_limit'])),
   ];
   return $out;
 }

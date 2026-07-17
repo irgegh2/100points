@@ -1,6 +1,6 @@
 <?php
 // POST /homework_submit.php  { homework_id, answers: [ { question_id, value }, ... ] }
-// Приём ответов + автопроверка на бэке (single/multi/text). textarea → ручная проверка (status review).
+// Приём ответов + автопроверка на бэке (single/multi/text). textarea/file → ручная проверка.
 // Правильные ответы клиенту НЕ возвращаются — только статус.
 require __DIR__ . '/bootstrap.php';
 $uid = require_user();
@@ -32,13 +32,14 @@ foreach ($answersIn as $a) {
 }
 
 // Все вопросы ДЗ (с правильными ответами — только на сервере).
-$qs = db()->prepare("SELECT id, type, correct, points, optional, case_sensitive, grade_mode FROM questions WHERE homework_id = ? ORDER BY position, id");
+$qs = db()->prepare("SELECT id, type, correct, points, optional, case_sensitive, grade_mode, COALESCE(file_limit,1) AS file_limit FROM questions WHERE homework_id = ? ORDER BY position, id");
 $qs->execute([$hwId]);
 $rows = $qs->fetchAll();
 
 $isAnswered = function ($type, $v) {
   if ($type === 'single') return $v !== null && $v !== '';
   if ($type === 'multi') return is_array($v) && count($v) > 0;
+  if ($type === 'file') return is_array($v) && trim((string)($v['note'] ?? '')) !== '' && count($v['files'] ?? []) > 0;
   return is_string($v) && trim($v) !== '';
 };
 
@@ -53,13 +54,14 @@ foreach ($rows as $q) {
   // Необязательный без ответа — пропускаем целиком (не входит в баллы).
   if ((int)$q['optional'] === 1 && !$isAnswered($type, $val)) continue;
 
+  if ($type === 'file') $val = canonical_file_answer($uid, $qid, $val, (int)$q['file_limit']);
   $correct = $q['correct'] !== null ? json_decode($q['correct'], true) : null;
   [$ok, $earned] = grade_question($type, $correct, $val, (int)$q['points'], (int)$q['case_sensitive'] === 1, $q['grade_mode'] ?? 'full');
-  if ($type === 'textarea') $hasPendingTextarea = true;
+  if ($type === 'textarea' || $type === 'file') $hasPendingTextarea = true;
   else { $autoScore += $earned; $autoMax += (int)$q['points']; $autoCount++; }
   $score += $earned;
   $maxScore += (int)$q['points'];
-  $toGrade[] = [$qid, $val, $ok, $earned];
+  $toGrade[] = [$qid, $type, $val, $ok, $earned];
 }
 
 $status = $hasPendingTextarea ? 'review' : 'graded';
@@ -81,8 +83,9 @@ try {
       ->execute([$hwId, $uid, $status, $score, $maxScore, $gradedAt]);
   $subId = (int)$pdo->lastInsertId();
   $ai = $pdo->prepare("INSERT INTO answers (submission_id, question_id, value, is_correct, earned) VALUES (?,?,?,?,?)");
-  foreach ($toGrade as [$qid, $val, $ok, $earned]) {
+  foreach ($toGrade as [$qid, $type, $val, $ok, $earned]) {
     $ai->execute([$subId, $qid, json_encode($val, JSON_UNESCAPED_UNICODE), $ok === null ? null : ($ok ? 1 : 0), $earned]);
+    if ($type === 'file') bind_answer_files($uid, $qid, $val, $subId);
   }
   $pdo->commit();
 } catch (Exception $e) {
@@ -92,7 +95,7 @@ try {
 
 delete_draft($uid, 'homework', $hwId); // ответы отправлены — черновик больше не нужен
 
-// Геймификация (Этап 9): порог 50% по авто-части (textarea не считается). Нет авто-заданий → сразу.
+// Геймификация (Этап 9): порог 50% по авто-части (ручные типы не считаются). Нет авто-заданий → сразу.
 try {
   require_once __DIR__ . '/gamify.php';
   g_touch_streak($uid);
