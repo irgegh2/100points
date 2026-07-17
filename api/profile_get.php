@@ -11,7 +11,7 @@ $ustmt->execute([$uid]);
 $user = $ustmt->fetch();
 if (!$user) fail('Не авторизован', 401);
 
-$pstmt = db()->prepare("SELECT avatar, birthdate FROM profiles WHERE user_id = ? LIMIT 1");
+$pstmt = db()->prepare("SELECT avatar, birthdate, nickname_color FROM profiles WHERE user_id = ? LIMIT 1");
 $pstmt->execute([$uid]);
 $p = $pstmt->fetch();
 
@@ -48,6 +48,7 @@ ok([
   'profile' => [
     'avatar'    => $p['avatar']    ?? '',
     'birthdate' => $p['birthdate'] ?? '',
+    'nickname_color' => $p['nickname_color'] ?? '',
     'goals'     => $goals,
   ],
   'subjects' => $subjects,

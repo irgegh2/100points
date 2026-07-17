@@ -28,7 +28,7 @@ const EARN = [
   { label: 'Сохранённая жизнь (в конце недели)', pts: 25 },
 ]
 
-export default function Shop({ balance = 0, onBack, onBalance, onThemeUnlocked }) {
+export default function Shop({ balance = 0, onBack, onBalance, onThemeUnlocked, onCosmeticUnlocked }) {
   const [coins, setCoins] = useState(balance)
   const [items, setItems] = useState([])
   const [purchases, setPurchases] = useState([])
@@ -49,7 +49,8 @@ export default function Shop({ balance = 0, onBack, onBalance, onThemeUnlocked }
       const d = await shopBuy(it.id)
       setCoins(d.balance); onBalance?.(d.balance)
       if (d.theme_unlocked) onThemeUnlocked?.(d.theme)
-      setToast(d.theme_unlocked
+      if (d.cosmetic_unlocked) onCosmeticUnlocked?.(d.cosmetic)
+      setToast(d.instant
         ? `«${it.name}» куплено и включено!`
         : it.category === 'reward'
         ? `«${it.name}» — заявка принята! Скоро свяжемся в ВК и выдадим.`

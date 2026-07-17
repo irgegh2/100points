@@ -1,7 +1,7 @@
 <?php
 // POST /shop_buy.php  { item_id }
-// Покупка: списывает кристаллы и создаёт заявку. Рабочие темы активируются сразу,
-// остальные товары сохраняют ручную выдачу через админку.
+// Покупка: списывает кристаллы и создаёт заявку. Цифровое оформление
+// активируется сразу, остальные товары сохраняют ручную выдачу через админку.
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/gamify.php';
 $uid = require_user();
@@ -21,7 +21,12 @@ $themeCodes = [
   'Тема «Космос»' => 'space',
 ];
 $themeCode = $item['category'] === 'theme' ? ($themeCodes[$item['name']] ?? null) : null;
-$instant = $themeCode !== null;
+$cosmeticCodes = [
+  'Рамка для аватара' => 'avatar_frame',
+  'Цвет ника' => 'nickname_color',
+];
+$cosmeticCode = $item['category'] === 'theme' ? ($cosmeticCodes[$item['name']] ?? null) : null;
+$instant = $themeCode !== null || $cosmeticCode !== null;
 $status = $instant ? 'done' : 'pending';
 
 // once-only — нельзя купить повторно.
@@ -68,7 +73,7 @@ try {
 }
 
 $message = $instant
-  ? "Покупка «{$item['name']}» активирована — оформление уже доступно."
+  ? "Покупка «{$item['name']}» активирована — оформление уже включено."
   : "Покупка «{$item['name']}» оформлена. Заявка принята — скоро выдадим.";
 notify($uid, 'shop', $message, 'shop');
 
@@ -78,6 +83,8 @@ ok([
   'balance' => (int)$w['crystals'],
   'status' => $status,
   'instant' => $instant,
-  'theme_unlocked' => $instant,
+  'theme_unlocked' => $themeCode !== null,
   'theme' => $themeCode,
+  'cosmetic_unlocked' => $cosmeticCode !== null,
+  'cosmetic' => $cosmeticCode,
 ]);

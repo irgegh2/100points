@@ -1,5 +1,5 @@
 <?php
-// GET /theme_access.php — список купленных тем оформления ученика.
+// GET /theme_access.php — доступные ученику темы и косметика профиля.
 require __DIR__ . '/bootstrap.php';
 $uid = require_user();
 
@@ -22,4 +22,36 @@ foreach ($st->fetchAll() as $row) {
   if ($code && !in_array($code, $themes, true)) $themes[] = $code;
 }
 
-ok(['themes' => $themes]);
+// Рамка — цифровая косметика: новые покупки выдаются сразу. Старые ожидающие
+// заявки тоже считаем активными, потому что кристаллы за них уже списаны.
+$frame = db()->prepare("SELECT 1
+  FROM purchases p
+  JOIN shop_items i ON i.id = p.item_id
+  WHERE p.user_id = ? AND p.status IN ('pending','done')
+    AND i.name = 'Рамка для аватара'
+  LIMIT 1");
+$frame->execute([$uid]);
+$hasFrame = (bool)$frame->fetchColumn();
+
+$nick = db()->prepare("SELECT 1
+  FROM purchases p
+  JOIN shop_items i ON i.id = p.item_id
+  WHERE p.user_id = ? AND p.status IN ('pending','done')
+    AND i.name = 'Цвет ника'
+  LIMIT 1");
+$nick->execute([$uid]);
+$hasNickColor = (bool)$nick->fetchColumn();
+
+$nicknameColor = '';
+if ($hasNickColor) {
+  $color = db()->prepare("SELECT nickname_color FROM profiles WHERE user_id = ? LIMIT 1");
+  $color->execute([$uid]);
+  $nicknameColor = (string)($color->fetchColumn() ?: '#7b5cff');
+}
+
+ok([
+  'themes' => $themes,
+  'avatar_frame' => $hasFrame,
+  'nickname_color_access' => $hasNickColor,
+  'nickname_color' => $nicknameColor,
+]);

@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Minus, Plus, Star, Lock } from 'lucide-react'
+import { Camera, Minus, Plus, Star, Lock, Sparkles } from 'lucide-react'
 import { profileGet, profileSave, avatarUpload, avatarPreset, AVATAR_PRESETS } from '../api.js'
 
 // рекомендуемое число часов в неделю под желаемый балл (40→3ч … 100→12ч)
 const recHours = (score) => Math.round(3 + ((score - 40) / 60) * 9)
+const NICKNAME_COLORS = [
+  ['#ff7a00', 'Апельсин'], ['#3f8cff', 'Лазурь'], ['#7b5cff', 'Ультрафиолет'],
+  ['#e0518a', 'Малина'], ['#16a875', 'Изумруд'], ['#d89a00', 'Золото'],
+]
 
-export default function Profile({ user, onBack, onSaved }) {
+export default function Profile({ user, onBack, onSaved, avatarFrame = false, nicknameColorAccess = false, initialNicknameColor = '' }) {
   const [name, setName] = useState(user?.name || '')
   const [birth, setBirth] = useState('')                 // ISO yyyy-mm-dd для нативного календаря
   const [email] = useState(user?.email || '')            // только для просмотра
   const [phone] = useState(user?.phone || '')            // только для просмотра
   const [avatar, setAvatar] = useState('')
+  const [nicknameColor, setNicknameColor] = useState(initialNicknameColor || '#7b5cff')
   // Предметы для целей — только те, по которым у ученика есть доступный курс (с сервера).
   const [subjects, setSubjects] = useState([])           // [{name, color}]
   const [goals, setGoals] = useState({})                 // { предмет: {score, hours} }
@@ -36,6 +41,7 @@ export default function Profile({ user, onBack, onSaved }) {
         if (p) {
           if (p.birthdate) setBirth(p.birthdate)
           if (p.avatar) setAvatar(p.avatar)
+          if (p.nickname_color) setNicknameColor(p.nickname_color)
         }
         // Предметы только те, где есть доступный курс. Под них строим цели (с учётом сохранённых).
         const subs = Array.isArray(d.subjects) ? d.subjects : []
@@ -98,10 +104,10 @@ export default function Profile({ user, onBack, onSaved }) {
         hours_per_week: goals[s.name]?.hours ?? recHours(93),
       }))
       // avatar НЕ шлём — им владеет только avatar_upload.php (защита от подмены пути).
-      const res = await profileSave({ name, birthdate: birth, goals: goalsArr })
+      const res = await profileSave({ name, birthdate: birth, nickname_color: nicknameColorAccess ? nicknameColor : '', goals: goalsArr })
       setSaved(true)
       const newAvatar = res.profile?.avatar ?? avatar
-      if (onSaved && res.user) onSaved({ ...res.user, avatar: newAvatar })
+      if (onSaved && res.user) onSaved({ ...res.user, avatar: newAvatar, nickname_color: res.profile?.nickname_color || '' })
       setTimeout(() => { if (onBack) onBack() }, 600)
     } catch (err) {
       setError(err.message || 'Не удалось сохранить')
@@ -125,12 +131,13 @@ export default function Profile({ user, onBack, onSaved }) {
       <section className="pfcard">
         <div className="pfcard__head"><span className="pfcard__num">1</span><h3>Давай поставим классную аватарку</h3></div>
         <div className="profile__ava-row">
-          <span className="profile__ava" style={avaStyle} />
+          <span className={`profile__ava ${avatarFrame ? 'avatar--framed' : ''}`} style={avaStyle} />
           <div>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onFile} style={{ display: 'none' }} />
             <button className="btn btn-blue" onClick={pickFile} disabled={uploading}>
               <Camera size={16} /> {uploading ? 'Загрузка…' : 'Загрузить своё фото'}
             </button>
+            {avatarFrame && <span className="profile__frame-note"><Sparkles size={14} /> Премиальная рамка активна</span>}
             <p className="pfcard__sub" style={{ margin: '8px 0 0' }}>JPG, PNG или WEBP, до 5 МБ.</p>
           </div>
         </div>
@@ -149,6 +156,21 @@ export default function Profile({ user, onBack, onSaved }) {
             </button>
           ))}
         </div>
+
+        {nicknameColorAccess && (
+          <div className="profile__nickname">
+            <div>
+              <b>Цвет имени</b>
+              <span style={{ color: nicknameColor }}>{name || 'Твоё имя'}</span>
+            </div>
+            <div className="profile__palette" aria-label="Цвет имени">
+              {NICKNAME_COLORS.map(([color, label]) => (
+                <button key={color} type="button" className={nicknameColor === color ? 'active' : ''}
+                  style={{ '--nick-color': color }} onClick={() => setNicknameColor(color)} aria-label={label} title={label} />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 2. Анкета */}

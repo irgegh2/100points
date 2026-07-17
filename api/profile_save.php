@@ -1,6 +1,6 @@
 <?php
 // POST /profile_save.php — ученик сохраняет свой профиль (анкета + цели по предметам).
-// Body: { name, birthdate, goals:[{subject,target_score,hours_per_week}, ...] }
+// Body: { name, birthdate, nickname_color?, goals:[{subject,target_score,hours_per_week}, ...] }
 // ВАЖНО:
 //  • email/phone здесь НЕ меняются — это логин (правится через поддержку/админку).
 //  • avatar здесь НЕ принимается из тела (раньше это позволяло подменить чужой путь и
@@ -12,7 +12,19 @@ $data = body();
 
 $name      = trim($data['name'] ?? '');
 $birthdate = trim($data['birthdate'] ?? '');
+$nicknameColor = trim($data['nickname_color'] ?? '');
 $goals     = is_array($data['goals'] ?? null) ? $data['goals'] : [];
+
+$allowedNicknameColors = ['#ff7a00', '#3f8cff', '#7b5cff', '#e0518a', '#16a875', '#d89a00'];
+if ($nicknameColor !== '' && !in_array(strtolower($nicknameColor), $allowedNicknameColors, true)) {
+  fail('Выбери цвет из палитры', 400);
+}
+if ($nicknameColor !== '') {
+  $access = db()->prepare("SELECT 1 FROM purchases p JOIN shop_items i ON i.id = p.item_id
+    WHERE p.user_id = ? AND p.status IN ('pending','done') AND i.name = 'Цвет ника' LIMIT 1");
+  $access->execute([$uid]);
+  if (!$access->fetchColumn()) fail('Сначала купи цвет ника в магазине', 403);
+}
 
 try {
   $pdo = db();
@@ -23,13 +35,15 @@ try {
     $pdo->prepare("UPDATE users SET name = ? WHERE id = ?")->execute([$name, $uid]);
   }
 
-  // 2) профиль: трогаем только birthdate, avatar НЕ затрагиваем (им владеет avatar_upload).
+  // 2) профиль: avatar НЕ затрагиваем (им владеет avatar_upload).
   $exists = $pdo->prepare("SELECT user_id FROM profiles WHERE user_id = ? LIMIT 1");
   $exists->execute([$uid]);
   if ($exists->fetch()) {
-    $pdo->prepare("UPDATE profiles SET birthdate = ? WHERE user_id = ?")->execute([$birthdate, $uid]);
+    $pdo->prepare("UPDATE profiles SET birthdate = ?, nickname_color = ? WHERE user_id = ?")
+        ->execute([$birthdate, $nicknameColor !== '' ? strtolower($nicknameColor) : null, $uid]);
   } else {
-    $pdo->prepare("INSERT INTO profiles (user_id, birthdate) VALUES (?,?)")->execute([$uid, $birthdate]);
+    $pdo->prepare("INSERT INTO profiles (user_id, birthdate, nickname_color) VALUES (?,?,?)")
+        ->execute([$uid, $birthdate, $nicknameColor !== '' ? strtolower($nicknameColor) : null]);
   }
 
   // 3) цели по предметам — заменяем целиком (просто и без гонок дублей).
@@ -55,7 +69,7 @@ $ustmt = db()->prepare("SELECT id, name, email, phone, role FROM users WHERE id 
 $ustmt->execute([$uid]);
 $user = $ustmt->fetch();
 
-$pstmt = db()->prepare("SELECT avatar, birthdate FROM profiles WHERE user_id = ? LIMIT 1");
+$pstmt = db()->prepare("SELECT avatar, birthdate, nickname_color FROM profiles WHERE user_id = ? LIMIT 1");
 $pstmt->execute([$uid]);
 $prof = $pstmt->fetch();
 
@@ -75,6 +89,7 @@ ok([
   'profile' => [
     'avatar'    => $prof['avatar']    ?? '',
     'birthdate' => $prof['birthdate'] ?? '',
+    'nickname_color' => $prof['nickname_color'] ?? '',
     'goals'     => $savedGoals,
   ],
 ]);

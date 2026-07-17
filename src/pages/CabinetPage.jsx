@@ -185,6 +185,9 @@ export default function CabinetPage() {
   const [avatar, setAvatar] = useState('')
   const [wallet, setWallet] = useState({ crystals: 0, lives: 5, max_lives: 5 })
   const [themeAccessList, setThemeAccessList] = useState(['light'])
+  const [hasAvatarFrame, setHasAvatarFrame] = useState(false)
+  const [nicknameColorAccess, setNicknameColorAccess] = useState(false)
+  const [nicknameColor, setNicknameColor] = useState('')
   const [checking, setChecking] = useState(true)
   const [active, setActive] = useState('home')
   const [notifOpen, setNotifOpen] = useState(false)
@@ -220,6 +223,9 @@ export default function CabinetPage() {
         if (!alive) return
         const themes = Array.isArray(access.themes) ? access.themes : ['light']
         setThemeAccessList(themes)
+        setHasAvatarFrame(access.avatar_frame === true)
+        setNicknameColorAccess(access.nickname_color_access === true)
+        setNicknameColor(access.nickname_color || '')
         if (!themes.includes(getTheme())) setTheme('light')
         setChecking(false)
         // аватар грузим отдельно (в /me его нет) — не блокируя кабинет
@@ -329,13 +335,15 @@ export default function CabinetPage() {
               )}
             </div>
             <button className={`lk__user ${active === 'profile' ? 'active' : ''}`} onClick={() => setActive('profile')}>
-              <span className="lk__ava" style={avatar ? { backgroundImage: `url(${avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />{user?.name || 'Ученик'}
+              <span className={`lk__ava ${hasAvatarFrame ? 'avatar--framed' : ''}`} style={avatar ? { backgroundImage: `url(${avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
+              <span className="lk__username" style={nicknameColorAccess ? { color: nicknameColor || '#7b5cff' } : undefined}>{user?.name || 'Ученик'}</span>
             </button>
           </div>
         </header>
 
         {active === 'profile' ? (
-          <Profile user={user} onBack={() => setActive('home')} onSaved={(u) => { setUser(u); if (u.avatar !== undefined) setAvatar(u.avatar) }} />
+          <Profile user={user} avatarFrame={hasAvatarFrame} nicknameColorAccess={nicknameColorAccess} initialNicknameColor={nicknameColor}
+            onBack={() => setActive('home')} onSaved={(u) => { setUser(u); if (u.avatar !== undefined) setAvatar(u.avatar); if (u.nickname_color !== undefined) setNicknameColor(u.nickname_color) }} />
         ) : active === 'home' ? (
           <HomeDash onNavigate={setActive} crystals={wallet.crystals} />
         ) : active === 'shop' ? (
@@ -343,6 +351,13 @@ export default function CabinetPage() {
             onThemeUnlocked={(theme) => {
               setThemeAccessList((list) => list.includes(theme) ? list : [...list, theme])
               setTheme(theme)
+            }}
+            onCosmeticUnlocked={(cosmetic) => {
+              if (cosmetic === 'avatar_frame') setHasAvatarFrame(true)
+              if (cosmetic === 'nickname_color') {
+                setNicknameColorAccess(true)
+                setNicknameColor('#7b5cff')
+              }
             }} />
         ) : active === 'achievements' ? (
           <Achievements />

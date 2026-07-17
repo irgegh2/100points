@@ -794,6 +794,24 @@ $MIGRATIONS = [
     }
   },
 
+  // v25 — выбранный цвет ника для купленной косметики профиля.
+  25 => function (PDO $pdo, string $driver) {
+    if (!column_exists($pdo, $driver, 'profiles', 'nickname_color')) {
+      $pdo->exec("ALTER TABLE profiles ADD COLUMN nickname_color VARCHAR(20)");
+    }
+    $pdo->beginTransaction();
+    try {
+      $pdo->exec("UPDATE shop_items SET description = 'Золотая академическая рамка с кристаллом' WHERE name = 'Рамка для аватара'");
+      $pdo->exec("UPDATE shop_items SET description = 'Палитра цветов для имени в кабинете' WHERE name = 'Цвет ника'");
+      $pdo->exec("UPDATE purchases SET status = 'done', note = 'Доступ активирован автоматически'
+        WHERE status = 'pending' AND item_name IN ('Рамка для аватара', 'Цвет ника')");
+      $pdo->commit();
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      throw $e;
+    }
+  },
+
 ];
 
 // ── Прогон ──────────────────────────────────────────────────
@@ -926,8 +944,8 @@ if ($seed && (int)$pdo->query("SELECT COUNT(*) c FROM shop_items")->fetch()['c']
     ['Тёмная тема', 'Тёмное оформление кабинета', 'theme', 300, 1, null],
     ['Неоновая тема', 'Яркое неоновое оформление', 'theme', 600, 1, null],
     ['Тема «Космос»', 'Звёздное оформление', 'theme', 500, 1, null],
-    ['Рамка для аватара', 'Набор рамок как в Discord', 'theme', 350, 1, null],
-    ['Цвет ника', 'Подсветка имени в рейтинге и чате', 'theme', 250, 1, null],
+    ['Рамка для аватара', 'Золотая академическая рамка с кристаллом', 'theme', 350, 1, null],
+    ['Цвет ника', 'Палитра цветов для имени в кабинете', 'theme', 250, 1, null],
     ['Заморозка стрика', 'Серия не сгорит за пропуск дня', 'privilege', 150, 0, null],
     ['Продление дедлайна +24ч', 'Лишний день на домашку', 'privilege', 200, 0, null],
     ['+1 жизнь', 'Дополнительная жизнь', 'privilege', 120, 0, null],
