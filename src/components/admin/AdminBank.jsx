@@ -156,7 +156,7 @@ export default function AdminBank() {
           <div className="admin__drow">
             <input className="admin__inp admin__inp--n" type="number" value={t.number ?? ''} onChange={(e) => patchTopic(t.id, 'number', e.target.value)} placeholder="№" />
             <input className="admin__inp" value={t.name} onChange={(e) => patchTopic(t.id, 'name', e.target.value)} />
-            <select className="admin__inp admin__inp--sm" value={t.part || 'first'} onChange={(e) => patchTopic(t.id, 'part', e.target.value)}>{PARTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            <select className="admin__inp admin__inp--part" value={t.part || 'first'} onChange={(e) => patchTopic(t.id, 'part', e.target.value)}>{PARTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             <input className="admin__inp admin__inp--n" type="number" value={t.error_rate ?? ''} onChange={(e) => patchTopic(t.id, 'error_rate', e.target.value)} placeholder="%" />
             <button className="admin__iconbtn" title="Сохранить" onClick={() => saveTopic(t)}><Save size={15} /></button>
             <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => delTopic(t)}><Trash2 size={15} /></button>

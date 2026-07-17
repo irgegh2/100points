@@ -272,7 +272,7 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
               <div className="admin__drow">
                 {hw.level === 'hard' && <span className="admin__ltype admin__ltype--webinar">повыш.</span>}
                 <input className="admin__inp" value={hw.title} onChange={(e) => patchHw(hw.id, 'title', e.target.value)} />
-                <input className="admin__inp admin__inp--sm" value={hw.deadline || ''} onChange={(e) => patchHw(hw.id, 'deadline', e.target.value)} placeholder="дедлайн" />
+                <input className="admin__inp admin__inp--deadline" value={hw.deadline || ''} onChange={(e) => patchHw(hw.id, 'deadline', e.target.value)} placeholder="дедлайн" />
                 <button className="admin__iconbtn" title="Сохранить" onClick={() => saveHomework(hw)}><Save size={15} /></button>
                 <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => delHomework(hw)}><Trash2 size={15} /></button>
                 <button className="admin__open" onClick={() => setQModal(hw)}>Вопросы <ChevronRight size={15} /></button>

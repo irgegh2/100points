@@ -76,8 +76,8 @@ export default function AdminLibrary() {
                 <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => del(it)}><Trash2 size={15} /></button>
               </div>
               <div className="admin__qcard-head">
-                <select className="admin__inp admin__inp--sm" value={it.subject_id || ''} onChange={(e) => patch(it.id, 'subject_id', e.target.value)}><option value="">Общий</option>{subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-                <select className="admin__inp admin__inp--sm" value={it.category || 'Материалы'} onChange={(e) => patch(it.id, 'category', e.target.value)}>{CATS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+                <select className="admin__inp admin__library-select" value={it.subject_id || ''} onChange={(e) => patch(it.id, 'subject_id', e.target.value)}><option value="">Общий</option>{subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+                <select className="admin__inp admin__library-select" value={it.category || 'Материалы'} onChange={(e) => patch(it.id, 'category', e.target.value)}>{CATS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
                 <span className="admin__hint" style={{ margin: 0, fontSize: 12 }}>{it.size}</span>
               </div>
               <input className="admin__inp" value={it.url || ''} onChange={(e) => patch(it.id, 'url', e.target.value)} placeholder="ссылка / путь к файлу" />

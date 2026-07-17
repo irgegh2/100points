@@ -39,7 +39,7 @@ export default function AdminSchedule() {
       <section className="admin__panel">
         <div className="admin__panel-head">
           <h2><Plus size={18} /> Новое событие</h2>
-          <label className="admin__field" style={{ minWidth: 200 }}>Курс
+          <label className="admin__field admin__course-filter">Курс
             <select className="admin__inp" value={courseId} onChange={(e) => setCourseId(Number(e.target.value))}>{courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
           </label>
         </div>
