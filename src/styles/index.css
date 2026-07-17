@@ -654,14 +654,12 @@ h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.05; }
 .shop__row-main { flex: 1; min-width: 0; }
 .shop__row-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
 .shop__row-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.shop__life-state, .shop__boost-timer, .shop__vip-line { display: inline-flex; align-items: center; gap: 6px; margin-top: 7px;
+.shop__life-state, .shop__boost-timer { display: inline-flex; align-items: center; gap: 6px; margin-top: 7px;
   border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; line-height: 1.2; }
 .shop__life-state { color: #c83e74; background: #fff0f5; border: 1px solid #f5c9d9; }
 .shop__boost-timer { color: #075e69; background: #e7fbfc; border: 1px solid #aee8eb; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-.shop__vip-line { color: #7b5200; background: linear-gradient(90deg,#fff7d7,#fffdf4); border: 1px solid #edd28a; }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .shop__life-state { color: #ff91b8; background: rgba(224,81,138,.11); border-color: rgba(224,81,138,.3); }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .shop__boost-timer { color: #72edf4; background: rgba(24,232,242,.09); border-color: rgba(24,232,242,.25); }
-:is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .shop__vip-line { color: #f4d584; background: rgba(216,166,61,.10); border-color: rgba(232,194,105,.27); }
 .shop__tag { font-size: 10px; font-weight: 800; letter-spacing: .5px; color: #b8860b; border: 1px solid #e8c45a; border-radius: 6px; padding: 1px 6px; }
 .shop__row-side { display: flex; align-items: center; gap: 18px; flex: none; }
 .shop__price { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Gem, ArrowRight, Check, Clock, Package, X, Timer, Heart, Crown } from 'lucide-react'
+import { ArrowLeft, Gem, ArrowRight, Check, Clock, Package, X, Timer, Heart } from 'lucide-react'
 import { shopList, shopBuy, purchasesList } from '../api.js'
 
 const CAT_LABELS = {
@@ -120,7 +120,6 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
                         <div className="shop__row-desc">{it.description}</div>
                         {isLife && <div className="shop__life-state"><Heart size={13} fill="currentColor" /> Сейчас {lives}/{maxLives}</div>}
                         {isBooster && boosterLeft > 0 && <div className="shop__boost-timer"><Timer size={14} /> ×2 активно · {formatTimer(boosterLeft)}</div>}
-                        {it.name === 'VIP-статус навсегда' && <div className="shop__vip-line"><Crown size={13} /> VIP-значок · чёрное золото · дедлайны +1 день · 7 жизней · вход +10</div>}
                       </div>
                       <div className="shop__row-side">
                         <span className="shop__price"><Gem size={15} /> {it.price}</span>
