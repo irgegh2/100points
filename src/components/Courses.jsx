@@ -11,7 +11,7 @@ const PLATE = { 'Вводные': 'Вводный курс', 'Летняя шк�
 const ICONS = { landmark: Landmark, feather: Feather, leaf: Leaf, cap: GraduationCap, social: Users, english: Languages, book: BookOpen }
 
 // уникальный дудл-фон под каждый предмет (?v — чтобы браузер не кэшировал старые версии)
-const V = '11'
+const V = '12'
 const PATTERNS = {
   'Профильная математика': `/img/pattern-math.svg?v=${V}`,
   'Русский язык': `/img/pattern-rus.svg?v=${V}`,
