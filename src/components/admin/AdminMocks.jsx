@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, ChevronRight, UserRound } from 'lucide-react'
+import { Plus, Trash2, Save, ChevronRight, UserRound, Search } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 import AdminQuestionsModal from './AdminQuestionsModal.jsx'
 import AdminMockAssignments from './AdminMockAssignments.jsx'
+
+const PAGE_SIZE = 20
 
 export default function AdminMocks() {
   const [courses, setCourses] = useState([])
@@ -12,6 +14,10 @@ export default function AdminMocks() {
   const [busy, setBusy] = useState(false)
   const [qModal, setQModal] = useState(null)
   const [assignModal, setAssignModal] = useState(null)
+  const [openId, setOpenId] = useState(null)
+  const [query, setQuery] = useState('')
+  const [formatFilter, setFormatFilter] = useState('all')
+  const [page, setPage] = useState(0)
 
   const load = async () => {
     const [c, m] = await Promise.all([catList('courses'), catList('mock_exams')])
@@ -29,16 +35,27 @@ export default function AdminMocks() {
     if (!form.month.trim() || !form.title.trim()) return setMsg({ type: 'err', text: 'Заполните месяц и название' })
     setBusy(true); setMsg(null)
     try {
-      const payload = { ...form, access_mode: form.format === 'proctored' ? 'individual' : form.access_mode, position: mocks.length }
+      const positions = mocks.map((m) => Number(m.position)).filter(Number.isFinite)
+      const payload = { ...form, access_mode: form.format === 'proctored' ? 'individual' : form.access_mode, position: (positions.length ? Math.min(...positions) : 0) - 1 }
       const d = await catCreate('mock_exams', payload)
-      setMocks((list) => [...list, d.item]); setForm((f) => ({ ...f, title: '' }))
+      setMocks((list) => [d.item, ...list]); setForm((f) => ({ ...f, title: '' }))
+      setQuery(''); setFormatFilter('all'); setPage(0); setOpenId(d.item.id)
       setMsg({ type: 'ok', text: 'Пробник создан' })
     } catch (err) { setMsg({ type: 'err', text: err.message }) }
     finally { setBusy(false) }
   }
   const saveRow = (m) => catUpdate('mock_exams', { id: m.id, course_id: m.course_id, month: m.month, title: m.title, format: m.format || 'normal', access_mode: (m.format || 'normal') === 'proctored' ? 'individual' : (m.access_mode || 'general') }).catch((e) => alert(e.message))
-  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(() => setMocks((list) => list.filter((x) => x.id !== m.id)))
+  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(() => { setMocks((list) => list.filter((x) => x.id !== m.id)); if (openId === m.id) setOpenId(null) })
   const patch = (id, k, v) => setMocks((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))
+  const courseName = (id) => courses.find((c) => Number(c.id) === Number(id))?.title || 'Курс не найден'
+  const needle = query.trim().toLowerCase()
+  const filtered = mocks.filter((m) => {
+    if (formatFilter !== 'all' && (m.format || 'normal') !== formatFilter) return false
+    return !needle || [m.title, m.month, courseName(m.course_id)].some((v) => String(v || '').toLowerCase().includes(needle))
+  })
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pages - 1)
+  const shown = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
 
   return (
     <div className="admin__cols">
@@ -74,11 +91,23 @@ export default function AdminMocks() {
       </section>
 
       <section className="admin__panel">
-        <h2>Пробники <span className="admin__count">{mocks.length}</span></h2>
+        <div className="admin__panel-head"><h2>Пробники <span className="admin__count">{mocks.length}</span></h2><span className="admin__hint" style={{ margin: 0 }}>Новые сверху</span></div>
+        <div className="admin__catalog-tools">
+          <label className="admin__catalog-search"><Search size={16} /><input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0) }} placeholder="Название, месяц или курс" /></label>
+          <select className="admin__inp" value={formatFilter} onChange={(e) => { setFormatFilter(e.target.value); setPage(0) }} aria-label="Формат пробника"><option value="all">Все форматы</option><option value="normal">Обычные</option><option value="proctored">С наставником</option></select>
+          <span className="admin__catalog-found">Найдено: {filtered.length}</span>
+        </div>
         <div className="admin__list">
-          {mocks.length === 0 && <div className="admin__empty">Пока нет пробников</div>}
-          {mocks.map((m) => (
-            <div className="admin__mockrow" key={m.id}>
+          {filtered.length === 0 && <div className="admin__empty">Пробники не найдены</div>}
+          {shown.map((m) => {
+            const isOpen = openId === m.id
+            return <div className={`admin__mockrow ${isOpen ? 'is-open' : ''}`} key={m.id}>
+              <button className="admin__mock-summary" onClick={() => setOpenId(isOpen ? null : m.id)} aria-expanded={isOpen}>
+                <span className="admin__mock-caret"><ChevronRight size={17} /></span>
+                <span className="admin__mock-summary-main"><b>{m.title}</b><span>{courseName(m.course_id)} · {m.month || 'Без месяца'}</span></span>
+                <span className={`admin__mock-format is-${m.format || 'normal'}`}>{(m.format || 'normal') === 'proctored' ? 'С наставником' : 'Обычный'}</span>
+              </button>
+              {isOpen && <div className="admin__mock-editor">
               <div className="admin__mock-fields">
                 <label>Курс
                   <select className="admin__inp" value={m.course_id} onChange={(e) => patch(m.id, 'course_id', Number(e.target.value))}>
@@ -106,9 +135,11 @@ export default function AdminMocks() {
                 {((m.access_mode || 'general') === 'individual' || (m.format || 'normal') === 'proctored') && <button className="btn btn-light btn-sm" onClick={() => setAssignModal(m)}><UserRound size={14} /> Назначения</button>}
                 <button className="btn admin__delbtn btn-sm" onClick={() => remove(m)}><Trash2 size={14} /> Удалить</button>
               </div>
+              </div>}
             </div>
-          ))}
+          })}
         </div>
+        {pages > 1 && <div className="admin__pager"><button className="btn btn-light btn-sm" disabled={currentPage === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Назад</button><span>{currentPage + 1} из {pages}</span><button className="btn btn-light btn-sm" disabled={currentPage >= pages - 1} onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}>Дальше</button></div>}
       </section>
 
       {qModal && <AdminQuestionsModal parent={{ key: 'mock_id', id: qModal.id, title: qModal.title }} onClose={() => setQModal(null)} />}

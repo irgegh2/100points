@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import AdminFold from './AdminFold.jsx'
 
 const TYPES = [['webinar', 'Вебинар'], ['practice', 'Практика']]
 // 'YYYY-MM-DD HH:MM' ↔ input datetime-local 'YYYY-MM-DDTHH:MM'
@@ -64,7 +65,7 @@ export default function AdminSchedule() {
         <div className="admin__list">
           {events.length === 0 && <div className="admin__empty">Событий нет</div>}
           {events.map((ev) => (
-            <div className="admin__qcard" key={ev.id}>
+            <AdminFold key={ev.id} title={ev.title} meta={`${TYPES.find(([v]) => v === ev.type)?.[1] || ev.type} · ${toInput(ev.starts_at).replace('T', ' ')}`}>
               <div className="admin__qcard-head">
                 <select className="admin__inp admin__inp--sm" value={ev.type} onChange={(e) => patch(ev.id, 'type', e.target.value)}>{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
                 <input className="admin__inp" type="datetime-local" value={toInput(ev.starts_at)} onChange={(e) => patch(ev.id, 'starts_at', e.target.value)} />
@@ -73,7 +74,7 @@ export default function AdminSchedule() {
               </div>
               <input className="admin__inp" value={ev.title} onChange={(e) => patch(ev.id, 'title', e.target.value)} />
               <input className="admin__inp" value={ev.link || ''} onChange={(e) => patch(ev.id, 'link', e.target.value)} placeholder="ссылка на эфир" />
-            </div>
+            </AdminFold>
           ))}
         </div>
       </section>

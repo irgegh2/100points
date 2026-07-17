@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import AdminFold from './AdminFold.jsx'
 
 const MODELS = ['deepseek/deepseek-v4-flash', 'deepseek/deepseek-chat-v3.1', 'qwen/qwen3-max', 'google/gemini-3.5-flash', 'openai/gpt-5-mini', 'anthropic/claude-opus-4.8-fast']
 
@@ -87,7 +88,7 @@ export default function AdminTrainer() {
             <div className="admin__list">
               {tasks.length === 0 && <div className="admin__empty">Нет задач</div>}
               {tasks.map((t) => (
-                <div className="admin__qcard" key={t.id}>
+                <AdminFold key={t.id} title={(t.text || 'Без текста').slice(0, 100)} meta={`Уровень ${t.level || 1}`}>
                   <div className="admin__qcard-head">
                     <label className="admin__chk">ур. <input className="admin__inp admin__inp--n" type="number" min={1} max={5} value={t.level ?? 1} onChange={(e) => patchTask(t.id, 'level', e.target.value)} /></label>
                     <input className="admin__inp" value={t.model || ''} onChange={(e) => patchTask(t.id, 'model', e.target.value)} list="ai-models" />
@@ -97,7 +98,7 @@ export default function AdminTrainer() {
                   <label className="admin__field">Текст задачи <textarea className="admin__textarea" rows={5} value={t.text} onChange={(e) => patchTask(t.id, 'text', e.target.value)} /></label>
                   <label className="admin__field">Эталонный ответ <input className="admin__inp" value={t.answer || ''} onChange={(e) => patchTask(t.id, 'answer', e.target.value)} /></label>
                   <label className="admin__field">Решение <span>(необязательно)</span><textarea className="admin__textarea" rows={3} value={t.solution || ''} onChange={(e) => patchTask(t.id, 'solution', e.target.value)} /></label>
-                </div>
+                </AdminFold>
               ))}
             </div>
           </section>
@@ -123,7 +124,7 @@ export default function AdminTrainer() {
             <div className="admin__list">
               {qa.length === 0 && <div className="admin__empty">Нет тем</div>}
               {qa.map((t) => (
-                <div className="admin__qcard" key={t.id}>
+                <AdminFold key={t.id} title={t.name || 'Без названия'} meta={`Уровень ${t.level || 1}`}>
                   <div className="admin__qcard-head">
                     <label className="admin__chk">ур. <input className="admin__inp admin__inp--n" type="number" min={1} max={5} value={t.level ?? 1} onChange={(e) => patchQa(t.id, 'level', e.target.value)} /></label>
                     <input className="admin__inp" value={t.name} onChange={(e) => patchQa(t.id, 'name', e.target.value)} />
@@ -132,7 +133,7 @@ export default function AdminTrainer() {
                   </div>
                   <label className="admin__field">Примеры / что спрашивать <textarea className="admin__textarea" rows={4} value={t.examples || ''} onChange={(e) => patchQa(t.id, 'examples', e.target.value)} placeholder="Что спрашивать" /></label>
                   <input className="admin__inp" value={t.model || ''} onChange={(e) => patchQa(t.id, 'model', e.target.value)} list="ai-models" placeholder="модель" />
-                </div>
+                </AdminFold>
               ))}
             </div>
           </section>

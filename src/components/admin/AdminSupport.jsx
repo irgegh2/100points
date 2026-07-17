@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save, FolderOpen, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import AdminFold from './AdminFold.jsx'
 
 // База знаний техподдержки: категории → вопросы-ответы. Используется ИИ-чатом «Помощь по платформе».
 export default function AdminSupport() {
@@ -79,14 +80,14 @@ export default function AdminSupport() {
             <div className="admin__list">
               {qa.length === 0 && <div className="admin__empty">В этой категории пока нет вопросов</div>}
               {qa.map((q) => (
-                <div className="admin__qcard" key={q.id}>
+                <AdminFold key={q.id} title={q.question || 'Без вопроса'} meta="Вопрос и ответ">
                   <div className="admin__qcard-head">
                     <input className="admin__inp" style={{ flex: 1 }} value={q.question} onChange={(e) => patchQa(q.id, 'question', e.target.value)} />
                     <button className="admin__iconbtn" onClick={() => saveQa(q)}><Save size={15} /></button>
                     <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => delQa(q)}><Trash2 size={15} /></button>
                   </div>
                   <textarea className="admin__textarea" rows={3} value={q.answer || ''} onChange={(e) => patchQa(q.id, 'answer', e.target.value)} />
-                </div>
+                </AdminFold>
               ))}
             </div>
           </>

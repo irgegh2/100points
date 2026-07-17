@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { X, Plus, Trash2, Save } from 'lucide-react'
+import { X, Plus, Trash2, Save, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 
 const TYPES = [['single', 'Один из вариантов'], ['multi', 'Несколько вариантов'], ['text', 'Короткий ответ (строка)'], ['textarea', 'Развёрнутый (ручная проверка)']]
@@ -48,6 +48,7 @@ export default function AdminQuestionsModal({ parent, onClose }) {
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveState, setSaveState] = useState('saved')
+  const [openId, setOpenId] = useState(null)
   const itemsRef = useRef([])
 
   const load = () => catList('questions', { [parent.key]: parent.id }).then((d) => setItems((d.items || []).map(toForm)))
@@ -96,12 +97,12 @@ export default function AdminQuestionsModal({ parent, onClose }) {
     setBusy(true)
     try {
       const d = await catCreate('questions', toPayload({ type: 'single', text: 'Новый вопрос', points: 1, optional: false, hard: false, solution: '', case_sensitive: false, grade_mode: 'full', options: ['', ''], correctSet: [], accepted: [''] }, parent.key, parent.id, itemsRef.current.length))
-      setItems((list) => [...list, toForm(d.item)])
+      setItems((list) => [...list, toForm(d.item)]); setOpenId(d.item.id)
     } catch (e) { alert(e.message) } finally { setBusy(false) }
   }
   const save = (f) => persist([{ q: f, position: itemsRef.current.findIndex((q) => q.id === f.id) }])
   const saveAll = () => persist(dirtyEntries())
-  const remove = async (f) => { if (confirm('Удалить вопрос?')) { await catDelete('questions', f.id); setItems((list) => list.filter((q) => q.id !== f.id)) } }
+  const remove = async (f) => { if (confirm('Удалить вопрос?')) { await catDelete('questions', f.id); setItems((list) => list.filter((q) => q.id !== f.id)); if (openId === f.id) setOpenId(null) } }
 
   // редакторы вариантов
   const setOpt = (q, i, v) => patch(q.id, 'options', q.options.map((o, j) => j === i ? v : o))
@@ -129,9 +130,16 @@ export default function AdminQuestionsModal({ parent, onClose }) {
 
         {items.length === 0 && <div className="admin__empty">Пока нет вопросов</div>}
         {items.map((q, idx) => (
-          <div className="admin__qcard" key={q.id}>
-            <div className="admin__qcard-head">
+          <div className={`admin__qcard admin__qcard--fold ${openId === q.id ? 'is-open' : ''}`} key={q.id}>
+            <button className="admin__qsummary" onClick={() => setOpenId(openId === q.id ? null : q.id)} aria-expanded={openId === q.id}>
+              <span className="admin__qsummary-caret"><ChevronRight size={16} /></span>
               <span className="admin__qnum">№{idx + 1}</span>
+              <span className="admin__qsummary-text">{q.text || 'Без текста'}</span>
+              <span className="admin__qsummary-type">{TYPES.find(([v]) => v === q.type)?.[1] || q.type}</span>
+              {q._dirty && <span className="admin__qsummary-dirty">не сохранён</span>}
+            </button>
+            {openId === q.id && <div className="admin__qcard-body">
+            <div className="admin__qcard-head">
               <select className="admin__inp admin__inp--sm" style={{ width: 'auto' }} value={q.type} onChange={(e) => patch(q.id, 'type', e.target.value)}>
                 {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -186,6 +194,7 @@ export default function AdminQuestionsModal({ parent, onClose }) {
               </label>
             )}
             {q.type === 'textarea' && <p className="admin__hint">Развёрнутый ответ проверяется вручную в разделе «Проверка работ».</p>}
+            </div>}
           </div>
         ))}
 

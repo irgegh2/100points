@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2, Save, Upload, Link2 } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete, libraryUpload } from '../../api.js'
+import AdminFold from './AdminFold.jsx'
 
 const CATS = ['Конспекты', 'Шпаргалки', 'Кодификаторы', 'Демоверсии', 'Пробники прошлых лет', 'Карточки', 'Материалы']
 
@@ -69,7 +70,7 @@ export default function AdminLibrary() {
         <div className="admin__list">
           {items.length === 0 && <div className="admin__empty">Материалов нет</div>}
           {items.map((it) => (
-            <div className="admin__qcard" key={it.id}>
+            <AdminFold key={it.id} title={it.title || 'Без названия'} meta={`${subjName(it.subject_id)} · ${it.category || 'Материалы'}`}>
               <div className="admin__qcard-head">
                 <input className="admin__inp" style={{ flex: 1 }} value={it.title} onChange={(e) => patch(it.id, 'title', e.target.value)} />
                 <button className="admin__iconbtn" onClick={() => save(it)}><Save size={15} /></button>
@@ -81,7 +82,7 @@ export default function AdminLibrary() {
                 <span className="admin__hint" style={{ margin: 0, fontSize: 12 }}>{it.size}</span>
               </div>
               <input className="admin__inp" value={it.url || ''} onChange={(e) => patch(it.id, 'url', e.target.value)} placeholder="ссылка / путь к файлу" />
-            </div>
+            </AdminFold>
           ))}
         </div>
       </section>

@@ -1601,6 +1601,16 @@ select.admin__inp { padding: 0 6px; }
 /* админ: редактор вопросов */
 .admin__modal-box--wide { max-width: 760px; }
 .admin__qcard { border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; display: grid; gap: 10px; }
+.admin__qcard--fold { overflow: hidden; padding: 0; display: block; }
+.admin__qcard--fold.is-open { border-color: color-mix(in srgb, var(--blue) 30%, var(--line)); }
+.admin__qsummary { width: 100%; min-width: 0; display: grid; grid-template-columns: 18px 34px minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 12px 13px; text-align: left; }
+.admin__qsummary:hover { background: var(--bg-soft); }
+.admin__qsummary-caret { display: grid; place-items: center; color: var(--muted); transition: transform .18s ease; }
+.admin__qcard--fold.is-open .admin__qsummary-caret { transform: rotate(90deg); }
+.admin__qsummary-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 750; }
+.admin__qsummary-type { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.admin__qsummary-dirty { padding: 3px 6px; border-radius: 999px; color: #a66000; background: #fff7e3; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.admin__qcard-body { padding: 13px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
 .admin__qcard-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .admin__qsavebar { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .admin__savestate { color: var(--muted); font-size: 11px; font-weight: 750; white-space: nowrap; }
@@ -1621,14 +1631,53 @@ select.admin__inp { padding: 0 6px; }
 .admin__opt-correct input { width: 18px; height: 18px; }
 
 /* ── админка: пробники ── */
-.admin__mockrow { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.admin__catalog-tools { display: grid; grid-template-columns: minmax(180px,1fr) minmax(140px,190px) auto; gap: 10px; align-items: center; margin: 14px 0; }
+.admin__catalog-search { min-width: 0; height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: var(--surface); }
+.admin__catalog-search:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.1); }
+.admin__catalog-search input { min-width: 0; width: 100%; color: var(--ink); background: transparent; }
+.admin__catalog-found { color: var(--muted); font-size: 12px; font-weight: 750; white-space: nowrap; }
+.admin__pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+.admin__pager span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.admin__mockrow { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.admin__mockrow.is-open { border-color: color-mix(in srgb, var(--blue) 34%, var(--line)); box-shadow: 0 8px 24px rgba(28,46,80,.06); }
+.admin__mock-summary { width: 100%; display: grid; grid-template-columns: 22px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 13px 14px; text-align: left; }
+.admin__mock-summary:hover { background: var(--bg-soft); }
+.admin__mock-caret { display: grid; place-items: center; color: var(--muted); transition: transform .18s ease; }
+.admin__mockrow.is-open .admin__mock-caret { transform: rotate(90deg); }
+.admin__mock-summary-main { min-width: 0; display: grid; gap: 3px; }
+.admin__mock-summary-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.admin__mock-summary-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+.admin__mock-format { padding: 5px 8px; border-radius: 999px; color: #53627a; background: var(--bg-soft); font-size: 10px; font-weight: 850; white-space: nowrap; }
+.admin__mock-format.is-proctored { color: #a73a34; background: #fff0ef; }
+.admin__mock-editor { padding: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
 .admin__mockrow label { min-width: 0; display: grid; gap: 5px; font-weight: 700; font-size: 13px; }
 .admin__mock-fields { min-width: 0; display: grid; grid-template-columns: 130px minmax(0,1fr); gap: 10px 12px; }
 .admin__mock-fields > label:first-child { grid-column: 1 / -1; }
 .admin__mock-fields > * { min-width: 0; }
 @container (max-width: 470px) { .admin__mock-fields { grid-template-columns: minmax(0,1fr); } .admin__mock-fields > label:first-child { grid-column: auto; } }
 
+/* компактные длинные каталоги */
+.admin__fold { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.admin__fold[open] { border-color: color-mix(in srgb, var(--blue) 30%, var(--line)); }
+.admin__fold > summary { min-width: 0; display: grid; grid-template-columns: 22px minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 12px 13px; cursor: pointer; list-style: none; }
+.admin__fold > summary::-webkit-details-marker { display: none; }
+.admin__fold > summary:hover { background: var(--bg-soft); }
+.admin__fold-caret { display: grid; place-items: center; color: var(--muted); transition: transform .18s ease; }
+.admin__fold[open] .admin__fold-caret { transform: rotate(90deg); }
+.admin__fold-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 800; }
+.admin__fold-meta { overflow: hidden; max-width: 260px; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+.admin__fold-body { padding: 13px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+
 @media (max-width: 760px) {
+  .admin__catalog-tools { grid-template-columns: 1fr; }
+  .admin__catalog-found { justify-self: start; }
+  .admin__mock-summary { grid-template-columns: 22px minmax(0,1fr); }
+  .admin__mock-format { grid-column: 2; justify-self: start; }
+  .admin__fold > summary { grid-template-columns: 22px minmax(0,1fr); }
+  .admin__fold-meta { grid-column: 2; justify-self: start; max-width: 100%; }
+  .admin__qsummary { grid-template-columns: 18px 34px minmax(0,1fr); }
+  .admin__qsummary-type { grid-column: 3; justify-self: start; }
+  .admin__qsummary-dirty { grid-column: 3; justify-self: start; }
   .admin__drow { flex-wrap: wrap; }
   .admin__drow > .admin__inp:not(.admin__inp--n):not(.admin__inp--sm):not(.admin__inp--part):not(.admin__inp--deadline) { width: auto; min-width: 180px; flex: 1 1 220px; }
   .admin__drow > .admin__open { margin-left: auto; }
