@@ -81,6 +81,22 @@ foreach ($st as $r) {
   ];
 }
 
+// 4) Персональные пробники с наставником.
+$st = db()->prepare(
+  "SELECT m.title, a.starts_at, a.duration, s.name AS subject, s.color
+   FROM mock_assignments a
+   JOIN mock_exams m ON m.id = a.mock_id AND COALESCE(m.format,'normal') = 'proctored'
+   JOIN courses c ON c.id = m.course_id
+   JOIN subjects s ON s.id = c.subject_id
+   WHERE a.user_id = ? AND substr(a.starts_at,1,10) BETWEEN ? AND ?"
+);
+$st->execute([$uid, $monday, $sunday]);
+foreach ($st as $r) $all[] = [
+  'date' => substr($r['starts_at'], 0, 10), 'time' => substr($r['starts_at'], 11, 5),
+  'kind' => 'proctored', 'title' => $r['title'], 'subject' => $r['subject'], 'color' => $r['color'] ?: '#dd4b43',
+  'link' => null, 'duration' => (int)$r['duration'] ?: 180,
+];
+
 // Раскладываем по дням, дедлайны — в конец дня.
 $days = [];
 for ($i = 0; $i < 7; $i++) {

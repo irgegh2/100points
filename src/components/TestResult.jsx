@@ -15,7 +15,7 @@ function correctText(r) {
   return ''
 }
 
-export default function TestResult({ homeworkId, kind = 'homework', onBack, onRetry }) {
+export default function TestResult({ homeworkId, kind = 'homework', onBack, onRetry, allowRetry = true }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(() => new Set())
@@ -39,7 +39,7 @@ export default function TestResult({ homeworkId, kind = 'homework', onBack, onRe
 
   return (
     <div className="result">
-      <button className="result__back" onClick={onBack}><ChevronLeft size={18} /> Вернуться к уроку</button>
+      <button className="result__back" onClick={onBack}><ChevronLeft size={18} /> {kind === 'mock' ? 'К пробникам' : 'Вернуться к уроку'}</button>
 
       <div className="result__grid">
         <div className="result__main">
@@ -98,9 +98,9 @@ export default function TestResult({ homeworkId, kind = 'homework', onBack, onRe
           ) : (
             <div className="result__panel">
               <div className="result__score"><b>{earned}</b><span>/{total}</span></div>
-              <h3>Домашнее задание пройдено</h3>
+              <h3>{kind === 'mock' ? 'Пробник пройден' : 'Домашнее задание пройдено'}</h3>
               <p>Отличная работа! Можно двигаться дальше.</p>
-              <button className="btn btn-light btn-block" onClick={onRetry}><RefreshCw size={16} /> Пройти ещё раз</button>
+              {allowRetry && <button className="btn btn-light btn-block" onClick={onRetry}><RefreshCw size={16} /> Пройти ещё раз</button>}
             </div>
           )}
 

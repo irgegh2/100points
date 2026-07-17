@@ -48,6 +48,7 @@ const TODAY_KIND = {
   practice: { type: 'Практика', icon: BookOpen, cls: 'theory' },
   theory: { type: 'Теория', icon: BookOpen, cls: 'theory' },
   homework: { type: 'Домашка', icon: PencilLine, cls: 'homework' },
+  proctored: { type: 'Пробник с наставником', icon: ClipboardCheck, cls: 'webinar' },
 }
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 // Иконки достижений (строка из БД → компонент).
@@ -124,8 +125,8 @@ function HomeDash({ onNavigate, crystals }) {
                     </div>
                     <div className="dtoday__right">
                       <span className={`dtoday__meta ${t.urgent ? 'urgent' : ''}`}>{t.meta}</span>
-                      {t.kind === 'homework'
-                        ? <button className="btn btn-orange" onClick={() => onNavigate('homework')}>{t.action}</button>
+                      {t.kind === 'homework' || t.kind === 'proctored'
+                        ? <button className="btn btn-orange" onClick={() => onNavigate(t.kind === 'proctored' ? 'mock' : 'homework')}>{t.action}</button>
                         : <a className="btn btn-orange" href={t.link || '#'} target="_blank" rel="noreferrer">{t.action}</a>}
                     </div>
                   </div>

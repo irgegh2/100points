@@ -71,4 +71,20 @@ foreach ($hw as $r) {
   ];
 }
 
+// 3) Индивидуальный пробник с наставником, назначенный на сегодня.
+$pm = db()->prepare(
+  "SELECT m.title, a.starts_at, s.name AS subject, s.color
+   FROM mock_assignments a
+   JOIN mock_exams m ON m.id = a.mock_id AND COALESCE(m.format,'normal') = 'proctored'
+   JOIN courses c ON c.id = m.course_id
+   JOIN subjects s ON s.id = c.subject_id
+   WHERE a.user_id = ? AND substr(a.starts_at,1,10) = ? AND a.status <> 'finished'
+   ORDER BY a.starts_at"
+);
+$pm->execute([$uid, $today]);
+foreach ($pm as $r) $items[] = [
+  'kind' => 'proctored', 'title' => $r['title'], 'subject' => $r['subject'], 'color' => $r['color'] ?: '#dd4b43',
+  'meta' => 'Сегодня ' . substr($r['starts_at'], 11, 5), 'action' => 'К пробнику',
+];
+
 ok(['items' => $items, 'date' => $today]);

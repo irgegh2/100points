@@ -35,8 +35,14 @@ $SCHEMA = [
   'questions' => ['fields' => ['homework_id','mock_id','subtopic_id','difficulty','type','text','options','correct','solution','points','optional','hard','case_sensitive','grade_mode','position'],
                   'parent' => 'homework_id','children' => []],
   // Пробники (Этап 6). Привязаны к курсу. month — метка месяца («Март», «Март 2», «Март Про»).
-  'mock_exams'=> ['fields' => ['course_id','month','title','position'],
-                  'parent' => 'course_id','children' => [['questions','mock_id']]],
+  'mock_exams'=> ['fields' => ['course_id','month','title','format','access_mode','position'],
+                  'parent' => 'course_id','children' => [['questions','mock_id'],['mock_assignments','mock_id']]],
+  'mock_assignments' => ['fields' => ['mock_id','user_id','starts_at','duration','status'],
+                  'parent' => 'mock_id','children' => [['proctored_mock_presence','assignment_id'],['proctored_mock_messages','assignment_id'],['proctored_mock_events','assignment_id'],['proctored_mock_signals','assignment_id']]],
+  'proctored_mock_presence' => ['fields' => ['assignment_id'], 'parent' => 'assignment_id', 'children' => []],
+  'proctored_mock_messages' => ['fields' => ['assignment_id'], 'parent' => 'assignment_id', 'children' => []],
+  'proctored_mock_events' => ['fields' => ['assignment_id'], 'parent' => 'assignment_id', 'children' => []],
+  'proctored_mock_signals' => ['fields' => ['assignment_id'], 'parent' => 'assignment_id', 'children' => []],
   // Банк заданий (Этап 7): темы (номера заданий) → подтемы → вопросы; источники → варианты.
   'topics'    => ['fields' => ['subject_id','number','name','part','error_rate','position'],
                   'parent' => 'subject_id','children' => [['subtopics','topic_id']]],
@@ -75,7 +81,7 @@ $SCHEMA = [
 ];
 
 // Целочисленные поля — приводим к int (или null), чтобы в БД не падал мусор.
-$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','homework_id','mock_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','level','show_features','once_only','active','reward','target'];
+$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','homework_id','mock_id','assignment_id','user_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','duration','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','level','show_features','once_only','active','reward','target'];
 
 $in = body();
 $entity = (string)($in['entity'] ?? '');

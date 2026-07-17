@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, Camera, UserRound } from 'lucide-react'
 import HomeworkTest from './HomeworkTest.jsx'
 import { mockList } from '../api.js'
+import ProctoredMock from './ProctoredMock.jsx'
 
 const STATUS = {
   todo:   { label: 'К выполнению', cls: 'todo' },
@@ -23,7 +24,8 @@ export default function Mock() {
     .catch((e) => { setError(e.message); setLoading(false) })
   useEffect(() => { load() }, [])
 
-  if (opened) return <HomeworkTest homeworkId={opened} kind="mock" onBack={() => { setOpened(null); load() }} />
+  if (opened?.format === 'proctored') return <ProctoredMock assignmentId={opened.assignmentId} onBack={() => { setOpened(null); load() }} />
+  if (opened) return <HomeworkTest homeworkId={opened.mockId} kind="mock" onBack={() => { setOpened(null); load() }} />
 
   const subjects = ['Все предметы', ...Array.from(new Set(items.map((m) => m.subject)))]
   const FILTERS = [
@@ -73,16 +75,19 @@ export default function Mock() {
         {list.map((m) => {
           const st = STATUS[m.status]
           return (
-            <button className="hwcard" key={m.id} onClick={() => setOpened(m.id)}>
+            <button className={`hwcard ${m.format === 'proctored' ? 'hwcard--proctored' : ''}`} key={m.id} onClick={() => setOpened({ format: m.format || 'normal', assignmentId: m.assignment_id, mockId: m.id })}>
               <span className="hwcard__ico" style={{ background: m.color }}>{(m.subject || '?')[0]}</span>
               <span className="hwcard__main">
                 <span className="hwcard__statusrow">
                   <span className={`hwcard__status ${st.cls}`}>{st.label}</span>
                   <span className="hwcard__level">{m.month}</span>
+                  {m.format === 'proctored' && <span className="hwcard__proctor"><Camera size={12} /> С наставником</span>}
+                  {m.format !== 'proctored' && m.access_mode === 'individual' && <span className="hwcard__personal"><UserRound size={12} /> Личный</span>}
                 </span>
                 <span className="hwcard__name">{m.title}</span>
                 <span className="hwcard__deadline">
                   {m.subject}
+                  {m.format === 'proctored' && m.starts_at && <> · {new Date(String(m.starts_at).replace(' ', 'T')).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</>}
                   {m.status === 'done' && m.score != null && <> · {m.score}/{m.max_score} б.</>}
                 </span>
               </span>

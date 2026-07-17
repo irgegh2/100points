@@ -2,18 +2,28 @@
 // POST /mock_submit.php  { mock_id, answers: [ { question_id, value } ] }
 // Приём ответов пробника + автопроверка (тот же движок grade_question, что и у ДЗ).
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/proctored_helpers.php';
 $uid = require_user();
 
 $in = body();
 $mockId = (int)($in['mock_id'] ?? 0);
+$assignmentId = (int)($in['assignment_id'] ?? 0);
 $answersIn = is_array($in['answers'] ?? null) ? $in['answers'] : [];
 if ($mockId <= 0) fail('Не указан пробник', 400);
 
-$m = db()->prepare("SELECT m.id, m.course_id FROM mock_exams m WHERE m.id = ? LIMIT 1");
+$m = db()->prepare("SELECT m.id, m.course_id, COALESCE(m.format,'normal') AS format, COALESCE(m.access_mode,'general') AS access_mode FROM mock_exams m WHERE m.id = ? LIMIT 1");
 $m->execute([$mockId]);
 $mk = $m->fetch();
 if (!$mk) fail('Пробник не найден', 404);
-if (!user_has_course_access($uid, (int)$mk['course_id'])) fail('Нет доступа к курсу', 403);
+$assignment = p_assignment_for_user($uid, $assignmentId, $mockId);
+$assignment = $assignment && (int)$assignment['mock_id'] === $mockId ? $assignment : null;
+$hasAccess = ($mk['format'] === 'proctored' || $mk['access_mode'] === 'individual') ? (bool)$assignment : user_has_course_access($uid, (int)$mk['course_id']);
+if (!$hasAccess) fail('Пробник тебе не назначен', 403);
+if ($mk['format'] === 'proctored') {
+  if (!$assignment || (int)$assignment['id'] !== $assignmentId) fail('Нет доступа к сессии', 403);
+  if (empty($assignment['camera_consent_at']) || empty($assignment['started_at'])) fail('Сначала подключи камеру', 409);
+  if (p_time_state($assignment) !== 'live') fail('Сессия уже завершена или ещё не началась', 409);
+}
 
 $given = [];
 foreach ($answersIn as $a) if (isset($a['question_id'])) $given[(int)$a['question_id']] = $a['value'] ?? null;
@@ -69,6 +79,11 @@ try {
 }
 
 delete_draft($uid, 'mock', $mockId); // ответы отправлены — черновик больше не нужен
+if ($mk['format'] === 'proctored' && $assignment) {
+  db()->prepare("UPDATE mock_assignments SET status = 'finished', finished_at = ?, updated_at = ? WHERE id = ?")
+      ->execute([date('Y-m-d H:i:s'), date('Y-m-d H:i:s'), (int)$assignment['id']]);
+  p_event((int)$assignment['id'], 'session_finished', 'Ученик завершил пробник');
+}
 
 // Геймификация (Этап 9): порог 50% по авто-части. Нет авто-заданий → сразу. Жизни пробник НЕ трогает.
 try {

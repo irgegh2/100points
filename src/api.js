@@ -91,8 +91,14 @@ export const mockList = ({ subject, month } = {}) => {
   return call('/mock_list.php' + (qs ? `?${qs}` : ''))
 }
 export const mockGet = (id) => call(`/mock_get.php?id=${id}`)
-export const mockSubmit = (mockId, answers) => call('/mock_submit.php', { method: 'POST', body: { mock_id: mockId, answers } })
+export const mockSubmit = (mockId, answers, assignmentId = null) => call('/mock_submit.php', { method: 'POST', body: { mock_id: mockId, answers, ...(assignmentId ? { assignment_id: assignmentId } : {}) } })
 export const mockResult = (id) => call(`/mock_result.php?id=${id}`)
+export const proctoredSessionGet = (assignmentId) => call(`/proctored_session_get.php?assignment_id=${assignmentId}`)
+export const proctoredStudentStart = (assignmentId) => call('/proctored_student_start.php', { method: 'POST', body: { assignment_id: assignmentId } })
+export const proctoredStudentSync = (payload) => call('/proctored_student_sync.php', { method: 'POST', body: payload })
+export const proctoredChatSend = (assignmentId, content) => call('/proctored_chat_send.php', { method: 'POST', body: { assignment_id: assignmentId, content } })
+export const proctoredSignalSend = (assignmentId, type, payload) => call('/proctored_signal_send.php', { method: 'POST', body: { assignment_id: assignmentId, type, payload } })
+export const proctoredSignalList = (assignmentId, afterId = 0) => call(`/proctored_signal_list.php?assignment_id=${assignmentId}&after_id=${afterId}`)
 
 // Автосохранение черновика ответов (kind: 'homework'|'mock').
 export const draftSave = (kind, refId, answers) => call('/draft_save.php', { method: 'POST', body: { kind, ref_id: refId, answers } })
@@ -238,6 +244,10 @@ export const userGet = (id) => call(`/users_get.php?id=${id}`)
 export const userCreate = (payload) => call('/users_create.php', { method: 'POST', body: payload })
 export const userUpdate = (payload) => call('/users_update.php', { method: 'POST', body: payload })
 export const userDelete = (id) => call('/users_delete.php', { method: 'POST', body: { id } })
+export const adminMockAssignments = (mockId) => call(`/admin_mock_assignments.php?mock_id=${mockId}`)
+export const adminMockAssign = (payload) => call('/admin_mock_assign.php', { method: 'POST', body: payload })
+export const adminMockUnassign = (assignmentId) => call('/admin_mock_unassign.php', { method: 'POST', body: { assignment_id: assignmentId } })
+export const adminProctoredMonitor = (assignmentId) => call(`/admin_proctored_monitor.php?assignment_id=${assignmentId}`)
 // Чтение ИИ-чатов ученика админом.
 export const adminUserChats = (userId) => call(`/admin_user_chats.php?user_id=${userId}`)
 export const adminChatMessages = (chatId) => call(`/admin_chat_messages.php?chat_id=${chatId}`)

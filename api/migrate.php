@@ -926,6 +926,81 @@ $MIGRATIONS = [
     }
   },
 
+  // v28 — индивидуальные пробники с онлайн-наблюдением наставника.
+  28 => function (PDO $pdo, string $driver) {
+    if (!column_exists($pdo, $driver, 'mock_exams', 'format')) {
+      $pdo->exec("ALTER TABLE mock_exams ADD COLUMN format VARCHAR(20) DEFAULT 'normal'");
+    }
+    if (!column_exists($pdo, $driver, 'mock_exams', 'access_mode')) {
+      $pdo->exec("ALTER TABLE mock_exams ADD COLUMN access_mode VARCHAR(20) DEFAULT 'general'");
+    }
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS mock_assignments (
+      id {PK},
+      mock_id INT NOT NULL,
+      user_id INT NOT NULL,
+      starts_at VARCHAR(20),
+      duration INT DEFAULT 180,
+      status VARCHAR(20) DEFAULT 'scheduled',
+      camera_consent_at VARCHAR(30),
+      started_at VARCHAR(30),
+      finished_at VARCHAR(30),
+      created_at {TS},
+      updated_at VARCHAR(30),
+      UNIQUE (mock_id, user_id),
+      FOREIGN KEY (mock_id) REFERENCES mock_exams(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS proctored_mock_presence (
+      id {PK},
+      assignment_id INT NOT NULL,
+      current_question INT DEFAULT 0,
+      cursor_x INT DEFAULT 0,
+      cursor_y INT DEFAULT 0,
+      viewport_w INT DEFAULT 0,
+      viewport_h INT DEFAULT 0,
+      visibility VARCHAR(20) DEFAULT 'visible',
+      focus_state VARCHAR(20) DEFAULT 'focused',
+      camera_state VARCHAR(30) DEFAULT 'off',
+      peer_state VARCHAR(30) DEFAULT 'new',
+      answers TEXT,
+      last_seen VARCHAR(30),
+      updated_at {TS},
+      UNIQUE (assignment_id),
+      FOREIGN KEY (assignment_id) REFERENCES mock_assignments(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS proctored_mock_messages (
+      id {PK},
+      assignment_id INT NOT NULL,
+      sender VARCHAR(20) NOT NULL,
+      content VARCHAR(1000) NOT NULL,
+      created_at {TS},
+      FOREIGN KEY (assignment_id) REFERENCES mock_assignments(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS proctored_mock_events (
+      id {PK},
+      assignment_id INT NOT NULL,
+      event_type VARCHAR(40) NOT NULL,
+      detail VARCHAR(255),
+      created_at {TS},
+      FOREIGN KEY (assignment_id) REFERENCES mock_assignments(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS proctored_mock_signals (
+      id {PK},
+      assignment_id INT NOT NULL,
+      sender VARCHAR(20) NOT NULL,
+      recipient VARCHAR(20) NOT NULL,
+      signal_type VARCHAR(20) NOT NULL,
+      payload TEXT NOT NULL,
+      created_at {TS},
+      FOREIGN KEY (assignment_id) REFERENCES mock_assignments(id)
+    ) {ENGINE}", $driver));
+  },
+
 ];
 
 // ── Прогон ──────────────────────────────────────────────────

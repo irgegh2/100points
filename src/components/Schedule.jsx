@@ -6,7 +6,7 @@ const DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 const dnum = (iso) => parseInt(iso.slice(8, 10), 10)
 const mon = (iso) => MONTHS[parseInt(iso.slice(5, 7), 10) - 1]
-const KIND_LBL = { practice: 'Практика', theory: 'Теория', webinar: 'Вебинар', deadline: 'Дедлайн ДЗ' }
+const KIND_LBL = { practice: 'Практика', theory: 'Теория', webinar: 'Вебинар', deadline: 'Дедлайн ДЗ', proctored: 'Пробник с наставником' }
 
 const START = 10, END = 22, HOURS = END - START   // 10:00–22:00
 const HEAD = 46, ALLDAY = 38
