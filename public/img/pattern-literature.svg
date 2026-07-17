@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.52" stroke-linecap="round" stroke-linejoin="round" fill="none" font-family="Georgia, serif">
+    <!-- большая литературная цитата -->
+    <text x="22" y="58" font-size="46" fill="#fff" fill-opacity="0.52" stroke="none">«</text>
+    <text x="298" y="174" font-size="46" fill="#fff" fill-opacity="0.52" stroke="none">»</text>
+
+    <!-- стопка книг -->
+    <g transform="translate(28 126)">
+      <path d="M2 2h62l-7 13H0Z"/>
+      <path d="M7 17h61l-6 13H2Z"/>
+      <path d="M0 32h61l7 14H7Z"/>
+      <path d="M12 5h38M16 20h39M12 36h40"/>
+    </g>
+
+    <!-- перо и рукопись -->
+    <g transform="translate(124 25)">
+      <path d="M10 91C22 60 39 30 69 4C56 6 45 10 35 18C18 31 11 51 10 91Z"/>
+      <path d="M10 91C24 65 39 45 59 24"/>
+      <path d="M24 60l-13 -2M34 46l-12 -5M44 34l-9 -6M31 67l11 1M41 52l12 -1M51 38l11 -4"/>
+      <path d="M8 91l-6 15"/>
+      <path d="M0 108c22 -4 42 -4 63 0"/>
+    </g>
+
+    <!-- свеча -->
+    <g transform="translate(272 24)">
+      <path d="M7 22h18v45H7Z"/>
+      <path d="M11 22c0 6 8 6 8 0"/>
+      <path d="M16 17C9 11 14 4 18 0c4 7 6 13 -2 17Z"/>
+      <path d="M2 67h28M6 72h20"/>
+    </g>
+
+    <!-- театральные маски -->
+    <g transform="translate(222 118)">
+      <path d="M0 4c14 -6 28 -4 38 2c-1 24 -12 36 -25 36S1 28 0 4Z"/>
+      <path d="M12 16c2 -3 5 -3 7 0M26 16c2 -3 5 -3 7 0M13 29c7 6 14 6 20 0"/>
+      <path d="M35 8c13 -5 25 -2 34 4c-4 23 -15 33 -27 31"/>
+      <path d="M47 21c2 -3 5 -3 7 0M59 23c2 -2 4 -2 6 0M48 35c6 -5 11 -4 16 1"/>
+    </g>
+
+    <!-- лавровая ветвь -->
+    <g transform="translate(88 82)">
+      <path d="M0 34C10 22 18 12 29 0"/>
+      <path d="M7 26c-8 0 -10 -7 -8 -11c7 1 10 5 8 11ZM13 19c-6 -2 -7 -8 -4 -12c6 2 8 6 4 12ZM20 11c-4 -3 -3 -8 0 -11c5 3 5 7 0 11Z"/>
+      <path d="M8 25c2 7 8 8 12 5c-1 -6 -6 -8 -12 -5ZM15 17c3 6 9 5 12 2c-3 -5 -7 -6 -12 -2Z"/>
+    </g>
+
+    <circle cx="92" cy="38" r="2.6" fill="#fff" fill-opacity="0.52" stroke="none"/>
+    <circle cx="204" cy="40" r="2.6" fill="#fff" fill-opacity="0.52" stroke="none"/>
+    <path d="M190 158v14M183 165h14"/>
+  </g>
+</svg>

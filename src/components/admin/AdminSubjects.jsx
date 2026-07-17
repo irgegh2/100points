@@ -3,7 +3,7 @@ import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 
 // Иконки предметов совпадают с фронтом курсов (ICONS в Courses.jsx).
-const ICON_OPTS = ['pi', 'feather', 'landmark', 'social', 'english', 'leaf', 'cap']
+const ICON_OPTS = ['pi', 'feather', 'landmark', 'social', 'english', 'leaf', 'book', 'cap']
 const EMPTY = { name: '', slug: '', color: '#3f9bff', icon: 'pi', show_features: 1 }
 // показывать ли предмет в разделах-фичах (цели/тренажёр/банк/библиотека)
 const isShown = (v) => v === undefined || Number(v) === 1

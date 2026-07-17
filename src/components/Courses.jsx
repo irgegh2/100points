@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Landmark, Feather, Leaf, GraduationCap, Users, Languages, MoreHorizontal } from 'lucide-react'
+import { Landmark, Feather, Leaf, GraduationCap, Users, Languages, BookOpen, MoreHorizontal } from 'lucide-react'
 import CourseInside from './CourseInside.jsx'
 import { coursesList } from '../api.js'
 
@@ -8,10 +8,10 @@ const TABS = ['Все', 'Летняя школа', 'Вводные', 'Основ
 // какие типы показывают плашку на обложке и с каким текстом
 const PLATE = { 'Вводные': 'Вводный курс', 'Летняя школа': 'Летняя школа' }
 
-const ICONS = { landmark: Landmark, feather: Feather, leaf: Leaf, cap: GraduationCap, social: Users, english: Languages }
+const ICONS = { landmark: Landmark, feather: Feather, leaf: Leaf, cap: GraduationCap, social: Users, english: Languages, book: BookOpen }
 
 // уникальный дудл-фон под каждый предмет (?v — чтобы браузер не кэшировал старые версии)
-const V = '9'
+const V = '10'
 const PATTERNS = {
   'Профильная математика': `/img/pattern-math.svg?v=${V}`,
   'Русский язык': `/img/pattern-rus.svg?v=${V}`,
@@ -19,6 +19,7 @@ const PATTERNS = {
   'Обществознание': `/img/pattern-social.svg?v=${V}`,
   'Английский язык': `/img/pattern-english.svg?v=${V}`,
   'Биология': `/img/pattern-bio.svg?v=${V}`,
+  'Литература': `/img/pattern-literature.svg?v=${V}`,
   'Поступление': `/img/pattern-admission.svg?v=${V}`,
 }
 
