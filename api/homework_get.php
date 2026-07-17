@@ -23,7 +23,7 @@ $h->execute([$id]);
 $hw = $h->fetch();
 if (!$hw) fail('ДЗ не найдено', 404);
 
-$meta = ['id' => (int)$hw['id'], 'level' => $hw['level'], 'title' => $hw['title'], 'deadline' => g_effective_deadline($uid, $hw['deadline']), 'subject' => $hw['subject']];
+$meta = ['id' => (int)$hw['id'], 'level' => $hw['level'], 'title' => $hw['title'], 'deadline' => g_effective_deadline($uid, $hw['deadline'], (int)$hw['id']), 'subject' => $hw['subject']];
 
 if (!user_has_course_access($uid, (int)$hw['course_id'])) ok(['locked' => 'course', 'homework' => $meta]);
 if ($hw['level'] === 'hard' && !user_has_hard_access($uid)) ok(['locked' => 'subscription', 'homework' => $meta]);

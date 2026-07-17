@@ -21,4 +21,5 @@ ok([
   'week_start'  => $w['week_start'],
   'booster_until' => (string)($w['booster_until'] ?? ''),
   'vip'         => g_is_vip($uid),
+  'streak_freezes' => g_available_streak_freezes($uid),
 ]);

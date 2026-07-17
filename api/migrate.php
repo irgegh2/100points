@@ -866,6 +866,66 @@ $MIGRATIONS = [
     }
   },
 
+  // v27 — персональное продление ДЗ и расходуемые заморозки серии.
+  27 => function (PDO $pdo, string $driver) {
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS deadline_extensions (
+      id {PK},
+      user_id INT NOT NULL,
+      homework_id INT NOT NULL,
+      purchase_id INT,
+      extra_days INT DEFAULT 1,
+      created_at {TS},
+      UNIQUE (user_id, homework_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (homework_id) REFERENCES homeworks(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->exec(ddl("CREATE TABLE IF NOT EXISTS streak_freezes (
+      id {PK},
+      user_id INT NOT NULL,
+      purchase_id INT,
+      used_at VARCHAR(30),
+      missed_date VARCHAR(20),
+      created_at {TS},
+      UNIQUE (purchase_id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    ) {ENGINE}", $driver));
+
+    $pdo->beginTransaction();
+    try {
+      $pdo->exec("UPDATE shop_items SET description = 'Автоматически спасает серию за один пропущенный день' WHERE name = 'Заморозка стрика'");
+      $pdo->exec("UPDATE shop_items SET description = 'Выбери активное ДЗ и добавь к его дедлайну 24 часа' WHERE name = 'Продление дедлайна +24ч'");
+      $pdo->exec("UPDATE achievements SET reward = 100, target = 7 WHERE code = 'streak_7'");
+
+      // Старые заявки на заморозку превращаем в реальные неиспользованные токены.
+      $pendingFreezes = $pdo->query("SELECT id, user_id FROM purchases WHERE status IN ('pending','done') AND item_name = 'Заморозка стрика'")->fetchAll();
+      $addFreeze = $pdo->prepare("INSERT INTO streak_freezes (user_id, purchase_id) VALUES (?, ?)");
+      $doneFreeze = $pdo->prepare("UPDATE purchases SET status = 'done', note = 'Заморозка добавлена и сработает автоматически', updated_at = ? WHERE id = ?");
+      foreach ($pendingFreezes as $purchase) {
+        $addFreeze->execute([(int)$purchase['user_id'], (int)$purchase['id']]);
+        $doneFreeze->execute([date('Y-m-d H:i:s'), (int)$purchase['id']]);
+      }
+
+      // Старую заявку на продление нельзя привязать к ДЗ задним числом: отменяем и возвращаем оплату.
+      $pendingExtensions = $pdo->query("SELECT id, user_id, price FROM purchases WHERE status = 'pending' AND item_name = 'Продление дедлайна +24ч'")->fetchAll();
+      $refundWallet = $pdo->prepare("UPDATE wallets SET crystals = crystals + ? WHERE user_id = ?");
+      $refundLog = $pdo->prepare("INSERT INTO coin_log (user_id, kind, amount, reason, ref_type, ref_id) VALUES (?, 'crystals', ?, 'Возврат: выбери ДЗ для продления', 'purchase', ?)");
+      $cancel = $pdo->prepare("UPDATE purchases SET status = 'canceled', note = 'Нужно выбрать конкретное ДЗ — кристаллы возвращены', updated_at = ? WHERE id = ?");
+      foreach ($pendingExtensions as $purchase) {
+        $price = (int)$purchase['price'];
+        $uid = (int)$purchase['user_id'];
+        $pid = (int)$purchase['id'];
+        $refundWallet->execute([$price, $uid]);
+        $refundLog->execute([$uid, $price, $pid]);
+        $cancel->execute([date('Y-m-d H:i:s'), $pid]);
+      }
+      $pdo->commit();
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      throw $e;
+    }
+  },
+
 ];
 
 // ── Прогон ──────────────────────────────────────────────────

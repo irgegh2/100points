@@ -27,10 +27,13 @@ $monday = date('Y-m-d', strtotime('monday this week'));
 $ad = db()->prepare("SELECT DISTINCT substr(created_at,1,10) d FROM coin_log WHERE user_id = ? AND ref_type = 'streak' AND substr(created_at,1,10) >= ?");
 $ad->execute([$uid, $monday]);
 $active = array_column($ad->fetchAll(), 'd');
+$fd = db()->prepare("SELECT missed_date FROM streak_freezes WHERE user_id = ? AND missed_date IS NOT NULL AND missed_date >= ?");
+$fd->execute([$uid, $monday]);
+$frozen = array_column($fd->fetchAll(), 'missed_date');
 $days = [];
 for ($i = 0; $i < 7; $i++) {
   $d = date('Y-m-d', strtotime("$monday +$i days"));
-  $days[] = ['date' => $d, 'done' => in_array($d, $active, true)];
+  $days[] = ['date' => $d, 'done' => in_array($d, $active, true), 'frozen' => in_array($d, $frozen, true)];
 }
 
 ok([
@@ -38,4 +41,5 @@ ok([
   'days'      => $days,
   'week_done' => count(array_filter($days, fn($x) => $x['done'])),
   'streak'    => (int)$w['streak'],
+  'streak_freezes' => g_available_streak_freezes($uid),
 ]);

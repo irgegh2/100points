@@ -36,7 +36,7 @@ foreach ($stmt as $r) {
     'id'        => (int)$r['id'],
     'level'     => $r['level'],
     'title'     => $r['title'],
-    'deadline'  => g_effective_deadline($uid, $r['deadline']),
+    'deadline'  => g_effective_deadline($uid, $r['deadline'], (int)$r['id']),
     'subject'   => $r['subject'],
     'icon'      => $r['icon'],
     'color'     => $r['color'],

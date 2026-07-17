@@ -68,7 +68,7 @@ foreach ($q as $r) {
 }
 
 ok([
-  'homework'   => ['id' => (int)$homework['id'], 'level' => $homework['level'], 'title' => $homework['title'], 'deadline' => g_effective_deadline($uid, $homework['deadline'])],
+  'homework'   => ['id' => (int)$homework['id'], 'level' => $homework['level'], 'title' => $homework['title'], 'deadline' => g_effective_deadline($uid, $homework['deadline'], (int)$homework['id'])],
   'submission' => ['status' => $s['status'], 'score' => (int)$s['score'], 'max_score' => (int)$s['max_score'], 'comment' => $s['comment']],
   'expert'     => $expert,
   'results'    => $results,

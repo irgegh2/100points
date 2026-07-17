@@ -14,7 +14,7 @@ if (!strtotime($anchor)) $anchor = date('Y-m-d');
 $monday = date('Y-m-d', strtotime('monday this week', strtotime($anchor)));
 $sunday = date('Y-m-d', strtotime("$monday +6 days"));
 $today = date('Y-m-d');
-$deadlineStart = g_is_vip($uid) ? date('Y-m-d', strtotime("$monday -1 day")) : $monday;
+$deadlineStart = date('Y-m-d', strtotime("$monday -2 days"));
 $enrollOk = "(en.expires_at IS NULL OR en.expires_at = '' OR en.expires_at >= ?)";
 
 $all = []; // плоский список событий недели
@@ -62,7 +62,7 @@ foreach ($st as $r) {
 
 // 3) Дедлайны домашних заданий.
 $st = db()->prepare(
-  "SELECT hw.title, hw.deadline, s.name AS subject, s.color AS color
+  "SELECT hw.id, hw.title, hw.deadline, s.name AS subject, s.color AS color
    FROM homeworks hw
    JOIN lessons l ON l.id = hw.lesson_id
    JOIN blocks b ON b.id = l.block_id
@@ -74,7 +74,7 @@ $st = db()->prepare(
 );
 $st->execute([$uid, $today, $deadlineStart, $sunday]);
 foreach ($st as $r) {
-  $effectiveDeadline = g_effective_deadline($uid, $r['deadline']);
+  $effectiveDeadline = g_effective_deadline($uid, $r['deadline'], (int)$r['id']);
   $all[] = [
     'date' => substr($effectiveDeadline, 0, 10), 'time' => '', 'kind' => 'deadline', 'allday' => true,
     'title' => $r['title'], 'subject' => $r['subject'], 'color' => '#e0584f', 'link' => null, 'duration' => 0,

@@ -4,7 +4,7 @@ import {
   Home, BookOpen, CalendarDays, Trophy, Headset, Sparkles, Dumbbell, Library,
   ClipboardCheck, PencilLine, LogOut,
   Bell, Gem, ChevronRight, Check, Plus, Video,
-  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X, Crown,
+  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X, Crown, Snowflake,
 } from 'lucide-react'
 import { brand } from '../data/content.js'
 import { setAuthed } from '../auth.js'
@@ -164,7 +164,8 @@ function HomeDash({ onNavigate, crystals }) {
           <div className="dweek">
             {DAYS.map((d, i) => {
               const done = daily.days ? daily.days[i]?.done : false
-              return <div className={`dweek__day ${done ? 'done' : ''}`} key={d}>{done ? <Check size={14} /> : d}</div>
+              const frozen = daily.days ? daily.days[i]?.frozen : false
+              return <div className={`dweek__day ${done ? 'done' : ''} ${frozen ? 'frozen' : ''}`} title={frozen ? 'Серия сохранена заморозкой' : undefined} key={d}>{done ? <Check size={14} /> : frozen ? <Snowflake size={14} /> : d}</div>
             })}
           </div>
           <p className="dweek__hint">Занимайся 5 дней в неделю, чтобы открыть бонус</p>
@@ -349,7 +350,7 @@ export default function CabinetPage() {
           <HomeDash onNavigate={setActive} crystals={wallet.crystals} />
         ) : active === 'shop' ? (
           <Shop balance={wallet.crystals} onBack={() => setActive('home')} onBalance={(c) => setWallet((w) => ({ ...w, crystals: c }))}
-            onWalletUpdate={(data) => setWallet((w) => ({ ...w, crystals: data.balance ?? w.crystals, lives: data.lives ?? w.lives, max_lives: data.max_lives ?? w.max_lives, vip: data.vip ?? w.vip }))}
+            onWalletUpdate={(data) => setWallet((w) => ({ ...w, crystals: data.balance ?? w.crystals, lives: data.lives ?? w.lives, max_lives: data.max_lives ?? w.max_lives, vip: data.vip ?? w.vip, streak_freezes: data.streak_freezes ?? w.streak_freezes }))}
             onThemeUnlocked={(theme) => {
               setThemeAccessList((list) => list.includes(theme) ? list : [...list, theme])
               setTheme(theme)

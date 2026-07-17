@@ -7,7 +7,7 @@ $uid = require_user();
 release_session();
 
 $today = date('Y-m-d');
-$deadlineSourceDate = g_is_vip($uid) ? date('Y-m-d', strtotime('-1 day')) : $today;
+$deadlineSourceStart = date('Y-m-d', strtotime('-2 days'));
 $items = [];
 
 // 1) События сегодня (в доступных курсах).
@@ -58,14 +58,17 @@ $hw = db()->prepare(
    JOIN subjects s ON s.id = c.subject_id
    JOIN enrollments en ON en.course_id = c.id AND en.user_id = ?
      AND (en.expires_at IS NULL OR en.expires_at = '' OR en.expires_at >= ?)
-   WHERE substr(hw.deadline,1,10) = ?
+   WHERE substr(hw.deadline,1,10) BETWEEN ? AND ?
      AND NOT EXISTS (SELECT 1 FROM submissions sub WHERE sub.homework_id = hw.id AND sub.user_id = ?)
    ORDER BY hw.id"
 );
-$hw->execute([$uid, $today, $deadlineSourceDate, $uid]);
-foreach ($hw as $r) $items[] = [
-  'kind' => 'homework', 'title' => $r['title'], 'subject' => $r['subject'], 'color' => $r['color'] ?: '#ff7a00',
-  'meta' => 'Последний день сдачи!', 'urgent' => true, 'action' => 'Решать',
-];
+$hw->execute([$uid, $today, $deadlineSourceStart, $today, $uid]);
+foreach ($hw as $r) {
+  if (substr(g_effective_deadline($uid, $r['deadline'], (int)$r['id']), 0, 10) !== $today) continue;
+  $items[] = [
+    'kind' => 'homework', 'title' => $r['title'], 'subject' => $r['subject'], 'color' => $r['color'] ?: '#ff7a00',
+    'meta' => 'Последний день сдачи!', 'urgent' => true, 'action' => 'Решать',
+  ];
+}
 
 ok(['items' => $items, 'date' => $today]);

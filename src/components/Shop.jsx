@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Gem, ArrowRight, Check, Clock, Package, X, Timer, Heart } from 'lucide-react'
-import { shopList, shopBuy, purchasesList } from '../api.js'
+import { ArrowLeft, Gem, ArrowRight, Check, Clock, Package, X, Timer, Heart, CalendarClock, Snowflake } from 'lucide-react'
+import { shopList, shopBuy, purchasesList, deadlineExtensionOptions } from '../api.js'
 
 const CAT_LABELS = {
   theme: 'Оформление',
@@ -42,6 +42,12 @@ const formatTimer = (ms) => {
   const clock = [hours, mins, secs].map((n) => String(n).padStart(2, '0')).join(':')
   return days > 0 ? `${days}д ${clock}` : clock
 }
+const formatDeadline = (value) => {
+  if (!value) return '—'
+  const [date, time = ''] = String(value).split(/[ T]/)
+  const [y, m, d] = date.split('-')
+  return `${d}.${m}.${y}${time ? ` · ${time.slice(0, 5)}` : ''}`
+}
 
 export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, onThemeUnlocked, onCosmeticUnlocked, onEffectUnlocked }) {
   const [coins, setCoins] = useState(balance)
@@ -49,6 +55,7 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
   const [maxLives, setMaxLives] = useState(5)
   const [boosterUntil, setBoosterUntil] = useState('')
   const [vip, setVip] = useState(false)
+  const [streakFreezes, setStreakFreezes] = useState(0)
   const [now, setNow] = useState(Date.now())
   const [items, setItems] = useState([])
   const [purchases, setPurchases] = useState([])
@@ -56,11 +63,12 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
   const [toast, setToast] = useState(null)
   const [highlightedPurchase, setHighlightedPurchase] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [deadlinePicker, setDeadlinePicker] = useState(null)
   const ordersRef = useRef(null)
 
   const reload = () => Promise.all([shopList(), purchasesList()]).then(([s, p]) => {
     setItems(s.items || []); setCoins(s.balance); setPurchases(p.purchases || [])
-    setLives(s.lives ?? 0); setMaxLives(s.max_lives ?? 5); setBoosterUntil(s.booster_until || ''); setVip(s.vip === true)
+    setLives(s.lives ?? 0); setMaxLives(s.max_lives ?? 5); setBoosterUntil(s.booster_until || ''); setVip(s.vip === true); setStreakFreezes(s.streak_freezes ?? 0)
     onBalance?.(s.balance)
     onWalletUpdate?.(s)
   }).catch(() => {}).finally(() => setLoading(false))
@@ -71,20 +79,38 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
     return () => clearInterval(timer)
   }, [boosterUntil])
 
-  const buy = async (it) => {
+  const openDeadlinePicker = async (it) => {
+    if (busy || it.price > coins || Number(it.eligible_count || 0) < 1) return
+    setDeadlinePicker({ item: it, loading: true, homeworks: [], error: '' })
+    try {
+      const d = await deadlineExtensionOptions()
+      setDeadlinePicker({ item: it, loading: false, homeworks: d.homeworks || [], error: '' })
+    } catch (e) {
+      setDeadlinePicker({ item: it, loading: false, homeworks: [], error: e.message })
+    }
+  }
+
+  const buy = async (it, homework = null) => {
+    if (it.name === 'Продление дедлайна +24ч' && !homework) { await openDeadlinePicker(it); return }
     if (it.owned || it.price > coins || busy) return
     setBusy(it.id)
     try {
-      const d = await shopBuy(it.id)
+      const d = await shopBuy(it.id, homework?.id)
       setCoins(d.balance); onBalance?.(d.balance)
       setLives(d.lives ?? lives); setMaxLives(d.max_lives ?? maxLives); setBoosterUntil(d.booster_until || boosterUntil); setVip(d.vip === true)
+      setStreakFreezes(d.streak_freezes ?? streakFreezes)
       onWalletUpdate?.(d)
       if (d.theme_unlocked) onThemeUnlocked?.(d.theme)
       if (d.cosmetic_unlocked) onCosmeticUnlocked?.(d.cosmetic)
       if (d.effect) onEffectUnlocked?.(d.effect, d)
-      setToast(d.instant
+      setToast(d.extended_homework
+        ? `Дедлайн «${d.extended_homework.title}» продлён до ${formatDeadline(d.extended_homework.deadline)}.`
+        : d.effect === 'streak_freeze'
+          ? 'Заморозка добавлена. Она автоматически спасёт серию при одном пропущенном дне.'
+        : d.instant
         ? `«${it.name}» куплено и включено!`
         : `«${it.name}» куплено. Заявка появилась в «Моих покупках» — ожидай выдачу.`)
+      if (d.extended_homework) setDeadlinePicker(null)
       if (!d.instant) setHighlightedPurchase(d.purchase_id)
       await reload()
       if (!d.instant) {
@@ -116,8 +142,11 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
                   const poor = it.price > coins
                   const isLife = it.name === '+1 жизнь'
                   const isBooster = it.name === 'Бустер ×2 кристалла'
+                  const isFreeze = it.name === 'Заморозка стрика'
+                  const isDeadline = it.name === 'Продление дедлайна +24ч'
                   const fullLives = isLife && lives >= maxLives
                   const comingSoon = it.coming_soon === true
+                  const noEligibleHomework = isDeadline && Number(it.eligible_count || 0) < 1
                   return (
                     <div className={`shop__row ${it.badge ? 'is-gold' : ''}`} key={it.id}>
                       <div className="shop__row-main">
@@ -125,12 +154,14 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
                         <div className="shop__row-desc">{it.description}</div>
                         {isLife && <div className="shop__life-state"><Heart size={13} fill="currentColor" /> Сейчас {lives}/{maxLives}</div>}
                         {isBooster && boosterLeft > 0 && <div className="shop__boost-timer"><Timer size={14} /> ×2 активно · {formatTimer(boosterLeft)}</div>}
+                        {isFreeze && <div className="shop__freeze-state"><Snowflake size={14} /> В запасе: {streakFreezes}</div>}
+                        {isDeadline && <div className="shop__deadline-state"><CalendarClock size={14} /> {noEligibleHomework ? 'Нет активных ДЗ для продления' : `Можно продлить: ${it.eligible_count}`}</div>}
                       </div>
                       <div className="shop__row-side">
                         <span className="shop__price"><Gem size={15} /> {it.price}</span>
-                        <button className={`shop__act ${it.owned ? 'is-owned' : ''} ${(poor && !it.owned) || comingSoon ? 'is-poor' : ''}`}
-                          onClick={() => buy(it)} disabled={it.owned || poor || fullLives || comingSoon || busy === it.id}>
-                          {it.owned ? <><Check size={15} /> {it.instant ? 'Активно' : 'Есть'}</> : comingSoon ? 'Скоро' : busy === it.id ? '…' : fullLives ? 'Жизни полны' : poor ? 'Не хватает' : <>Купить <ArrowRight size={15} /></>}
+                        <button className={`shop__act ${it.owned ? 'is-owned' : ''} ${(poor && !it.owned) || comingSoon || noEligibleHomework ? 'is-poor' : ''}`}
+                          onClick={() => buy(it)} disabled={it.owned || poor || fullLives || comingSoon || noEligibleHomework || busy === it.id}>
+                          {it.owned ? <><Check size={15} /> {it.instant ? 'Активно' : 'Есть'}</> : comingSoon ? 'Скоро' : busy === it.id ? '…' : fullLives ? 'Жизни полны' : noEligibleHomework ? 'Нет активных ДЗ' : poor ? 'Не хватает' : isDeadline ? <>Выбрать ДЗ <ArrowRight size={15} /></> : <>Купить <ArrowRight size={15} /></>}
                         </button>
                       </div>
                     </div>
@@ -177,6 +208,36 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
           </div>
         </aside>
       </div>
+
+      {deadlinePicker && (
+        <div className="shop-picker" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) setDeadlinePicker(null) }}>
+          <section className="shop-picker__box" role="dialog" aria-modal="true" aria-labelledby="deadline-picker-title">
+            <button className="shop-picker__close" aria-label="Закрыть" onClick={() => setDeadlinePicker(null)} disabled={!!busy}><X size={20} /></button>
+            <div className="shop-picker__icon"><CalendarClock size={24} /></div>
+            <h2 id="deadline-picker-title">Какое ДЗ продлить?</h2>
+            <p className="shop-picker__lead">Показываем только твои активные, ещё не сданные задания. После покупки выбранный дедлайн сразу сдвинется на 24 часа.</p>
+            {deadlinePicker.loading && <div className="shop-picker__empty">Загружаем твои задания…</div>}
+            {deadlinePicker.error && <div className="shop-picker__empty is-error">{deadlinePicker.error}</div>}
+            {!deadlinePicker.loading && !deadlinePicker.error && deadlinePicker.homeworks.length === 0 && <div className="shop-picker__empty">Подходящих домашних заданий больше нет.</div>}
+            <div className="shop-picker__list">
+              {deadlinePicker.homeworks.map((hw) => (
+                <article className="shop-picker__hw" key={hw.id}>
+                  <div className="shop-picker__subject">{hw.subject}</div>
+                  <h3>{hw.title}</h3>
+                  <div className="shop-picker__dates">
+                    <span><small>Сейчас</small>{formatDeadline(hw.deadline)}</span>
+                    <ArrowRight size={16} />
+                    <span className="is-new"><small>После покупки</small>{formatDeadline(hw.new_deadline)}</span>
+                  </div>
+                  <button className="shop-picker__buy" onClick={() => buy(deadlinePicker.item, hw)} disabled={!!busy || deadlinePicker.item.price > coins}>
+                    {busy ? 'Продлеваем…' : <><Gem size={15} /> Продлить за {deadlinePicker.item.price}</>}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

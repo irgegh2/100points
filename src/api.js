@@ -153,7 +153,8 @@ export const tourComplete = () => call('/tour_complete.php', { method: 'POST' })
 
 // ── Магазин (Этап 10) ─────────────────────────────────────
 export const shopList = () => call('/shop_list.php')
-export const shopBuy = (itemId) => call('/shop_buy.php', { method: 'POST', body: { item_id: itemId } })
+export const shopBuy = (itemId, homeworkId = null) => call('/shop_buy.php', { method: 'POST', body: { item_id: itemId, ...(homeworkId ? { homework_id: homeworkId } : {}) } })
+export const deadlineExtensionOptions = () => call('/deadline_extension_options.php')
 export const purchasesList = () => call('/purchases_list.php')
 export const adminPurchases = (status) => call('/admin_purchases.php' + (status ? `?status=${status}` : ''))
 export const adminPurchaseUpdate = (purchaseId, status, note) => call('/admin_purchase_update.php', { method: 'POST', body: { purchase_id: purchaseId, status, note } })

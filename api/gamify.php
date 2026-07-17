@@ -32,11 +32,78 @@ function g_booster_active(int $uid): bool {
 function g_reward_multiplier(int $uid, ?string $refType = null): int {
   return $refType !== 'admin' && g_booster_active($uid) ? 2 : 1;
 }
-function g_effective_deadline(int $uid, ?string $deadline): string {
+function g_deadline_extension_days(int $uid, int $homeworkId): int {
+  if ($homeworkId <= 0) return 0;
+  static $cache = [];
+  $key = "$uid:$homeworkId";
+  if (!array_key_exists($key, $cache)) {
+    $s = db()->prepare("SELECT COALESCE(SUM(extra_days),0) FROM deadline_extensions WHERE user_id = ? AND homework_id = ?");
+    $s->execute([$uid, $homeworkId]);
+    $cache[$key] = (int)$s->fetchColumn();
+  }
+  return $cache[$key];
+}
+function g_effective_deadline(int $uid, ?string $deadline, int $homeworkId = 0): string {
   $deadline = trim((string)$deadline);
-  if ($deadline === '' || !g_is_vip($uid)) return $deadline;
+  if ($deadline === '') return $deadline;
+  $extraDays = (g_is_vip($uid) ? 1 : 0) + g_deadline_extension_days($uid, $homeworkId);
+  if ($extraDays <= 0) return $deadline;
   $ts = strtotime($deadline);
-  return $ts ? date(strlen($deadline) > 10 ? 'Y-m-d H:i:s' : 'Y-m-d', $ts + 86400) : $deadline;
+  return $ts ? date(strlen($deadline) > 10 ? 'Y-m-d H:i:s' : 'Y-m-d', $ts + 86400 * $extraDays) : $deadline;
+}
+function g_deadline_active(string $deadline): bool {
+  $ts = strtotime($deadline);
+  if (!$ts) return false;
+  return strlen(trim($deadline)) > 10 ? $ts > time() : $ts + 86400 > time();
+}
+function g_eligible_homeworks_for_extension(int $uid): array {
+  $today = date('Y-m-d');
+  $s = db()->prepare(
+    "SELECT hw.id, hw.level, hw.title, hw.deadline, s.name AS subject, c.title AS course
+     FROM homeworks hw
+     JOIN lessons l ON l.id = hw.lesson_id
+     JOIN blocks b ON b.id = l.block_id
+     JOIN courses c ON c.id = b.course_id
+     JOIN subjects s ON s.id = c.subject_id
+     JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
+       AND (e.expires_at IS NULL OR e.expires_at = '' OR e.expires_at >= ?)
+     WHERE hw.deadline IS NOT NULL AND hw.deadline <> ''
+       AND NOT EXISTS (SELECT 1 FROM submissions sub WHERE sub.homework_id = hw.id AND sub.user_id = ?)
+       AND NOT EXISTS (SELECT 1 FROM deadline_extensions de WHERE de.homework_id = hw.id AND de.user_id = ?)
+     ORDER BY hw.deadline, hw.id"
+  );
+  $s->execute([$uid, $today, $uid, $uid]);
+  $out = [];
+  $hardAccess = user_has_hard_access($uid);
+  foreach ($s->fetchAll() as $hw) {
+    if ($hw['level'] === 'hard' && !$hardAccess) continue;
+    $effective = g_effective_deadline($uid, (string)$hw['deadline'], (int)$hw['id']);
+    if (!g_deadline_active($effective)) continue;
+    $next = date(strlen($effective) > 10 ? 'Y-m-d H:i:s' : 'Y-m-d', strtotime($effective) + 86400);
+    $out[] = [
+      'id' => (int)$hw['id'], 'title' => $hw['title'], 'subject' => $hw['subject'], 'course' => $hw['course'],
+      'deadline' => $effective, 'new_deadline' => $next,
+    ];
+  }
+  return $out;
+}
+
+function g_available_streak_freezes(int $uid): int {
+  $s = db()->prepare("SELECT COUNT(*) FROM streak_freezes WHERE user_id = ? AND used_at IS NULL");
+  $s->execute([$uid]);
+  return (int)$s->fetchColumn();
+}
+function g_consume_streak_freeze(int $uid, string $missedDate): bool {
+  $s = db()->prepare("SELECT id FROM streak_freezes WHERE user_id = ? AND used_at IS NULL ORDER BY id LIMIT 1");
+  $s->execute([$uid]);
+  $id = (int)($s->fetchColumn() ?: 0);
+  if (!$id) return false;
+  $u = db()->prepare("UPDATE streak_freezes SET used_at = ?, missed_date = ? WHERE id = ? AND used_at IS NULL");
+  $u->execute([date('Y-m-d H:i:s'), $missedDate, $id]);
+  if ($u->rowCount() < 1) return false;
+  g_log($uid, 'streak', 0, 'Заморозка спасла серию', 'streak_freeze', $id);
+  if (function_exists('notify')) notify($uid, 'shop', "Заморозка спасла серию за $missedDate", 'shop');
+  return true;
 }
 
 // Кошелёк ученика (создаёт при первом обращении).
@@ -81,7 +148,12 @@ function g_touch_streak(int $uid): void {
   $today = date('Y-m-d');
   if ($w['last_active'] === $today) return; // уже отмечались сегодня
   $yesterday = date('Y-m-d', strtotime('-1 day'));
-  $streak = ($w['last_active'] === $yesterday) ? (int)$w['streak'] + 1 : 1;
+  $continued = $w['last_active'] === $yesterday;
+  if (!$continued && !empty($w['last_active'])) {
+    $missedDate = date('Y-m-d', strtotime((string)$w['last_active'] . ' +1 day'));
+    $continued = $missedDate === $yesterday && g_consume_streak_freeze($uid, $missedDate);
+  }
+  $streak = $continued ? (int)$w['streak'] + 1 : 1;
   $best = max((int)$w['streak_best'], $streak);
   db()->prepare("UPDATE wallets SET streak = ?, streak_best = ?, last_active = ? WHERE user_id = ?")
       ->execute([$streak, $best, $today, $uid]);
@@ -203,9 +275,10 @@ function g_apply_deadline_penalties(int $uid): void {
   );
   $st->execute([$uid, $today, $uid, $uid]);
   foreach ($st->fetchAll() as $h) {
-    $ts = strtotime(g_effective_deadline($uid, (string)$h['deadline']));
+    $effective = g_effective_deadline($uid, (string)$h['deadline'], (int)$h['id']);
+    $ts = strtotime($effective);
     if (!$ts) continue;                 // дедлайн не дата — пропускаем
-    if ($ts + 86400 > time()) continue; // ещё не прошёл (конец дня дедлайна)
+    if (g_deadline_active($effective)) continue;
     db()->prepare("INSERT INTO deadline_penalties (user_id, homework_id) VALUES (?,?)")->execute([$uid, (int)$h['id']]);
     g_lose_life($uid, 1, 'Просрочен дедлайн домашки', 'homework', (int)$h['id']);
   }
