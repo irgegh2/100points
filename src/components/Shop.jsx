@@ -112,6 +112,7 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
                   const isLife = it.name === '+1 жизнь'
                   const isBooster = it.name === 'Бустер ×2 кристалла'
                   const fullLives = isLife && lives >= maxLives
+                  const comingSoon = it.coming_soon === true
                   return (
                     <div className={`shop__row ${it.badge ? 'is-gold' : ''}`} key={it.id}>
                       <div className="shop__row-main">
@@ -123,9 +124,9 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
                       </div>
                       <div className="shop__row-side">
                         <span className="shop__price"><Gem size={15} /> {it.price}</span>
-                        <button className={`shop__act ${it.owned ? 'is-owned' : ''} ${poor && !it.owned ? 'is-poor' : ''}`}
-                          onClick={() => buy(it)} disabled={it.owned || poor || fullLives || busy === it.id}>
-                          {it.owned ? <><Check size={15} /> {it.instant ? 'Активно' : 'Есть'}</> : busy === it.id ? '…' : fullLives ? 'Жизни полны' : poor ? 'Не хватает' : <>Купить <ArrowRight size={15} /></>}
+                        <button className={`shop__act ${it.owned ? 'is-owned' : ''} ${(poor && !it.owned) || comingSoon ? 'is-poor' : ''}`}
+                          onClick={() => buy(it)} disabled={it.owned || poor || fullLives || comingSoon || busy === it.id}>
+                          {it.owned ? <><Check size={15} /> {it.instant ? 'Активно' : 'Есть'}</> : comingSoon ? 'Скоро' : busy === it.id ? '…' : fullLives ? 'Жизни полны' : poor ? 'Не хватает' : <>Купить <ArrowRight size={15} /></>}
                         </button>
                       </div>
                     </div>

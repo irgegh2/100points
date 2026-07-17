@@ -17,6 +17,7 @@ $out = [];
 foreach ($items as $it) {
   $instantItems = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Рамка для аватара', 'Цвет ника', '+1 жизнь', 'Бустер ×2 кристалла', 'VIP-статус навсегда'];
   $instant = in_array($it['name'], $instantItems, true);
+  $comingSoon = in_array($it['name'], ['Секретный конспект', 'Запись закрытого вебинара'], true);
   $out[] = [
     'id'          => (int)$it['id'],
     'name'        => $it['name'],
@@ -26,6 +27,7 @@ foreach ($items as $it) {
     'once_only'   => (int)$it['once_only'] === 1,
     'badge'       => $it['badge'],
     'instant'     => $instant,
+    'coming_soon' => $comingSoon,
     // «Куплено» блокирует повторную покупку ТОЛЬКО для одноразовых товаров.
     // Многоразовые покупаются сколько угодно — их не помечаем.
     'owned'       => (int)$it['once_only'] === 1 && in_array((int)$it['id'], $owned, true),

@@ -14,6 +14,8 @@ $it = db()->prepare("SELECT id, name, category, price, once_only FROM shop_items
 $it->execute([$itemId]);
 $item = $it->fetch();
 if (!$item) fail('Товар недоступен', 404);
+$comingSoonItems = ['Секретный конспект', 'Запись закрытого вебинара'];
+if (in_array($item['name'], $comingSoonItems, true)) fail('Этот товар скоро появится', 409);
 $price = (int)$item['price'];
 $themeCodes = [
   'Тёмная тема' => 'dark',
