@@ -10,11 +10,17 @@ export function applyTheme(t) {
   else document.documentElement.removeAttribute('data-theme')
 }
 
-export function toggleTheme() {
-  const next = getTheme() === 'dark' ? 'light' : 'dark'
+export function setTheme(t) {
+  const next = t === 'dark' ? 'dark' : 'light'
   try { localStorage.setItem(KEY, next) } catch { /* пусто */ }
   applyTheme(next)
+  try { window.dispatchEvent(new CustomEvent('themechange', { detail: next })) } catch { /* пусто */ }
   return next
+}
+
+export function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark'
+  return setTheme(next)
 }
 
 // Применяем сохранённую тему до отрисовки приложения (без мигания).

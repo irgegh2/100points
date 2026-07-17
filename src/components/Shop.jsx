@@ -28,7 +28,7 @@ const EARN = [
   { label: 'Сохранённая жизнь (в конце недели)', pts: 25 },
 ]
 
-export default function Shop({ balance = 0, onBack, onBalance }) {
+export default function Shop({ balance = 0, onBack, onBalance, onThemeUnlocked }) {
   const [coins, setCoins] = useState(balance)
   const [items, setItems] = useState([])
   const [purchases, setPurchases] = useState([])
@@ -48,7 +48,10 @@ export default function Shop({ balance = 0, onBack, onBalance }) {
     try {
       const d = await shopBuy(it.id)
       setCoins(d.balance); onBalance?.(d.balance)
-      setToast(it.category === 'reward'
+      if (d.theme_unlocked) onThemeUnlocked?.()
+      setToast(d.theme_unlocked
+        ? `«${it.name}» куплено и включено!`
+        : it.category === 'reward'
         ? `«${it.name}» — заявка принята! Скоро свяжемся в ВК и выдадим.`
         : `«${it.name}» куплено! Заявка отправлена — скоро откроем.`)
       await reload()
@@ -76,14 +79,14 @@ export default function Shop({ balance = 0, onBack, onBalance }) {
                   return (
                     <div className={`shop__row ${it.badge ? 'is-gold' : ''}`} key={it.id}>
                       <div className="shop__row-main">
-                        <div className="shop__row-name">{it.name}{it.badge && <span className="shop__tag">{it.badge}</span>}{it.once_only && <span className="shop__once">1 раз</span>}</div>
+                        <div className="shop__row-name">{it.name}{it.badge && <span className="shop__tag">{it.badge}</span>}{it.instant && <span className="shop__instant">Доступ сразу</span>}{it.once_only && <span className="shop__once">1 раз</span>}</div>
                         <div className="shop__row-desc">{it.description}</div>
                       </div>
                       <div className="shop__row-side">
                         <span className="shop__price"><Gem size={15} /> {it.price}</span>
                         <button className={`shop__act ${it.owned ? 'is-owned' : ''} ${poor && !it.owned ? 'is-poor' : ''}`}
                           onClick={() => buy(it)} disabled={it.owned || poor || busy === it.id}>
-                          {it.owned ? <><Check size={15} /> Есть</> : busy === it.id ? '…' : poor ? 'Не хватает' : <>Купить <ArrowRight size={15} /></>}
+                          {it.owned ? <><Check size={15} /> {it.instant ? 'Активно' : 'Есть'}</> : busy === it.id ? '…' : poor ? 'Не хватает' : <>Купить <ArrowRight size={15} /></>}
                         </button>
                       </div>
                     </div>

@@ -144,6 +144,7 @@ export async function aiChatStream(chatId, content, onDelta) {
 
 // ── Геймификация (Этап 9) ─────────────────────────────────
 export const walletGet = () => call('/wallet_get.php')
+export const themeAccess = () => call('/theme_access.php')
 export const achievementsList = () => call('/achievements_list.php')
 export const dailyGet = () => call('/daily_get.php')
 export const tourStatus = () => call('/tour_status.php')

@@ -36,7 +36,7 @@ body {
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; border: none; background: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 ul { list-style: none; }
 
 .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
@@ -1751,6 +1751,7 @@ select.admin__inp { padding: 0 6px; }
 /* ── Магазин: заявки, тосты, статусы (Этап 10) ── */
 .shop__toast { position: sticky; top: 8px; z-index: 30; background: #1a2233; color: #fff; padding: 12px 16px; border-radius: 12px; margin-bottom: 12px; font-weight: 600; font-size: 14px; box-shadow: 0 10px 30px rgba(20,30,60,.25); }
 .shop__once { margin-left: 7px; font-size: 10px; font-weight: 700; color: #b25f00; background: #fff2e0; padding: 1px 7px; border-radius: 999px; vertical-align: 1px; }
+.shop__instant { font-size: 10px; font-weight: 800; color: #1d8c41; background: #e7f8ec; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
 .shop__orders { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
 .shop__orders-cnt { margin-left: 6px; font-size: 11px; font-weight: 700; color: #fff; background: #cdd3dd; padding: 1px 7px; border-radius: 999px; }
 .shop__orders-scroll { display: grid; gap: 8px; max-height: 320px; overflow-y: auto; margin-top: 8px; padding-right: 4px; }
@@ -1959,15 +1960,31 @@ select.admin__inp { padding: 0 6px; }
    поверхностей уже на var(--surface)/var(--bg-soft)/var(--line) и темнеют
    автоматически; ниже — точечная правка литеральных тёмных текстов/акцентов. */
 [data-theme="dark"] .lk {
-  --surface: #1f2329;
-  --bg-soft: #15181d;
-  --line: #2d323b;
-  --text: #e6e8ec;
-  --ink: #f3f5f8;
-  --muted: #99a1ac;
+  color-scheme: dark;
+  --surface: #202630;
+  --bg-soft: #13181f;
+  --line: #343d4a;
+  --text: #e8edf4;
+  --ink: #f8fafc;
+  --muted: #9da8b7;
+  --blue: #72a0ff;
+  --blue-dark: #5d8cf0;
+  --purple: #9387ff;
+  --green: #46d36c;
+  --orange: #ff8a1f;
+  --orange-dark: #f9780b;
+  --night-raised: #272e39;
+  --night-blue: #1d2d49;
+  --night-purple: #2b2746;
+  --night-green: #193626;
+  --night-red: #3b2228;
+  --night-amber: #3b2d17;
   background: var(--bg-soft);
   color: var(--text);
 }
+[data-theme="dark"] .lk__main { background: #12171e; }
+[data-theme="dark"] .lk__side { background: #1b212a; }
+[data-theme="dark"] .lk__logo img { filter: invert(1) grayscale(1) brightness(1.9); }
 [data-theme="dark"] .lk h1,
 [data-theme="dark"] .lk h2,
 [data-theme="dark"] .lk h3,
@@ -1985,7 +2002,27 @@ select.admin__inp { padding: 0 6px; }
 [data-theme="dark"] .rescard__solution,
 [data-theme="dark"] .rescard__mentor p,
 [data-theme="dark"] .chat__pinned p,
-[data-theme="dark"] .chat__attach { color: #c6ccd4; }
+[data-theme="dark"] .chat__attach,
+[data-theme="dark"] .ai-suggest__item,
+[data-theme="dark"] .aix__item-main,
+[data-theme="dark"] .trun__tag.light,
+[data-theme="dark"] .trun__fb p,
+[data-theme="dark"] .test__locked h3,
+[data-theme="dark"] .result__expert-meta,
+[data-theme="dark"] .admin__reviewq-sol,
+[data-theme="dark"] .admin__order-note,
+[data-theme="dark"] .admin__checkrow,
+[data-theme="dark"] .lk__info-list li,
+[data-theme="dark"] .lk__info-list b,
+[data-theme="dark"] .slesson__title,
+[data-theme="dark"] .sevent__type,
+[data-theme="dark"] .sevent__title,
+[data-theme="dark"] .sevent__time,
+[data-theme="dark"] .sched__leg,
+[data-theme="dark"] .spop__subj,
+[data-theme="dark"] .profile__stepper button,
+[data-theme="dark"] .chat__attremove,
+[data-theme="dark"] .lk__burger { color: var(--text); }
 [data-theme="dark"] .lk__navitem.active { color: #fff; }
 
 /* Поля ввода */
@@ -1995,18 +2032,116 @@ select.admin__inp { padding: 0 6px; }
 [data-theme="dark"] .admin__inp { background: var(--surface); color: var(--text); border-color: var(--line); }
 [data-theme="dark"] .lk input::placeholder,
 [data-theme="dark"] .lk textarea::placeholder { color: #7b828d; }
+[data-theme="dark"] .profile__form input:disabled,
+[data-theme="dark"] .profile__form input[readonly] { background: #171c24; color: #778291; }
 
-/* Светлые акцент-карточки/пузыри, которые иначе остались бы белыми пятнами */
-[data-theme="dark"] .chat__pinned { background: #20242c; border-color: var(--line); }
-[data-theme="dark"] .dash__banner { background: #20242c; border-color: var(--line); }
-[data-theme="dark"] .airow .bubble { background: #2a2f3b; }
+/* Нейтральные и цветные поверхности — без белых пятен и провалившегося текста */
+[data-theme="dark"] .chat__pinned,
+[data-theme="dark"] .dash__banner { background: var(--night-raised); border-color: var(--line); }
+[data-theme="dark"] .dash__banner { color: var(--text); }
+[data-theme="dark"] .ach__card.is-off,
+[data-theme="dark"] .shop__row:hover,
+[data-theme="dark"] .lesson__tc:hover,
+[data-theme="dark"] .admin__month,
+[data-theme="dark"] .admin__settings,
+[data-theme="dark"] .bank__csubs { background: var(--night-raised); }
+[data-theme="dark"] .shop__row.is-gold { background: linear-gradient(90deg, rgba(126,91,21,.18), transparent 66%); }
+
+/* Синие выбранные состояния */
+[data-theme="dark"] .hw__menu button.active,
+[data-theme="dark"] .test__opt.selected,
+[data-theme="dark"] .rescard__badge.graded,
+[data-theme="dark"] .mrow.active,
+[data-theme="dark"] .aix__item.active,
+[data-theme="dark"] .trainer__mode.active,
+[data-theme="dark"] .trainer__tasklevel,
+[data-theme="dark"] .bank__counts button.active,
+[data-theme="dark"] .admin__navrow.active,
+[data-theme="dark"] .lib__item-ico,
+[data-theme="dark"] .subs__notice { background: var(--night-blue); border-color: #35527d; color: #9fc0ff; }
+[data-theme="dark"] .scol--today .scol__head { background: var(--night-blue); }
+[data-theme="dark"] .lk__notif-row.unread,
+[data-theme="dark"] .lk__notif-row.unread:hover { background: #1a2940; }
+
+/* Фиолетовые ИИ-состояния */
+[data-theme="dark"] .chat__pinned--ai,
+[data-theme="dark"] .airow .bubble,
+[data-theme="dark"] .aichats__tag { background: var(--night-purple); border-color: #49416e; }
+[data-theme="dark"] .ai-suggest__item:hover,
+[data-theme="dark"] .aicreate__opts button:hover { background: #312b50; }
+
+/* Статусы: зелёный, красный, янтарный */
+[data-theme="dark"] .lpill.green,
+[data-theme="dark"] .rescard__badge.correct,
+[data-theme="dark"] .bank__solved.done,
+[data-theme="dark"] .splan__btn:disabled,
+[data-theme="dark"] .leadform__done,
+[data-theme="dark"] .admin__msg--ok,
+[data-theme="dark"] .admin__leadstatus.done,
+[data-theme="dark"] .shop__instant,
+[data-theme="dark"] .tmodal__badge { background: var(--night-green); color: #72e391; }
+[data-theme="dark"] .rescard__badge.wrong,
+[data-theme="dark"] .trun__fb.no,
+[data-theme="dark"] .admin__msg--err,
+[data-theme="dark"] .admin__maint.on,
+[data-theme="dark"] .slesson--deadline,
+[data-theme="dark"] .sallday__chip { background: var(--night-red); color: #ff9898; }
+[data-theme="dark"] .rescard__badge.pending,
+[data-theme="dark"] .rescard__badge.partial,
+[data-theme="dark"] .trun__fb.ok,
+[data-theme="dark"] .lesson__lockbanner,
+[data-theme="dark"] .hwcard__status.review,
+[data-theme="dark"] .shop__once,
+[data-theme="dark"] .admin__leadstatus.new,
+[data-theme="dark"] .admin__qbadge,
+[data-theme="dark"] .tourguide__reward { background: var(--night-amber); border-color: #62491e; color: #ffc66f; }
+[data-theme="dark"] .rescard__correct,
+[data-theme="dark"] .trainer__verdict.correct,
+[data-theme="dark"] .admin__ok,
+[data-theme="dark"] .shop__order-status.done { color: #72e391; }
+[data-theme="dark"] .rescard__pending,
+[data-theme="dark"] .trainer__verdict.partial,
+[data-theme="dark"] .shop__order-status.pending { color: #ffc66f; }
+[data-theme="dark"] .trainer__verdict.wrong,
+[data-theme="dark"] .admin__bad { color: #ff9898; }
+
+/* Кристаллы остаются золотыми, но карточки вписываются в ночную палитру */
+[data-theme="dark"] .dcoins { background: linear-gradient(145deg, #443411, #2c2515); border: 1px solid #65501f; }
+[data-theme="dark"] .dcoins__top,
+[data-theme="dark"] .dcoins p { color: #f2c865; }
+[data-theme="dark"] .dcoins .btn { background: #171c23; color: #f8fafc; border: 1px solid #3f4856; }
+[data-theme="dark"] .shop__bal { background: linear-gradient(145deg, #3c3018, #282318); border-color: #5b4a24; }
+[data-theme="dark"] .shop__bal-ico { background: #171c23; }
+[data-theme="dark"] .shop__bal-num { color: #f4cf73; }
+[data-theme="dark"] .shop__bal-lbl { color: #c9aa61; }
+
+/* Контролы, у которых светлый var(--ink) становился белым фоном с белым текстом */
+[data-theme="dark"] .courses-lk__tabs button.active,
+[data-theme="dark"] .profile__gtabs button.active { background: #eef2f7; color: #161b22; }
+[data-theme="dark"] .btn-light { background: #272e39; color: #f8fafc; border-color: #46505f; }
+[data-theme="dark"] .btn-orange,
+[data-theme="dark"] .lk__navitem.active,
+[data-theme="dark"] .admin__badge,
+[data-theme="dark"] .tourguide__next { color: #18120c; }
+[data-theme="dark"] .lk__logout { color: #ff8179; }
+[data-theme="dark"] .shop__act:hover { background: #eef2f7; color: #161b22; }
+[data-theme="dark"] .splan.top { background: linear-gradient(180deg, #352d1e, var(--surface)); border-color: #69532a; }
+[data-theme="dark"] .rescard__mentor { background: var(--night-blue); }
+[data-theme="dark"] .sevent { background: #202c3d; }
+[data-theme="dark"] .snow__dot { box-shadow: 0 0 0 2px #12171e; }
 [data-theme="dark"] .lk__logout:hover { background: #3a2326; }
 [data-theme="dark"] .admin__leadmsg,
 [data-theme="dark"] .dash__badge,
 [data-theme="dark"] .dash__counter { background: var(--bg-soft); }
+[data-theme="dark"] .profile__stepper button:hover,
+[data-theme="dark"] .mrow__actions button:hover { background: #303744; color: var(--ink); }
+[data-theme="dark"] .admin__delbtn:hover,
+[data-theme="dark"] .mrow__actions button.danger:hover { background: var(--night-red); color: #ff9898; }
 
 /* Переключатель темы в шапке (использует стиль кнопки-колокольчика) */
-.theme-toggle { color: #444; }
+.theme-toggle { color: #444; position: relative; }
+.theme-toggle.is-locked { color: #8a93a3; }
+.theme-toggle__lock { position: absolute; right: 5px; bottom: 5px; padding: 1px; border-radius: 50%; background: var(--surface); color: var(--orange); }
 [data-theme="dark"] .theme-toggle { color: #c6ccd4; }
 
 /* ───────────────── Доступность (a11y) ─────────────────
