@@ -30,14 +30,14 @@ export default function AdminMocks() {
     setBusy(true); setMsg(null)
     try {
       const payload = { ...form, access_mode: form.format === 'proctored' ? 'individual' : form.access_mode, position: mocks.length }
-      await catCreate('mock_exams', payload)
-      setForm((f) => ({ ...f, title: '' })); await load()
+      const d = await catCreate('mock_exams', payload)
+      setMocks((list) => [...list, d.item]); setForm((f) => ({ ...f, title: '' }))
       setMsg({ type: 'ok', text: 'Пробник создан' })
     } catch (err) { setMsg({ type: 'err', text: err.message }) }
     finally { setBusy(false) }
   }
-  const saveRow = (m) => catUpdate('mock_exams', { id: m.id, course_id: m.course_id, month: m.month, title: m.title, format: m.format || 'normal', access_mode: (m.format || 'normal') === 'proctored' ? 'individual' : (m.access_mode || 'general') }).then(load).catch((e) => alert(e.message))
-  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(load)
+  const saveRow = (m) => catUpdate('mock_exams', { id: m.id, course_id: m.course_id, month: m.month, title: m.title, format: m.format || 'normal', access_mode: (m.format || 'normal') === 'proctored' ? 'individual' : (m.access_mode || 'general') }).catch((e) => alert(e.message))
+  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(() => setMocks((list) => list.filter((x) => x.id !== m.id)))
   const patch = (id, k, v) => setMocks((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   return (

@@ -25,14 +25,14 @@ export default function AdminSchedule() {
     if (!form.title.trim() || !form.starts_at) return setMsg({ type: 'err', text: 'Заполни название и дату/время' })
     setBusy(true); setMsg(null)
     try {
-      await catCreate('events', { ...form, starts_at: fromInput(form.starts_at), course_id: courseId, position: events.length })
-      setForm((f) => ({ ...f, title: '', starts_at: '', link: '' })); load(courseId)
+      const d = await catCreate('events', { ...form, starts_at: fromInput(form.starts_at), course_id: courseId, position: events.length })
+      setEvents((list) => [...list, d.item]); setForm((f) => ({ ...f, title: '', starts_at: '', link: '' }))
       setMsg({ type: 'ok', text: 'Событие добавлено' })
     } catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
   const patch = (id, k, v) => setEvents((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
-  const save = (ev) => catUpdate('events', { id: ev.id, type: ev.type, title: ev.title, starts_at: fromInput(toInput(ev.starts_at)), duration: ev.duration, link: ev.link }).then(() => load(courseId)).catch((e) => alert(e.message))
-  const del = (ev) => confirm('Удалить событие?') && catDelete('events', ev.id).then(() => load(courseId))
+  const save = (ev) => catUpdate('events', { id: ev.id, type: ev.type, title: ev.title, starts_at: fromInput(toInput(ev.starts_at)), duration: ev.duration, link: ev.link }).catch((e) => alert(e.message))
+  const del = (ev) => confirm('Удалить событие?') && catDelete('events', ev.id).then(() => setEvents((list) => list.filter((x) => x.id !== ev.id)))
 
   return (
     <div className="admin__cols">

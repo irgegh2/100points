@@ -55,43 +55,43 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
   }
 
   // ── месяцы ──
-  const addMonth = () => catCreate('months', { course_id: courseId, name: 'Новый месяц', position: months.length }).then(loadMonths)
-  const saveMonth = (m) => catUpdate('months', { id: m.id, name: m.name }).then(loadMonths).catch((e) => alert(e.message))
-  const delMonth = (m) => confirm(`Удалить месяц «${m.name}» со всеми блоками и уроками?`) && catDelete('months', m.id).then(loadMonths)
+  const addMonth = () => catCreate('months', { course_id: courseId, name: 'Новый месяц', position: months.length }).then((d) => setMonths((list) => [...list, d.item]))
+  const saveMonth = (m) => catUpdate('months', { id: m.id, name: m.name }).catch((e) => alert(e.message))
+  const delMonth = (m) => confirm(`Удалить месяц «${m.name}» со всеми блоками и уроками?`) && catDelete('months', m.id).then(() => setMonths((list) => list.filter((x) => x.id !== m.id)))
   const patchMonth = (id, v) => setMonths((a) => a.map((m) => m.id === id ? { ...m, name: v } : m))
 
   // ── блоки ──
-  const addBlock = () => catCreate('blocks', { course_id: courseId, month_id: selMonth.id, n: blocks.length + 1, title: 'Новый блок', position: blocks.length }).then(() => loadBlocks(selMonth.id))
-  const saveBlock = (b) => catUpdate('blocks', { id: b.id, n: b.n, title: b.title }).then(() => loadBlocks(selMonth.id)).catch((e) => alert(e.message))
-  const delBlock = (b) => confirm(`Удалить блок «${b.title}» со всеми уроками?`) && catDelete('blocks', b.id).then(() => loadBlocks(selMonth.id))
+  const addBlock = () => catCreate('blocks', { course_id: courseId, month_id: selMonth.id, n: blocks.length + 1, title: 'Новый блок', position: blocks.length }).then((d) => setBlocks((list) => [...list, d.item]))
+  const saveBlock = (b) => catUpdate('blocks', { id: b.id, n: b.n, title: b.title }).catch((e) => alert(e.message))
+  const delBlock = (b) => confirm(`Удалить блок «${b.title}» со всеми уроками?`) && catDelete('blocks', b.id).then(() => setBlocks((list) => list.filter((x) => x.id !== b.id)))
   const patchBlock = (id, k, v) => setBlocks((a) => a.map((b) => b.id === id ? { ...b, [k]: v } : b))
 
   // ── уроки ──
-  const addLesson = (type) => catCreate('lessons', { block_id: selBlock.id, type, title: type === 'theory' ? 'Новый урок' : 'Практика', position: lessons.length }).then(() => loadLessons(selBlock.id))
-  const saveLesson = (l) => catUpdate('lessons', { id: l.id, type: l.type, title: l.title, meta: l.meta, kinescope_id: l.kinescope_id, air: l.air, air_at: l.air_at ? l.air_at.replace('T', ' ').slice(0, 16) : '', duration: l.duration, locked_hint: l.locked_hint }).then(() => { loadLessons(selBlock.id); setSelLesson(l) }).catch((e) => alert(e.message))
-  const delLesson = (l) => { if (confirm(`Удалить урок «${l.title}»?`)) catDelete('lessons', l.id).then(() => { loadLessons(selBlock.id); setLevel('lessons') }) }
+  const addLesson = (type) => catCreate('lessons', { block_id: selBlock.id, type, title: type === 'theory' ? 'Новый урок' : 'Практика', position: lessons.length }).then((d) => setLessons((list) => [...list, d.item]))
+  const saveLesson = (l) => catUpdate('lessons', { id: l.id, type: l.type, title: l.title, meta: l.meta, kinescope_id: l.kinescope_id, air: l.air, air_at: l.air_at ? l.air_at.replace('T', ' ').slice(0, 16) : '', duration: l.duration, locked_hint: l.locked_hint }).then(() => { setLessons((list) => list.map((x) => x.id === l.id ? { ...x, ...l } : x)); setSelLesson(l) }).catch((e) => alert(e.message))
+  const delLesson = (l) => { if (confirm(`Удалить урок «${l.title}»?`)) catDelete('lessons', l.id).then(() => { setLessons((list) => list.filter((x) => x.id !== l.id)); setLevel('lessons') }) }
   const patchLessonRow = (id, k, v) => setLessons((a) => a.map((l) => l.id === id ? { ...l, [k]: v } : l))
   const patchSel = (k, v) => setSelLesson((l) => ({ ...l, [k]: v }))
 
   // ── материалы / тайм-коды ──
-  const uploadMat = async (file) => { try { await materialUpload(selLesson.id, file); loadExtras(selLesson.id) } catch (e) { alert(e.message) } }
+  const uploadMat = async (file) => { try { const d = await materialUpload(selLesson.id, file); setMaterials((list) => [...list, d.item]) } catch (e) { alert(e.message) } }
   const addLinkMat = () => {
     const name = prompt('Название материала'); if (!name) return
     const url = prompt('Ссылка (URL)') || ''
-    catCreate('materials', { lesson_id: selLesson.id, name, url, size: '—', kind: 'link', position: materials.length }).then(() => loadExtras(selLesson.id))
+    catCreate('materials', { lesson_id: selLesson.id, name, url, size: '—', kind: 'link', position: materials.length }).then((d) => setMaterials((list) => [...list, d.item]))
   }
-  const delMat = (id) => catDelete('materials', id).then(() => loadExtras(selLesson.id))
+  const delMat = (id) => catDelete('materials', id).then(() => setMaterials((list) => list.filter((x) => x.id !== id)))
   const addTc = () => {
     const t = prompt('Метка времени (например 03:40)'); if (!t) return
     const label = prompt('Подпись') || ''
-    catCreate('timecodes', { lesson_id: selLesson.id, t, label, position: timecodes.length }).then(() => loadExtras(selLesson.id))
+    catCreate('timecodes', { lesson_id: selLesson.id, t, label, position: timecodes.length }).then((d) => setTimecodes((list) => [...list, d.item]))
   }
-  const delTc = (id) => catDelete('timecodes', id).then(() => loadExtras(selLesson.id))
+  const delTc = (id) => catDelete('timecodes', id).then(() => setTimecodes((list) => list.filter((x) => x.id !== id)))
 
   // ── домашние задания урока ──
-  const addHomework = (level) => catCreate('homeworks', { lesson_id: selLesson.id, level, title: level === 'hard' ? 'Повышенная сложность' : 'Домашняя работа', deadline: '', position: homeworks.length }).then(() => loadHomeworks(selLesson.id))
-  const saveHomework = (hw) => catUpdate('homeworks', { id: hw.id, title: hw.title, deadline: hw.deadline, level: hw.level }).then(() => loadHomeworks(selLesson.id)).catch((e) => alert(e.message))
-  const delHomework = (hw) => confirm(`Удалить ДЗ «${hw.title}» со всеми вопросами?`) && catDelete('homeworks', hw.id).then(() => loadHomeworks(selLesson.id))
+  const addHomework = (level) => catCreate('homeworks', { lesson_id: selLesson.id, level, title: level === 'hard' ? 'Повышенная сложность' : 'Домашняя работа', deadline: '', position: homeworks.length }).then((d) => setHomeworks((list) => [...list, d.item]))
+  const saveHomework = (hw) => catUpdate('homeworks', { id: hw.id, title: hw.title, deadline: hw.deadline, level: hw.level }).catch((e) => alert(e.message))
+  const delHomework = (hw) => confirm(`Удалить ДЗ «${hw.title}» со всеми вопросами?`) && catDelete('homeworks', hw.id).then(() => setHomeworks((list) => list.filter((x) => x.id !== hw.id)))
   const patchHw = (id, k, v) => setHomeworks((a) => a.map((h) => h.id === id ? { ...h, [k]: v } : h))
 
   if (!meta) return <div className="admin-wrap"><div className="admin__empty">Загрузка курса…</div></div>

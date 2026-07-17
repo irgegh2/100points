@@ -27,12 +27,12 @@ export default function AdminShop() {
     e.preventDefault()
     if (!form.name.trim()) return
     setBusy(true)
-    try { await catCreate('shop_items', { ...form, position: items.length }); setForm(EMPTY); loadItems() }
+    try { const d = await catCreate('shop_items', { ...form, position: items.length }); setItems((list) => [...list, d.item]); setForm(EMPTY) }
     catch (err) { alert(err.message) } finally { setBusy(false) }
   }
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
-  const saveItem = (it) => catUpdate('shop_items', { id: it.id, name: it.name, description: it.description, category: it.category, price: it.price, once_only: num(it.once_only) ? 1 : 0, active: num(it.active) ? 1 : 0, badge: it.badge }).then(loadItems).catch((e) => alert(e.message))
-  const delItem = (it) => confirm(`Удалить товар «${it.name}»?`) && catDelete('shop_items', it.id).then(loadItems)
+  const saveItem = (it) => catUpdate('shop_items', { id: it.id, name: it.name, description: it.description, category: it.category, price: it.price, once_only: num(it.once_only) ? 1 : 0, active: num(it.active) ? 1 : 0, badge: it.badge }).catch((e) => alert(e.message))
+  const delItem = (it) => confirm(`Удалить товар «${it.name}»?`) && catDelete('shop_items', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
 
   // заявки
   const act = async (o, status) => {

@@ -24,20 +24,20 @@ export default function AdminLibrary() {
     e.preventDefault()
     if (!form.title.trim() || !form.url.trim()) return setMsg({ type: 'err', text: 'Нужны название и ссылка' })
     setBusy(true); setMsg(null)
-    try { await catCreate('library_items', { subject_id: form.subject_id || '', category: form.category, title: form.title, url: form.url, size: 'Ссылка', kind: 'link', position: items.length }); setForm((f) => ({ ...f, title: '', url: '' })); load(); setMsg({ type: 'ok', text: 'Материал добавлен' }) }
+    try { const d = await catCreate('library_items', { subject_id: form.subject_id || '', category: form.category, title: form.title, url: form.url, size: 'Ссылка', kind: 'link', position: items.length }); setItems((list) => [...list, d.item]); setForm((f) => ({ ...f, title: '', url: '' })); setMsg({ type: 'ok', text: 'Материал добавлен' }) }
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
   // добавить файлом
   const onFile = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
     setBusy(true); setMsg(null)
-    try { await libraryUpload(file, { subject_id: form.subject_id || undefined, category: form.category, title: form.title || undefined }); setForm((f) => ({ ...f, title: '' })); load(); setMsg({ type: 'ok', text: 'Файл загружен' }) }
+    try { const d = await libraryUpload(file, { subject_id: form.subject_id || undefined, category: form.category, title: form.title || undefined }); setItems((list) => [...list, d.item]); setForm((f) => ({ ...f, title: '' })); setMsg({ type: 'ok', text: 'Файл загружен' }) }
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false); if (fileRef.current) fileRef.current.value = '' }
   }
 
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
-  const save = (it) => catUpdate('library_items', { id: it.id, subject_id: it.subject_id || '', category: it.category, title: it.title, url: it.url }).then(load).catch((e) => alert(e.message))
-  const del = (it) => confirm(`Удалить «${it.title}»?`) && catDelete('library_items', it.id).then(load)
+  const save = (it) => catUpdate('library_items', { id: it.id, subject_id: it.subject_id || '', category: it.category, title: it.title, url: it.url }).catch((e) => alert(e.message))
+  const del = (it) => confirm(`Удалить «${it.title}»?`) && catDelete('library_items', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
 
   return (
     <div className="admin__cols">

@@ -21,23 +21,23 @@ export default function AdminSupport() {
     e.preventDefault()
     if (!newCat.trim()) return
     setBusy(true)
-    try { const d = await catCreate('help_categories', { name: newCat, position: cats.length }); setNewCat(''); await loadCats(); setActiveCat(d.item.id) }
+    try { const d = await catCreate('help_categories', { name: newCat, position: cats.length }); setCats((list) => [...list, d.item]); setNewCat(''); setActiveCat(d.item.id) }
     catch (err) { alert(err.message) } finally { setBusy(false) }
   }
   const renameCat = (c, name) => setCats((a) => a.map((x) => x.id === c.id ? { ...x, name } : x))
   const saveCat = (c) => catUpdate('help_categories', { id: c.id, name: c.name }).catch((e) => alert(e.message))
-  const delCat = (c) => confirm(`Удалить категорию «${c.name}» со всеми вопросами?`) && catDelete('help_categories', c.id).then(() => { if (activeCat === c.id) setActiveCat(null); loadCats() })
+  const delCat = (c) => confirm(`Удалить категорию «${c.name}» со всеми вопросами?`) && catDelete('help_categories', c.id).then(() => { setCats((list) => list.filter((x) => x.id !== c.id)); if (activeCat === c.id) { setActiveCat(null); setQa([]) } })
 
   const addQa = async (e) => {
     e.preventDefault()
     if (!qForm.question.trim() || !qForm.answer.trim()) return setMsg({ type: 'err', text: 'Заполни вопрос и ответ' })
     setBusy(true); setMsg(null)
-    try { await catCreate('help_qa', { category_id: activeCat, question: qForm.question, answer: qForm.answer, position: qa.length }); setQForm({ question: '', answer: '' }); loadQa(activeCat); setMsg({ type: 'ok', text: 'Вопрос добавлен' }) }
+    try { const d = await catCreate('help_qa', { category_id: activeCat, question: qForm.question, answer: qForm.answer, position: qa.length }); setQa((list) => [...list, d.item]); setQForm({ question: '', answer: '' }); setMsg({ type: 'ok', text: 'Вопрос добавлен' }) }
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
   const patchQa = (id, k, v) => setQa((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
-  const saveQa = (q) => catUpdate('help_qa', { id: q.id, question: q.question, answer: q.answer }).then(() => loadQa(activeCat)).catch((e) => alert(e.message))
-  const delQa = (q) => confirm('Удалить вопрос?') && catDelete('help_qa', q.id).then(() => loadQa(activeCat))
+  const saveQa = (q) => catUpdate('help_qa', { id: q.id, question: q.question, answer: q.answer }).catch((e) => alert(e.message))
+  const delQa = (q) => confirm('Удалить вопрос?') && catDelete('help_qa', q.id).then(() => setQa((list) => list.filter((x) => x.id !== q.id)))
 
   const cat = cats.find((c) => c.id === activeCat)
 

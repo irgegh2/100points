@@ -72,9 +72,9 @@ function SubtopicsModal({ topic, onClose }) {
   const [qModal, setQModal] = useState(null)
   const load = () => catList('subtopics', { topic_id: topic.id }).then((d) => setItems(d.items || []))
   useEffect(() => { load() }, [])
-  const add = () => catCreate('subtopics', { topic_id: topic.id, name: 'Новая подтема', position: items.length }).then(load)
-  const save = (s) => catUpdate('subtopics', { id: s.id, name: s.name }).then(load).catch((e) => alert(e.message))
-  const del = (s) => confirm(`Удалить подтему «${s.name}» с вопросами?`) && catDelete('subtopics', s.id).then(load)
+  const add = () => catCreate('subtopics', { topic_id: topic.id, name: 'Новая подтема', position: items.length }).then((d) => setItems((list) => [...list, d.item]))
+  const save = (s) => catUpdate('subtopics', { id: s.id, name: s.name }).catch((e) => alert(e.message))
+  const del = (s) => confirm(`Удалить подтему «${s.name}» с вопросами?`) && catDelete('subtopics', s.id).then(() => setItems((list) => list.filter((x) => x.id !== s.id)))
   const patch = (id, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, name: v } : x))
   return (
     <div className="admin__modal" onClick={onClose}>
@@ -116,19 +116,19 @@ export default function AdminBank() {
   useEffect(() => { loadAll(subjectId) }, [subjectId])
 
   // темы
-  const addTopic = () => catCreate('topics', { subject_id: subjectId, number: (topics.length + 1), name: 'Новая тема', part: 'first', error_rate: '', position: topics.length }).then(() => loadAll(subjectId))
-  const saveTopic = (t) => catUpdate('topics', { id: t.id, number: t.number, name: t.name, part: t.part, error_rate: t.error_rate }).then(() => loadAll(subjectId)).catch((e) => alert(e.message))
-  const delTopic = (t) => confirm(`Удалить тему «${t.name}» со всеми подтемами и вопросами?`) && catDelete('topics', t.id).then(() => loadAll(subjectId))
+  const addTopic = () => catCreate('topics', { subject_id: subjectId, number: (topics.length + 1), name: 'Новая тема', part: 'first', error_rate: '', position: topics.length }).then((d) => setTopics((list) => [...list, d.item]))
+  const saveTopic = (t) => catUpdate('topics', { id: t.id, number: t.number, name: t.name, part: t.part, error_rate: t.error_rate }).catch((e) => alert(e.message))
+  const delTopic = (t) => confirm(`Удалить тему «${t.name}» со всеми подтемами и вопросами?`) && catDelete('topics', t.id).then(() => setTopics((list) => list.filter((x) => x.id !== t.id)))
   const patchTopic = (id, k, v) => setTopics((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   // источники / варианты
-  const addSource = () => catCreate('bank_sources', { subject_id: subjectId, name: 'Новый источник', position: sources.length }).then(() => loadAll(subjectId))
-  const saveSource = (s) => catUpdate('bank_sources', { id: s.id, name: s.name }).then(() => loadAll(subjectId)).catch((e) => alert(e.message))
-  const delSource = (s) => confirm(`Удалить источник «${s.name}» с вариантами?`) && catDelete('bank_sources', s.id).then(() => loadAll(subjectId))
+  const addSource = () => catCreate('bank_sources', { subject_id: subjectId, name: 'Новый источник', position: sources.length }).then((d) => setSources((list) => [...list, d.item]))
+  const saveSource = (s) => catUpdate('bank_sources', { id: s.id, name: s.name }).catch((e) => alert(e.message))
+  const delSource = (s) => confirm(`Удалить источник «${s.name}» с вариантами?`) && catDelete('bank_sources', s.id).then(() => { setSources((list) => list.filter((x) => x.id !== s.id)); setVariants((list) => list.filter((v) => v.source_id !== s.id)) })
   const patchSource = (id, v) => setSources((a) => a.map((x) => x.id === id ? { ...x, name: v } : x))
-  const addVariant = (sourceId) => catCreate('bank_variants', { source_id: sourceId, subject_id: subjectId, name: 'Новый вариант', position: variants.length }).then(() => loadAll(subjectId))
-  const saveVariant = (v) => catUpdate('bank_variants', { id: v.id, name: v.name }).then(() => loadAll(subjectId)).catch((e) => alert(e.message))
-  const delVariant = (v) => confirm(`Удалить вариант «${v.name}»?`) && catDelete('bank_variants', v.id).then(() => loadAll(subjectId))
+  const addVariant = (sourceId) => catCreate('bank_variants', { source_id: sourceId, subject_id: subjectId, name: 'Новый вариант', position: variants.length }).then((d) => setVariants((list) => [...list, d.item]))
+  const saveVariant = (v) => catUpdate('bank_variants', { id: v.id, name: v.name }).catch((e) => alert(e.message))
+  const delVariant = (v) => confirm(`Удалить вариант «${v.name}»?`) && catDelete('bank_variants', v.id).then(() => setVariants((list) => list.filter((x) => x.id !== v.id)))
   const patchVariant = (id, val) => setVariants((a) => a.map((x) => x.id === id ? { ...x, name: val } : x))
 
   return (

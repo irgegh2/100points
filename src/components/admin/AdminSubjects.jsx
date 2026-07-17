@@ -24,20 +24,20 @@ export default function AdminSubjects() {
     if (!form.name.trim()) return setMsg({ type: 'err', text: 'Введите название' })
     setBusy(true); setMsg(null)
     try {
-      await catCreate('subjects', { ...form, position: items.length })
-      setForm(EMPTY); await load()
+      const d = await catCreate('subjects', { ...form, position: items.length })
+      setItems((list) => [...list, d.item]); setForm(EMPTY)
       setMsg({ type: 'ok', text: 'Предмет добавлен' })
     } catch (err) { setMsg({ type: 'err', text: err.message }) }
     finally { setBusy(false) }
   }
 
   const saveRow = async (it) => {
-    try { await catUpdate('subjects', it); await load() }
+    try { await catUpdate('subjects', it) }
     catch (err) { alert(err.message) }
   }
   const removeRow = async (it) => {
     if (!confirm(`Удалить предмет «${it.name}»? Все его курсы тоже удалятся.`)) return
-    try { await catDelete('subjects', it.id); await load() }
+    try { await catDelete('subjects', it.id); setItems((list) => list.filter((x) => x.id !== it.id)) }
     catch (err) { alert(err.message) }
   }
   const patch = (id, k, v) => setItems((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))

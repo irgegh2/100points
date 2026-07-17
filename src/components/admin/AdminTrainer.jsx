@@ -30,11 +30,11 @@ export default function AdminTrainer() {
     e.preventDefault()
     if (!tForm.text.trim() || !tForm.answer.trim()) return setMsg({ type: 'err', text: 'Заполни текст и эталонный ответ' })
     setBusy(true); setMsg(null)
-    try { await catCreate('trainer_tasks', { ...tForm, subject_id: subjectId, position: tasks.length }); setTForm((f) => ({ ...f, text: '', answer: '', solution: '' })); load(subjectId); setMsg({ type: 'ok', text: 'Задача добавлена' }) }
+    try { const d = await catCreate('trainer_tasks', { ...tForm, subject_id: subjectId, position: tasks.length }); setTasks((list) => [...list, d.item]); setTForm((f) => ({ ...f, text: '', answer: '', solution: '' })); setMsg({ type: 'ok', text: 'Задача добавлена' }) }
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
-  const saveTask = (t) => catUpdate('trainer_tasks', { id: t.id, level: t.level, text: t.text, answer: t.answer, solution: t.solution, model: t.model }).then(() => load(subjectId)).catch((e) => alert(e.message))
-  const delTask = (t) => confirm('Удалить задачу?') && catDelete('trainer_tasks', t.id).then(() => load(subjectId))
+  const saveTask = (t) => catUpdate('trainer_tasks', { id: t.id, level: t.level, text: t.text, answer: t.answer, solution: t.solution, model: t.model }).catch((e) => alert(e.message))
+  const delTask = (t) => confirm('Удалить задачу?') && catDelete('trainer_tasks', t.id).then(() => setTasks((list) => list.filter((x) => x.id !== t.id)))
   const patchTask = (id, k, v) => setTasks((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   // темы (режим «Вопрос-ответ»)
@@ -43,11 +43,11 @@ export default function AdminTrainer() {
     e.preventDefault()
     if (!qForm.name.trim()) return setMsg({ type: 'err', text: 'Введи название темы' })
     setBusy(true); setMsg(null)
-    try { await catCreate('trainer_qa_topics', { ...qForm, subject_id: subjectId, position: qa.length }); setQForm((f) => ({ ...f, name: '', examples: '' })); load(subjectId); setMsg({ type: 'ok', text: 'Тема добавлена' }) }
+    try { const d = await catCreate('trainer_qa_topics', { ...qForm, subject_id: subjectId, position: qa.length }); setQa((list) => [...list, d.item]); setQForm((f) => ({ ...f, name: '', examples: '' })); setMsg({ type: 'ok', text: 'Тема добавлена' }) }
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
-  const saveQa = (t) => catUpdate('trainer_qa_topics', { id: t.id, level: t.level, name: t.name, examples: t.examples, model: t.model }).then(() => load(subjectId)).catch((e) => alert(e.message))
-  const delQa = (t) => confirm('Удалить тему?') && catDelete('trainer_qa_topics', t.id).then(() => load(subjectId))
+  const saveQa = (t) => catUpdate('trainer_qa_topics', { id: t.id, level: t.level, name: t.name, examples: t.examples, model: t.model }).catch((e) => alert(e.message))
+  const delQa = (t) => confirm('Удалить тему?') && catDelete('trainer_qa_topics', t.id).then(() => setQa((list) => list.filter((x) => x.id !== t.id)))
   const patchQa = (id, k, v) => setQa((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   return (

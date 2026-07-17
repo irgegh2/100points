@@ -13,8 +13,8 @@ export default function AdminAchievements() {
   useEffect(() => { load() }, [])
 
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
-  const save = (it) => catUpdate('achievements', { id: it.id, title: it.title, description: it.description, icon: it.icon, reward: it.reward, target: it.target }).then(load).catch((e) => alert(e.message))
-  const del = (it) => confirm(`Удалить достижение «${it.title}»? Прогресс учеников по нему тоже удалится.`) && catDelete('achievements', it.id).then(load)
+  const save = (it) => catUpdate('achievements', { id: it.id, title: it.title, description: it.description, icon: it.icon, reward: it.reward, target: it.target }).catch((e) => alert(e.message))
+  const del = (it) => confirm(`Удалить достижение «${it.title}»? Прогресс учеников по нему тоже удалится.`) && catDelete('achievements', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
 
   return (
     <section className="admin__panel admin__panel--wide">

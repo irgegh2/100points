@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 
@@ -17,6 +17,7 @@ function toForm(q) {
     optional: !!q.optional, hard: !!q.hard, solution: q.solution || '',
     case_sensitive: !!q.case_sensitive, grade_mode: q.grade_mode || 'full',
     options: options.length ? options : ['', ''], correctSet, accepted: accepted.length ? accepted : [''],
+    _dirty: false, _rev: 0,
   }
 }
 function safeJSON(s, d) { try { const v = JSON.parse(s); return v ?? d } catch { return d } }
@@ -45,24 +46,62 @@ function toPayload(f, parentKey, parentId, position) {
 export default function AdminQuestionsModal({ parent, onClose }) {
   const [items, setItems] = useState([])
   const [busy, setBusy] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveState, setSaveState] = useState('saved')
+  const itemsRef = useRef([])
 
   const load = () => catList('questions', { [parent.key]: parent.id }).then((d) => setItems((d.items || []).map(toForm)))
   useEffect(() => { load() }, [])
+  useEffect(() => { itemsRef.current = items }, [items])
 
-  const patch = (id, k, v) => setItems((list) => list.map((q) => q.id === id ? { ...q, [k]: v } : q))
+  const patch = (id, k, v) => {
+    setSaveState('dirty')
+    setItems((list) => list.map((q) => q.id === id ? { ...q, [k]: v, _dirty: true, _rev: q._rev + 1 } : q))
+  }
+
+  const persist = useCallback(async (entries) => {
+    if (!entries.length || saving) return false
+    setSaving(true); setSaveState('saving')
+    try {
+      const saved = await Promise.all(entries.map(({ q, position }) =>
+        catUpdate('questions', { id: q.id, ...toPayload(q, parent.key, parent.id, position) }).then(() => ({ id: q.id, rev: q._rev }))
+      ))
+      const versions = new Map(saved.map((x) => [x.id, x.rev]))
+      setItems((list) => list.map((q) => versions.get(q.id) === q._rev ? { ...q, _dirty: false } : q))
+      const newerChanges = itemsRef.current.some((q) => q._dirty && (!versions.has(q.id) || versions.get(q.id) !== q._rev))
+      setSaveState(newerChanges ? 'dirty' : 'saved')
+      return true
+    } catch (e) {
+      setSaveState('error'); alert(e.message); return false
+    } finally { setSaving(false) }
+  }, [parent.id, parent.key, saving])
+
+  const dirtyEntries = useCallback((list = itemsRef.current) => list
+    .map((q, position) => ({ q, position }))
+    .filter(({ q }) => q._dirty), [])
+
+  useEffect(() => {
+    if (saving || !items.some((q) => q._dirty)) return undefined
+    const timer = setTimeout(() => persist(dirtyEntries(items)), 650)
+    return () => clearTimeout(timer)
+  }, [dirtyEntries, items, persist, saving])
+
+  useEffect(() => {
+    const warn = (e) => { if (itemsRef.current.some((q) => q._dirty) || saving) { e.preventDefault(); e.returnValue = '' } }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [saving])
 
   const addQuestion = async () => {
     setBusy(true)
     try {
-      await catCreate('questions', toPayload({ type: 'single', text: 'Новый вопрос', points: 1, optional: false, hard: false, solution: '', case_sensitive: false, grade_mode: 'full', options: ['', ''], correctSet: [], accepted: [''] }, parent.key, parent.id, items.length))
-      await load()
+      const d = await catCreate('questions', toPayload({ type: 'single', text: 'Новый вопрос', points: 1, optional: false, hard: false, solution: '', case_sensitive: false, grade_mode: 'full', options: ['', ''], correctSet: [], accepted: [''] }, parent.key, parent.id, itemsRef.current.length))
+      setItems((list) => [...list, toForm(d.item)])
     } catch (e) { alert(e.message) } finally { setBusy(false) }
   }
-  const save = async (f) => {
-    try { await catUpdate('questions', { id: f.id, ...toPayload(f, parent.key, parent.id, items.indexOf(f)) }); await load() }
-    catch (e) { alert(e.message) }
-  }
-  const remove = async (f) => { if (confirm('Удалить вопрос?')) { await catDelete('questions', f.id); await load() } }
+  const save = (f) => persist([{ q: f, position: itemsRef.current.findIndex((q) => q.id === f.id) }])
+  const saveAll = () => persist(dirtyEntries())
+  const remove = async (f) => { if (confirm('Удалить вопрос?')) { await catDelete('questions', f.id); setItems((list) => list.filter((q) => q.id !== f.id)) } }
 
   // редакторы вариантов
   const setOpt = (q, i, v) => patch(q.id, 'options', q.options.map((o, j) => j === i ? v : o))
@@ -81,7 +120,11 @@ export default function AdminQuestionsModal({ parent, onClose }) {
       <div className="admin__modal-box admin__modal-box--wide" onClick={(e) => e.stopPropagation()}>
         <div className="admin__modal-head">
           <h3>Вопросы · {parent.title} {parent.level === 'hard' && <span className="admin__rolebadge">повышенный</span>}</h3>
-          <button className="admin__iconbtn" onClick={onClose}><X size={18} /></button>
+          <div className="admin__qsavebar">
+            <span className={`admin__savestate is-${saveState}`}>{saveState === 'saving' ? 'Сохраняем…' : saveState === 'dirty' ? 'Есть изменения' : saveState === 'error' ? 'Ошибка сохранения' : 'Всё сохранено'}</span>
+            <button className="btn btn-light" onClick={saveAll} disabled={saving || !items.some((q) => q._dirty)}><Save size={15} /> Сохранить всё</button>
+            <button className="admin__iconbtn" onClick={onClose}><X size={18} /></button>
+          </div>
         </div>
 
         {items.length === 0 && <div className="admin__empty">Пока нет вопросов</div>}
@@ -95,7 +138,7 @@ export default function AdminQuestionsModal({ parent, onClose }) {
               <label className="admin__chk"><input type="checkbox" checked={q.optional} onChange={(e) => patch(q.id, 'optional', e.target.checked)} /> необяз.</label>
               <label className="admin__chk"><input type="checkbox" checked={q.hard} onChange={(e) => patch(q.id, 'hard', e.target.checked)} /> сложный</label>
               <label className="admin__chk">баллы <input className="admin__inp admin__inp--n" type="number" min={0} value={q.points} onChange={(e) => patch(q.id, 'points', e.target.value)} /></label>
-              <button className="admin__iconbtn" title="Сохранить" onClick={() => save(q)}><Save size={15} /></button>
+              <button className={`admin__qsave-one ${q._dirty ? 'is-dirty' : ''}`} title="Сохранить вопрос" onClick={() => save(q)} disabled={saving || !q._dirty}><Save size={15} /> Сохранить</button>
               <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => remove(q)}><Trash2 size={15} /></button>
             </div>
 

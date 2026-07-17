@@ -23,19 +23,19 @@ export default function AdminPlans() {
     if (!form.name.trim()) return setMsg({ type: 'err', text: 'Введите название' })
     setBusy(true); setMsg(null)
     try {
-      await catCreate('plans', { name: form.name, tagline: form.tagline, price: form.price, features: toFeaturesJSON(form.featuresText), badge: form.badge, position: items.length })
-      setForm(EMPTY); await load(); setMsg({ type: 'ok', text: 'Тариф добавлен' })
+      const d = await catCreate('plans', { name: form.name, tagline: form.tagline, price: form.price, features: toFeaturesJSON(form.featuresText), badge: form.badge, position: items.length })
+      setItems((list) => [...list, { ...d.item, featuresText: parseFeatures(d.item.features).join('\n') }]); setForm(EMPTY); setMsg({ type: 'ok', text: 'Тариф добавлен' })
     } catch (err) { setMsg({ type: 'err', text: err.message }) }
     finally { setBusy(false) }
   }
 
   const saveRow = async (p) => {
-    try { await catUpdate('plans', { id: p.id, name: p.name, tagline: p.tagline, price: p.price, features: toFeaturesJSON(p.featuresText), badge: p.badge }); await load() }
+    try { await catUpdate('plans', { id: p.id, name: p.name, tagline: p.tagline, price: p.price, features: toFeaturesJSON(p.featuresText), badge: p.badge }) }
     catch (err) { alert(err.message) }
   }
   const removeRow = async (p) => {
     if (!confirm(`Удалить тариф «${p.name}»?`)) return
-    try { await catDelete('plans', p.id); await load() } catch (err) { alert(err.message) }
+    try { await catDelete('plans', p.id); setItems((list) => list.filter((x) => x.id !== p.id)) } catch (err) { alert(err.message) }
   }
   const patch = (id, k, v) => setItems((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
