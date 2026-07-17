@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Home, BookOpen, CalendarDays, Trophy, Headset, Sparkles, Dumbbell, Library,
@@ -205,7 +205,7 @@ export default function CabinetPage() {
   }
   const readAll = async () => { try { await notifRead('all') } catch { /* пусто */ } loadNotifs() }
 
-  const go = (key) => { setActive(key); setMenuOpen(false) }
+  const go = useCallback((key) => { setActive(key); setMenuOpen(false) }, [])
 
   // Проверяем серверную сессию: кто вошёл.
   useEffect(() => {
@@ -249,6 +249,7 @@ export default function CabinetPage() {
           {NAV.map((n) => (
             <button
               key={n.key}
+              data-tour={n.key}
               className={`lk__navitem ${n.key === active ? 'active' : ''}`}
               onClick={() => go(n.key)}
             >
@@ -280,7 +281,7 @@ export default function CabinetPage() {
               </>)}
             </div>
             <div className="lk__chipwrap">
-              <span className="lk__coins" role="button" tabIndex={0} onClick={() => setInfo(info === 'coins' ? null : 'coins')}><Gem size={17} /> {wallet.crystals}</span>
+              <span className="lk__coins" data-tour="wallet" role="button" tabIndex={0} onClick={() => setInfo(info === 'coins' ? null : 'coins')}><Gem size={17} /> {wallet.crystals}</span>
               {info === 'coins' && (<>
                 <div className="lk__notif-backdrop" onClick={() => setInfo(null)} />
                 <div className="lk__info">
@@ -362,7 +363,7 @@ export default function CabinetPage() {
         )}
       </main>
 
-      <Tour />
+      <Tour onNavigate={go} onReward={(balance) => setWallet((w) => ({ ...w, crystals: balance }))} />
     </div>
   )
 }

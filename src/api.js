@@ -146,6 +146,9 @@ export async function aiChatStream(chatId, content, onDelta) {
 export const walletGet = () => call('/wallet_get.php')
 export const achievementsList = () => call('/achievements_list.php')
 export const dailyGet = () => call('/daily_get.php')
+export const tourStatus = () => call('/tour_status.php')
+export const tourProgress = (step) => call('/tour_progress.php', { method: 'POST', body: { step } })
+export const tourComplete = () => call('/tour_complete.php', { method: 'POST' })
 
 // ── Магазин (Этап 10) ─────────────────────────────────────
 export const shopList = () => call('/shop_list.php')

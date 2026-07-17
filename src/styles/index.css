@@ -688,28 +688,50 @@ h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.05; }
 .ach__got { margin-top: 12px; display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--green); }
 
 /* ============================================================
-   ТУР ПО ПЛАТФОРМЕ (онбординг-чеклист)
+   ТУР ПО ПЛАТФОРМЕ — автоматический маршрут ученика
    ============================================================ */
-.tour { position: fixed; right: 24px; bottom: 24px; z-index: 60; }
-.tour__pill { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; border-radius: 999px; padding: 12px 18px; font-size: 14px; font-weight: 600; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
-.tour__pill b { font-weight: 800; }
+.tour { position: fixed; right: 24px; bottom: 24px; z-index: 80; }
+.tour__pill { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; border-radius: 999px; padding: 12px 18px; font-size: 14px; font-weight: 700; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.tour__pill b { color: #ffb36b; font-weight: 900; }
 .tour__pill:hover { background: #000; }
-.tour__panel { position: absolute; right: 0; bottom: 56px; width: 330px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.20); padding: 14px; }
-.tour__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 0 4px; }
-.tour__head b { font-size: 15px; font-weight: 800; }
-.tour__count { color: var(--muted); font-size: 13px; }
-.tour__close { margin-left: auto; color: var(--muted); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; }
-.tour__close:hover { background: var(--bg-soft); }
-/* вертикальный степпер */
-.tour__steps { display: grid; }
-.tstep { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 11px; padding: 7px 4px; position: relative; text-align: left; }
-.tstep:not(:last-child)::before { content: ''; position: absolute; left: 16px; top: 30px; height: calc(100% - 16px); width: 2px; background: var(--line); }
-.tstep.done:not(:last-child)::before { background: var(--green); }
-.tstep__node { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: var(--muted); position: relative; z-index: 1; }
-.tstep.done .tstep__node { background: var(--green); border-color: var(--green); color: #fff; }
-.tstep__label { font-size: 13.5px; font-weight: 600; }
-.tstep.done .tstep__label { color: var(--muted); }
-.tstep__pts { color: #2a8c4a; font-weight: 800; font-size: 12px; }
+.tourguide { position: fixed; inset: 0; z-index: 78; pointer-events: none; background: linear-gradient(to top, rgba(15,17,24,.13), transparent 42%); }
+.tourguide__card { position: absolute; left: 50%; bottom: 28px; width: min(560px, calc(100vw - 32px)); transform: translateX(-50%); pointer-events: auto; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 28px 80px rgba(20,18,30,.28); }
+.tourguide__top { display: flex; align-items: center; gap: 10px; padding: 15px 18px 12px; }
+.tourguide__route { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-size: 13px; font-weight: 850; }
+.tourguide__route svg { color: var(--orange); }
+.tourguide__count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 750; }
+.tourguide__close { width: 30px; height: 30px; display: grid; place-items: center; color: var(--muted); border-radius: 9px; }
+.tourguide__close:hover { background: var(--bg-soft); color: var(--ink); }
+.tourguide__track { height: 4px; background: var(--bg-soft); overflow: hidden; }
+.tourguide__track span { display: block; height: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, #ff7a00, #ffad52); transition: width .32s ease; }
+.tourguide__body { padding: 22px 24px 18px; }
+.tourguide__kicker { display: block; color: var(--orange); font-size: 11px; line-height: 1; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.tourguide__body h2 { margin-top: 7px; font-size: 23px; font-weight: 900; letter-spacing: -.02em; }
+.tourguide__body p { margin-top: 8px; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+.tourguide__reward { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; padding: 8px 11px; border-radius: 10px; background: #fff6df; color: #9b6500; font-size: 13px; font-weight: 850; }
+.tourguide__error { margin-top: 12px; color: #c0392b; font-size: 13px; font-weight: 650; }
+.tourguide__actions { display: flex; justify-content: space-between; gap: 12px; padding: 0 18px 18px; }
+.tourguide__back, .tourguide__next { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 0 15px; font-size: 14px; font-weight: 800; }
+.tourguide__back { color: var(--muted); }
+.tourguide__back:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
+.tourguide__back:disabled { opacity: .35; cursor: default; }
+.tourguide__next { margin-left: auto; background: var(--orange); color: #fff; box-shadow: 0 8px 20px rgba(255,122,0,.22); }
+.tourguide__next:hover:not(:disabled) { filter: brightness(.95); transform: translateY(-1px); }
+.tourguide__next:disabled { opacity: .65; cursor: wait; }
+.tour-target { position: relative; z-index: 82 !important; isolation: isolate; box-shadow: 0 0 0 4px rgba(255,122,0,.26), 0 0 0 8px rgba(255,122,0,.09) !important; animation: tourTarget 1.45s ease-in-out infinite; }
+@keyframes tourTarget { 50% { box-shadow: 0 0 0 5px rgba(255,122,0,.36), 0 0 0 11px rgba(255,122,0,.06); } }
+@media (max-width: 620px) {
+  .tour { right: 14px; bottom: 14px; }
+  .tourguide__card { bottom: 14px; }
+  .tourguide__body { padding: 18px 18px 14px; }
+  .tourguide__body h2 { font-size: 20px; }
+  .tourguide__actions { padding: 0 12px 12px; }
+  .tourguide__next { padding: 0 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-target { animation: none; }
+  .tourguide__track span { transition: none; }
+}
 
 /* модалка-поздравление */
 .tmodal { position: fixed; inset: 0; z-index: 100; background: rgba(20,18,40,.45); display: grid; place-items: center; padding: 20px; }
