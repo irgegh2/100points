@@ -1,0 +1,24 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.env
+.env.local
+__pycache__/
+*.pyc
+
+# Локальные референсы (скрины оригинала, панель хостинга) — в репозиторий не нужны
+_reference/
+
+# backend secrets & local db
+api/secrets.prod.php
+api/data/
+.deploy_manifest.json
+_ai_working_backup/
+
+# Локальные deploy-скрипты содержат доступ к FTP и никогда не попадают в Git.
+deploy_www.py
+deploy_ftp.py
+deploy_subdomains.py
+upload_htaccess.py

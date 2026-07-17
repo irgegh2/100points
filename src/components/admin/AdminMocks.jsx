@@ -1,0 +1,87 @@
+import { useEffect, useState } from 'react'
+import { Plus, Trash2, Save, ChevronRight } from 'lucide-react'
+import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import AdminQuestionsModal from './AdminQuestionsModal.jsx'
+
+export default function AdminMocks() {
+  const [courses, setCourses] = useState([])
+  const [mocks, setMocks] = useState([])
+  const [form, setForm] = useState({ course_id: '', month: '', title: '' })
+  const [msg, setMsg] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [qModal, setQModal] = useState(null)
+
+  const load = async () => {
+    const [c, m] = await Promise.all([catList('courses'), catList('mock_exams')])
+    setCourses(c.items || [])
+    setMocks(m.items || [])
+    setForm((f) => f.course_id ? f : { ...f, course_id: c.items?.[0]?.id || '' })
+  }
+  useEffect(() => { load() }, [])
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const create = async (e) => {
+    e.preventDefault()
+    if (!form.course_id) return setMsg({ type: 'err', text: 'Сначала создайте курс' })
+    if (!form.month.trim() || !form.title.trim()) return setMsg({ type: 'err', text: 'Заполните месяц и название' })
+    setBusy(true); setMsg(null)
+    try {
+      await catCreate('mock_exams', { ...form, position: mocks.length })
+      setForm((f) => ({ ...f, title: '' })); await load()
+      setMsg({ type: 'ok', text: 'Пробник создан' })
+    } catch (err) { setMsg({ type: 'err', text: err.message }) }
+    finally { setBusy(false) }
+  }
+  const saveRow = (m) => catUpdate('mock_exams', { id: m.id, course_id: m.course_id, month: m.month, title: m.title }).then(load).catch((e) => alert(e.message))
+  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(load)
+  const patch = (id, k, v) => setMocks((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))
+
+  return (
+    <div className="admin__cols">
+      <section className="admin__panel">
+        <h2><Plus size={18} /> Новый пробник</h2>
+        <p className="admin__hint">Пробник привязан к курсу — если курс закрыт, пробник тоже закрыт. В один месяц можно сделать несколько пробников (разные названия: «… 2», «… ПРО»). Месяц можно потом переименовать — например, прошлогодним поставить «2026».</p>
+        <form className="admin__form" onSubmit={create}>
+          <label>Курс
+            <select value={form.course_id} onChange={set('course_id')}>
+              {courses.length === 0 && <option value="">— нет курсов —</option>}
+              {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </label>
+          <label>Месяц <input value={form.month} onChange={set('month')} placeholder="Март (или 2026 для архива)" /></label>
+          <label>Название <input value={form.title} onChange={set('title')} placeholder="Пробный ЕГЭ по математике 2 / ПРО" /></label>
+          {msg && <div className={`admin__msg admin__msg--${msg.type}`}>{msg.text}</div>}
+          <button className="btn btn-orange btn-lg" disabled={busy}>{busy ? 'Создаём…' : 'Создать пробник'}</button>
+        </form>
+      </section>
+
+      <section className="admin__panel">
+        <h2>Пробники <span className="admin__count">{mocks.length}</span></h2>
+        <div className="admin__list">
+          {mocks.length === 0 && <div className="admin__empty">Пока нет пробников</div>}
+          {mocks.map((m) => (
+            <div className="admin__mockrow" key={m.id}>
+              <div className="admin__row3">
+                <label>Курс
+                  <select className="admin__inp" value={m.course_id} onChange={(e) => patch(m.id, 'course_id', Number(e.target.value))}>
+                    {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                </label>
+                <label>Месяц <input className="admin__inp" value={m.month} onChange={(e) => patch(m.id, 'month', e.target.value)} /></label>
+                <label>Название <input className="admin__inp" value={m.title} onChange={(e) => patch(m.id, 'title', e.target.value)} /></label>
+              </div>
+              <div className="admin__edit-btns">
+                <button className="btn btn-light btn-sm" onClick={() => saveRow(m)}><Save size={14} /> Сохранить</button>
+                <button className="btn btn-light btn-sm" onClick={() => setQModal(m)}>Вопросы <ChevronRight size={14} /></button>
+                <button className="btn admin__delbtn btn-sm" onClick={() => remove(m)}><Trash2 size={14} /> Удалить</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {qModal && <AdminQuestionsModal parent={{ key: 'mock_id', id: qModal.id, title: qModal.title }} onClose={() => setQModal(null)} />}
+    </div>
+  )
+}

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#ffffff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- атом -->
+    <g transform="translate(48 46) rotate(20)">
+      <ellipse cx="0" cy="0" rx="22" ry="9"/>
+      <ellipse cx="0" cy="0" rx="22" ry="9" transform="rotate(60)"/>
+      <ellipse cx="0" cy="0" rx="22" ry="9" transform="rotate(-60)"/>
+      <circle cx="0" cy="0" r="3.2" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    </g>
+    <!-- открытая книга -->
+    <g transform="translate(248 40)">
+      <path d="M0 4C8 -2 22 -2 28 4V30C22 24 8 24 0 30Z"/>
+      <path d="M28 4C34 -2 48 -2 56 4V30C48 24 34 24 28 30Z"/>
+    </g>
+    <!-- карандаш -->
+    <g transform="translate(150 26) rotate(40)">
+      <rect x="0" y="0" width="14" height="46" rx="2"/>
+      <path d="M0 46l7 12 7-12"/>
+      <path d="M0 12h14"/>
+    </g>
+    <!-- колба -->
+    <g transform="translate(40 130)">
+      <path d="M10 0v14L0 38a6 6 0 0 0 5.5 9h21A6 6 0 0 0 32 38L22 14V0"/>
+      <path d="M6 0h20"/>
+      <path d="M6 33h20"/>
+    </g>
+    <!-- линейка -->
+    <g transform="translate(258 138) rotate(-18)">
+      <rect x="0" y="0" width="60" height="20" rx="3"/>
+      <path d="M12 0v7M24 0v7M36 0v7M48 0v7"/>
+    </g>
+    <!-- планета с кольцом -->
+    <g transform="translate(168 150)">
+      <circle cx="0" cy="0" r="16"/>
+      <ellipse cx="0" cy="0" rx="26" ry="9" transform="rotate(-20)"/>
+    </g>
+    <!-- звезда -->
+    <g transform="translate(112 104)">
+      <path d="M0 -14 4 -4 15 -4 6 3 9 14 0 7 -9 14 -6 3 -15 -4 -4 -4Z"/>
+    </g>
+    <!-- символ π -->
+    <g transform="translate(206 100)">
+      <path d="M-12 -8H14"/>
+      <path d="M-6 -8V12"/>
+      <path d="M8 -8V8c0 3 2 4 6 3"/>
+    </g>
+    <!-- маленькие плюсики и точки -->
+    <path d="M306 36v12M300 42h12"/>
+    <path d="M120 168v10M115 173h10"/>
+    <path d="M212 168v10M207 173h10"/>
+    <circle cx="300" cy="96" r="2.4" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="92" cy="176" r="2.4" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="150" cy="120" r="2.4" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <!-- треугольник -->
+    <path d="M286 178l10 -18 10 18Z"/>
+  </g>
+</svg>

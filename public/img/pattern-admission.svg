@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- шапка выпускника -->
+    <g transform="translate(40 28)">
+      <path d="M24 0 0 12l24 12 24 -12Z"/>
+      <path d="M10 18v12c0 4 28 4 28 0V18"/>
+      <path d="M48 12v14"/>
+    </g>
+    <!-- диплом-свиток -->
+    <g transform="translate(250 34)">
+      <rect x="2" y="4" width="42" height="28" rx="3"/>
+      <path d="M8 12h30M8 20h20"/>
+      <circle cx="34" cy="26" r="4"/>
+    </g>
+    <!-- университет -->
+    <g transform="translate(40 134)">
+      <path d="M-4 8l24 -12 24 12Z"/>
+      <path d="M2 8v28M16 8v28M28 8v28M42 8v28"/>
+      <path d="M-6 36h52"/>
+    </g>
+    <!-- мишень -->
+    <g transform="translate(154 138)">
+      <circle cx="16" cy="20" r="16"/><circle cx="16" cy="20" r="9"/><circle cx="16" cy="20" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    </g>
+    <!-- стрелка вверх -->
+    <g transform="translate(268 134)">
+      <path d="M14 40V6M4 16l10 -10 10 10"/>
+    </g>
+    <!-- звезда -->
+    <path d="M170 40l3 8 9 0 -7 5 3 9 -8 -5 -8 5 3 -9 -7 -5 9 0Z"/>
+    <circle cx="306" cy="96" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <path d="M120 96v12M114 102h12"/>
+  </g>
+</svg>

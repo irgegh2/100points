@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none" font-family="Georgia, serif">
+    <text x="34" y="58" font-size="34" fill="#fff" fill-opacity="0.5" stroke="none">π</text>
+    <text x="250" y="56" font-size="30" fill="#fff" fill-opacity="0.5" stroke="none">∑</text>
+    <text x="300" y="120" font-size="34" fill="#fff" fill-opacity="0.5" stroke="none">∫</text>
+    <text x="150" y="150" font-size="26" fill="#fff" fill-opacity="0.5" stroke="none">x²</text>
+    <!-- корень -->
+    <path d="M96 40l8 18 10 -34h40"/>
+    <!-- график функции -->
+    <path d="M210 150h44M232 110v54M214 158c8 -2 10 -34 18 -34s10 28 18 30"/>
+    <!-- треугольник -->
+    <path d="M40 150l24 -40 24 40Z"/>
+    <!-- циркуль -->
+    <g transform="translate(128 86)">
+      <path d="M0 0l-12 34M0 0l12 34"/><circle cx="0" cy="-2" r="3"/><path d="M-12 34l-4 6M12 34l4 6"/>
+    </g>
+    <!-- знаки -->
+    <path d="M286 168v14M279 175h14"/>
+    <path d="M60 176h16"/>
+    <path d="M118 168h16M118 176h16"/>
+    <circle cx="170" cy="40" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="300" cy="170" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <!-- бесконечность -->
+    <path d="M196 84c0 -6 8 -6 11 0s11 6 11 0 -8 -6 -11 0 -11 6 -11 0Z" transform="translate(-40 8)"/>
+  </g>
+</svg>

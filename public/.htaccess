@@ -1,0 +1,46 @@
+# Корневой .htaccess фронта. Vite копирует public/ в dist/, дальше — в public_html/.
+# Задача: SPA-роутинг (любой «несуществующий» путь отдаём index.html),
+# но НЕ трогать настоящий API (/api) и реальные файлы (ассеты, картинки).
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Принудительный HTTPS. На reg.ru SSL терминируется на nginx, а Apache видит
+  # запрос как обычный HTTP, поэтому проверять надо заголовок прокси
+  # X-Forwarded-Proto (иначе бесконечный 301-редирект). Если nginx уже сам
+  # делает HTTP→HTTPS — этот блок просто не сработает на HTTPS-запросах.
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Реальные файлы и папки отдаём как есть (JS/CSS/img, /api/*.php и т.п.).
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Бэкенд не перехватываем (на случай, если файла нет — пусть отдаёт 404 сам API).
+  RewriteRule ^api/ - [L]
+
+  # Всё остальное — на SPA.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Кэш статики. Хэш-ассеты (index-XXXX.js/css) неизменяемы — кэшируем надолго.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/svg+xml "access plus 1 day"
+  ExpiresByType image/webp "access plus 7 days"
+</IfModule>
+
+# index.html НЕ кэшировать — он указывает на свежие хэш-ассеты. Иначе после деплоя
+# браузер держит старый index.html → грузит старый JS (нужен жёсткий refresh). Чиним.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

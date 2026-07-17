@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none" font-family="Georgia, serif">
+    <text x="30" y="58" font-size="34" fill="#fff" fill-opacity="0.5" stroke="none">Аа</text>
+    <text x="250" y="56" font-size="34" fill="#fff" fill-opacity="0.5" stroke="none">Бб</text>
+    <text x="150" y="152" font-size="36" fill="#fff" fill-opacity="0.5" stroke="none">Я</text>
+    <text x="294" y="132" font-size="40" fill="#fff" fill-opacity="0.5" stroke="none">«»</text>
+    <!-- ручка -->
+    <g transform="translate(112 24) rotate(42)">
+      <rect x="2" y="0" width="11" height="30" rx="2"/>
+      <path d="M2 30l5.5 12 5.5 -12Z"/>
+      <path d="M7.5 42v4"/>
+      <path d="M2 9h11"/>
+      <path d="M13 4v15"/>
+    </g>
+    <!-- открытая книга -->
+    <g transform="translate(40 128)">
+      <path d="M0 4C8 -2 22 -2 28 4V30C22 24 8 24 0 30Z"/>
+      <path d="M28 4C34 -2 48 -2 56 4V30C48 24 34 24 28 30Z"/>
+    </g>
+    <!-- чернильница -->
+    <g transform="translate(214 84)">
+      <path d="M4 8h18l3 13a4 4 0 0 1 -4 5H5a4 4 0 0 1 -4 -5Z"/>
+      <path d="M8 8V3h10v5"/>
+      <path d="M6 1h14"/>
+    </g>
+    <text x="206" y="172" font-size="30" fill="#fff" fill-opacity="0.5" stroke="none">?!</text>
+    <circle cx="172" cy="44" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="300" cy="172" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <path d="M120 150v12M114 156h12"/>
+  </g>
+</svg>

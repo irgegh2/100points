@@ -1,0 +1,6 @@
+<FilesMatch "(?i)\.(php|phtml|phar|phps|cgi|pl|py|asp|aspx|sh|htaccess)$">
+  Require all denied
+</FilesMatch>
+RemoveHandler .php .phtml .phar
+RemoveType .php .phtml .phar
+Options -Indexes

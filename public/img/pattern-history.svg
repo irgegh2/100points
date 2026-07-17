@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- замок -->
+    <g transform="translate(34 24)">
+      <path d="M0 12V6h6v4h6V6h6v4h6V6h6v4h6V6h6v6"/>
+      <path d="M0 12h42v28H0Z"/>
+      <path d="M14 40V27a7 7 0 0 1 14 0v13"/>
+    </g>
+    <!-- скрещённые мечи -->
+    <g transform="translate(248 28)">
+      <path d="M4 2l22 26M26 2L4 28"/>
+      <path d="M0 6l8 -8M22 -2l8 8"/>
+      <circle cx="4" cy="30" r="2.2"/><circle cx="26" cy="30" r="2.2"/>
+    </g>
+    <!-- факел -->
+    <g transform="translate(46 130)">
+      <path d="M10 18v26"/>
+      <path d="M2 18h16l-3 -6H5Z"/>
+      <path d="M10 12c5 -4 3 -10 0 -12c-3 4 -7 5 -4 9c1 1 3 2 4 3Z"/>
+    </g>
+    <!-- корона -->
+    <g transform="translate(150 142)">
+      <path d="M0 24l-2 -22 11 11 9 -15 9 15 11 -11 -2 22Z"/>
+      <path d="M-2 24h40"/>
+      <circle cx="9" cy="2" r="1.8"/><circle cx="29" cy="2" r="1.8"/>
+    </g>
+    <!-- компас -->
+    <g transform="translate(262 132)">
+      <circle cx="16" cy="20" r="17"/>
+      <path d="M16 5l5 15 -5 15 -5 -15Z"/>
+      <path d="M1 20l15 -5 15 5 -15 5Z"/>
+    </g>
+    <!-- шлем -->
+    <g transform="translate(150 24)">
+      <path d="M2 22C2 8 12 0 22 0C32 0 42 8 42 22"/>
+      <path d="M2 22h40v5H2Z"/>
+      <path d="M22 0v-6M22 -6c8 0 12 6 9 14"/>
+    </g>
+    <!-- ключ -->
+    <g transform="translate(206 86)">
+      <circle cx="6" cy="7" r="6"/>
+      <path d="M11 10l16 16M21 20l5 -5M27 26l5 -5"/>
+    </g>
+    <!-- монета ₽ -->
+    <g transform="translate(86 86)">
+      <circle cx="11" cy="12" r="11"/>
+      <path d="M7 7v11M7 7h5a3 3 0 0 1 0 6H6"/>
+    </g>
+    <!-- флажок-вымпел -->
+    <g transform="translate(300 38)">
+      <path d="M0 0v34"/>
+      <path d="M0 2h22l-7 6 7 6H0Z"/>
+    </g>
+    <circle cx="208" cy="150" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="120" cy="56" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+  </g>
+</svg>

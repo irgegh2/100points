@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="200" viewBox="0 0 340 200" fill="none">
+  <g stroke="#fff" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- весы правосудия -->
+    <g transform="translate(44 26)">
+      <path d="M14 0v44M2 44h24M-6 8h40"/>
+      <path d="M0 8l-8 16h16ZM28 8l-8 16h16Z"/>
+    </g>
+    <!-- группа людей -->
+    <g transform="translate(244 30)">
+      <circle cx="8" cy="8" r="6"/><path d="M-2 30c0 -10 20 -10 20 0"/>
+      <circle cx="26" cy="8" r="6"/><path d="M16 30c0 -10 20 -10 20 0"/>
+    </g>
+    <!-- здание с колоннами -->
+    <g transform="translate(40 132)">
+      <path d="M-4 8l24 -12 24 12Z"/>
+      <path d="M0 8v30M12 8v30M28 8v30M40 8v30"/>
+      <path d="M-6 38h52"/>
+    </g>
+    <!-- рукопожатие -->
+    <g transform="translate(150 148)">
+      <path d="M0 8l14 -6 8 6 8 -4 10 6"/>
+      <path d="M14 2l8 8M22 -2l8 8"/>
+    </g>
+    <!-- монета ₽ -->
+    <g transform="translate(266 134)">
+      <circle cx="14" cy="20" r="16"/>
+      <path d="M9 12v18M9 12h7a4 4 0 0 1 0 8h-9"/>
+    </g>
+    <!-- глобус -->
+    <g transform="translate(128 50)">
+      <circle cx="13" cy="13" r="13"/>
+      <path d="M0 13h26M13 0v26"/>
+      <path d="M13 0c8 6 8 20 0 26M13 0c-8 6 -8 20 0 26"/>
+    </g>
+    <!-- лампочка -->
+    <g transform="translate(206 90)">
+      <path d="M6 16a8 8 0 1 1 8 0c-1 1 -1 2 -1 3H7c0 -1 0 -2 -1 -3Z"/>
+      <path d="M7 21h6M8 24h4"/>
+    </g>
+    <!-- документ -->
+    <g transform="translate(94 84)">
+      <path d="M2 0h13l8 8v20H2Z"/>
+      <path d="M15 0v8h8"/>
+      <path d="M6 14h13M6 20h9"/>
+    </g>
+    <!-- чат -->
+    <g transform="translate(296 40)">
+      <path d="M0 6a6 6 0 0 1 6 -6h16a6 6 0 0 1 6 6v7a6 6 0 0 1 -6 6H9l-6 6v-6H6a6 6 0 0 1 -6 -6Z"/>
+      <path d="M7 7h14M7 12h9"/>
+    </g>
+    <circle cx="166" cy="44" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+    <circle cx="318" cy="98" r="2.6" fill="#fff" fill-opacity="0.5" stroke="none"/>
+  </g>
+</svg>
