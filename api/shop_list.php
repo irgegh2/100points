@@ -15,7 +15,8 @@ $owned = array_map('intval', array_column($ow->fetchAll(), 'item_id'));
 $w = g_wallet($uid);
 $out = [];
 foreach ($items as $it) {
-  $instant = $it['category'] === 'theme' && $it['name'] === 'Тёмная тема';
+  $instantThemes = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»'];
+  $instant = $it['category'] === 'theme' && in_array($it['name'], $instantThemes, true);
   $out[] = [
     'id'          => (int)$it['id'],
     'name'        => $it['name'],

@@ -36,6 +36,7 @@ export default function AdminShop() {
 
   // заявки
   const act = async (o, status) => {
+    if (status === 'canceled' && o.status === 'done' && !confirm(`Отменить выданную покупку «${o.item_name}» и вернуть ученику ${o.price} кристаллов?`)) return
     try { await adminPurchaseUpdate(o.id, status, notes[o.id] || ''); loadOrders() }
     catch (e) { alert(e.message) }
   }
@@ -84,7 +85,12 @@ export default function AdminShop() {
                     {o.status !== 'canceled' && <button className="btn btn-light" onClick={() => act(o, 'canceled')}>Отменить</button>}
                   </div>
                 )}
-                {o.status === 'done' && o.note && <div className="admin__order-note">Комментарий: {o.note}</div>}
+                {o.status === 'done' && (
+                  <div className="admin__order-actions">
+                    {o.note && <div className="admin__order-note">Комментарий: {o.note}</div>}
+                    <button className="btn btn-light" onClick={() => act(o, 'canceled')}>Отменить и вернуть</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

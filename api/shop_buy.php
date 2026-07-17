@@ -1,6 +1,6 @@
 <?php
 // POST /shop_buy.php  { item_id }
-// Покупка: списывает кристаллы и создаёт заявку. Тёмная тема активируется сразу,
+// Покупка: списывает кристаллы и создаёт заявку. Рабочие темы активируются сразу,
 // остальные товары сохраняют ручную выдачу через админку.
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/gamify.php';
@@ -15,7 +15,13 @@ $it->execute([$itemId]);
 $item = $it->fetch();
 if (!$item) fail('Товар недоступен', 404);
 $price = (int)$item['price'];
-$instant = $item['category'] === 'theme' && $item['name'] === 'Тёмная тема';
+$themeCodes = [
+  'Тёмная тема' => 'dark',
+  'Неоновая тема' => 'neon',
+  'Тема «Космос»' => 'space',
+];
+$themeCode = $item['category'] === 'theme' ? ($themeCodes[$item['name']] ?? null) : null;
+$instant = $themeCode !== null;
 $status = $instant ? 'done' : 'pending';
 
 // once-only — нельзя купить повторно.
@@ -73,4 +79,5 @@ ok([
   'status' => $status,
   'instant' => $instant,
   'theme_unlocked' => $instant,
+  'theme' => $themeCode,
 ]);

@@ -9,7 +9,7 @@ import {
 import { brand } from '../data/content.js'
 import { setAuthed } from '../auth.js'
 import { me, logout as apiLogout, profileGet, walletGet, themeAccess, achievementsList, dailyGet, todayGet, notifList, notifRead } from '../api.js'
-import { setTheme } from '../theme.js'
+import { getTheme, setTheme } from '../theme.js'
 import Shop from '../components/Shop.jsx'
 import Achievements from '../components/Achievements.jsx'
 import Courses from '../components/Courses.jsx'
@@ -184,7 +184,7 @@ export default function CabinetPage() {
   const [user, setUser] = useState(null)
   const [avatar, setAvatar] = useState('')
   const [wallet, setWallet] = useState({ crystals: 0, lives: 5, max_lives: 5 })
-  const [themeAllowed, setThemeAllowed] = useState(false)
+  const [themeAccessList, setThemeAccessList] = useState(['light'])
   const [checking, setChecking] = useState(true)
   const [active, setActive] = useState('home')
   const [notifOpen, setNotifOpen] = useState(false)
@@ -216,11 +216,11 @@ export default function CabinetPage() {
       .then(async (d) => {
         if (!alive) return
         setUser(d.user)
-        const access = await themeAccess().catch(() => ({ dark: false }))
+        const access = await themeAccess().catch(() => ({ themes: ['light'] }))
         if (!alive) return
-        const allowed = Boolean(access.dark)
-        setThemeAllowed(allowed)
-        if (!allowed) setTheme('light')
+        const themes = Array.isArray(access.themes) ? access.themes : ['light']
+        setThemeAccessList(themes)
+        if (!themes.includes(getTheme())) setTheme('light')
         setChecking(false)
         // аватар грузим отдельно (в /me его нет) — не блокируя кабинет
         profileGet().then((p) => { if (alive) setAvatar(p.profile?.avatar || '') }).catch(() => {})
@@ -302,7 +302,7 @@ export default function CabinetPage() {
                 </div>
               </>)}
             </div>
-            <ThemeToggle allowed={themeAllowed} onLocked={() => go('shop')} />
+            <ThemeToggle access={themeAccessList} onLocked={() => go('shop')} />
             <div className="lk__bellwrap">
               <button className="lk__bell" aria-label="Уведомления" onClick={() => setNotifOpen((o) => !o)}>
                 <Bell size={20} />{notifUnread > 0 && <span className="lk__bell-dot" />}
@@ -340,7 +340,10 @@ export default function CabinetPage() {
           <HomeDash onNavigate={setActive} crystals={wallet.crystals} />
         ) : active === 'shop' ? (
           <Shop balance={wallet.crystals} onBack={() => setActive('home')} onBalance={(c) => setWallet((w) => ({ ...w, crystals: c }))}
-            onThemeUnlocked={() => { setThemeAllowed(true); setTheme('dark') }} />
+            onThemeUnlocked={(theme) => {
+              setThemeAccessList((list) => list.includes(theme) ? list : [...list, theme])
+              setTheme(theme)
+            }} />
         ) : active === 'achievements' ? (
           <Achievements />
         ) : active === 'courses' ? (

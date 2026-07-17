@@ -48,7 +48,7 @@ export default function Shop({ balance = 0, onBack, onBalance, onThemeUnlocked }
     try {
       const d = await shopBuy(it.id)
       setCoins(d.balance); onBalance?.(d.balance)
-      if (d.theme_unlocked) onThemeUnlocked?.()
+      if (d.theme_unlocked) onThemeUnlocked?.(d.theme)
       setToast(d.theme_unlocked
         ? `«${it.name}» куплено и включено!`
         : it.category === 'reward'

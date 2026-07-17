@@ -1,25 +1,68 @@
 import { useEffect, useState } from 'react'
-import { Sun, Moon, LockKeyhole } from 'lucide-react'
-import { getTheme, toggleTheme } from '../theme.js'
+import { Check, ChevronDown, LockKeyhole, Moon, Orbit, Sparkles, Sun } from 'lucide-react'
+import { getTheme, setTheme } from '../theme.js'
 
-// Кнопка переключения тёмной/светлой темы (в шапке кабинета и админки).
-export default function ThemeToggle({ allowed = true, onLocked }) {
-  const [theme, setTheme] = useState(getTheme())
+const THEMES = [
+  { id: 'light', label: 'Светлая', note: 'Классическая', icon: Sun, swatch: 'theme-swatch--light' },
+  { id: 'dark', label: 'Тёмная', note: 'Графитовая', icon: Moon, swatch: 'theme-swatch--dark' },
+  { id: 'neon', label: 'Неоновая', note: 'Циан и ультрафиолет', icon: Sparkles, swatch: 'theme-swatch--neon' },
+  { id: 'space', label: 'Космос', note: 'Звёздная ночь', icon: Orbit, swatch: 'theme-swatch--space' },
+]
+
+// Выпадающий выбор оформления. У ученика доступны только купленные темы;
+// в админке access не передаётся, поэтому доступны все — для проверки дизайна.
+export default function ThemeToggle({ access, onLocked }) {
+  const [theme, setCurrent] = useState(getTheme())
+  const [open, setOpen] = useState(false)
+  const unrestricted = !Array.isArray(access)
+  const allowed = unrestricted ? THEMES.map((item) => item.id) : access
+  const current = THEMES.find((item) => item.id === theme) || THEMES[0]
+  const CurrentIcon = current.icon
+
   useEffect(() => {
-    const sync = (event) => setTheme(event.detail || getTheme())
+    const sync = (event) => setCurrent(event.detail || getTheme())
     window.addEventListener('themechange', sync)
     return () => window.removeEventListener('themechange', sync)
   }, [])
-  const dark = theme === 'dark'
-  const label = !allowed ? 'Купить тёмную тему' : dark ? 'Светлая тема' : 'Тёмная тема'
-  const click = () => {
-    if (!allowed) { onLocked?.(); return }
-    setTheme(toggleTheme())
+
+  const choose = (item) => {
+    if (!allowed.includes(item.id)) {
+      setOpen(false)
+      onLocked?.(item.id)
+      return
+    }
+    setTheme(item.id)
+    setOpen(false)
   }
+
   return (
-    <button className={`lk__bell theme-toggle ${allowed ? '' : 'is-locked'}`} aria-label={label} title={label} onClick={click}>
-      {dark ? <Sun size={20} /> : <Moon size={20} />}
-      {!allowed && <LockKeyhole className="theme-toggle__lock" size={10} />}
-    </button>
+    <div className="theme-picker">
+      {open && <button className="theme-picker__backdrop" aria-label="Закрыть выбор темы" onClick={() => setOpen(false)} />}
+      <button className="lk__bell theme-toggle" aria-label={`Тема: ${current.label}`} title="Выбрать тему"
+        aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <CurrentIcon size={19} />
+        <ChevronDown className={`theme-toggle__chev ${open ? 'open' : ''}`} size={11} />
+      </button>
+
+      {open && (
+        <div className="theme-menu" role="menu">
+          <div className="theme-menu__head">Оформление</div>
+          {THEMES.map((item) => {
+            const Icon = item.icon
+            const isAllowed = allowed.includes(item.id)
+            const active = item.id === theme
+            return (
+              <button className={`theme-menu__item ${active ? 'active' : ''} ${isAllowed ? '' : 'locked'}`}
+                key={item.id} role="menuitem" onClick={() => choose(item)}>
+                <span className={`theme-menu__swatch ${item.swatch}`}><Icon size={15} /></span>
+                <span className="theme-menu__copy"><b>{item.label}</b><small>{isAllowed ? item.note : 'Купить в магазине'}</small></span>
+                {active ? <Check className="theme-menu__state active" size={17} />
+                  : !isAllowed ? <LockKeyhole className="theme-menu__state" size={14} /> : null}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
