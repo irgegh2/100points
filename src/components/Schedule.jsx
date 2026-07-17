@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Video, BookOpen, GraduationCap, Radio, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Video, BookOpen, GraduationCap, Radio, AlertCircle, X } from 'lucide-react'
 import { scheduleGet } from '../api.js'
 
 const DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -18,7 +18,7 @@ const endTime = (time, duration) => {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-export default function Schedule() {
+export default function Schedule({ onNavigate }) {
   const [week, setWeek] = useState(null)
   const [data, setData] = useState(null)
   const [hourH, setHourH] = useState(48)
@@ -48,14 +48,40 @@ export default function Schedule() {
     return () => ro.disconnect()
   }, [data])
 
+  // На телефоне календарь шире экрана. После загрузки мягко подводим к сегодняшнему дню.
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap || !data?.days?.length || !window.matchMedia('(max-width: 620px)').matches) return
+    const todayIndex = data.days.findIndex((day) => day.today)
+    if (todayIndex < 0) return
+    const dayWidth = (wrap.scrollWidth - 48) / 7
+    wrap.scrollLeft = Math.max(0, 48 + todayIndex * dayWidth - 18)
+  }, [data])
+
   // Небольшая задержка не даёт подсказке мигать при случайном пересечении ячейки.
   const onEnter = (item, pointer) => {
+    if (window.matchMedia('(max-width: 620px)').matches) return
     clearTimeout(hoverT.current)
     const x = Math.max(12, Math.min(pointer.clientX + 14, window.innerWidth - 374))
     const y = Math.max(12, Math.min(pointer.clientY + 14, window.innerHeight - 270))
     hoverT.current = setTimeout(() => setPop({ item, x, y }), 320)
   }
-  const onLeave = () => { clearTimeout(hoverT.current); setPop(null) }
+  const onLeave = () => { clearTimeout(hoverT.current); setPop((current) => current?.touch ? current : null) }
+  const onTap = (item) => {
+    if (!window.matchMedia('(max-width: 620px)').matches) return
+    clearTimeout(hoverT.current)
+    setPop((current) => current?.touch && current.item.id === item.id ? null : { item, x: 0, y: 0, touch: true })
+  }
+  const goToEvent = (item) => {
+    setPop(null)
+    if (item.link) {
+      window.open(item.link, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (item.kind === 'deadline') onNavigate?.('homework')
+    else if (item.kind === 'proctored') onNavigate?.('mock')
+    else onNavigate?.('courses')
+  }
   useEffect(() => () => clearTimeout(hoverT.current), [])
 
   const days = data?.days || Array.from({ length: 7 }, () => ({ date: '', events: [] }))
@@ -92,7 +118,7 @@ export default function Schedule() {
               <div className="scol__head" style={{ height: HEAD }}>{DOW[di]} {day.date && <span className={day.today ? 'today' : ''}>{dnum(day.date)}</span>}</div>
               <div className="sallday" style={{ height: ALLDAY }}>
                 {day.events.filter((e) => e.allday).map((e) => (
-                  <div className="sallday__chip" key={e.id} onMouseEnter={(pointer) => onEnter(e, pointer)} onMouseLeave={onLeave}><AlertCircle size={11} /> {e.title}</div>
+                  <div className="sallday__chip" key={e.id} role="button" tabIndex={0} onClick={() => onTap(e)} onKeyDown={(key) => key.key === 'Enter' && onTap(e)} onMouseEnter={(pointer) => onEnter(e, pointer)} onMouseLeave={onLeave}><AlertCircle size={11} /> {e.title}</div>
                 ))}
               </div>
               <div className="sbody" style={{ height: gridH, backgroundSize: `100% ${hourH}px` }}>
@@ -103,12 +129,14 @@ export default function Schedule() {
                   const h = Math.max(24, (e.duration || 60) / 60 * hourH - 3)
                   return (
                     <div className="sevent" key={e.id} style={{ top, height: h, borderLeftColor: e.color }}
+                      onClick={() => onTap(e)}
                       onMouseEnter={(pointer) => onEnter(e, pointer)} onMouseLeave={onLeave}>
                       <div className="sevent__top">
                         <span className="sevent__time">{e.kind === 'practice' ? <BookOpen size={11} /> : e.kind === 'theory' ? <GraduationCap size={11} /> : <Video size={11} />} {e.time}</span>
-                        {e.link && <a className="sevent__go" href={e.link} target="_blank" rel="noreferrer" onMouseEnter={onLeave}><Radio size={10} /> эфир</a>}
+                        {e.link && <span className="sevent__live"><Radio size={10} /> эфир</span>}
                       </div>
                       <div className="sevent__title">{e.title}</div>
+                      <button className="sevent__action" onClick={(click) => { click.stopPropagation(); goToEvent(e) }}>Перейти <ChevronRight size={11} /></button>
                     </div>
                   )
                 })}
@@ -120,8 +148,9 @@ export default function Schedule() {
 
       {/* Карточка-подсказка по наведению */}
       {pop && (
-        <div className="spop" style={{ left: pop.x, top: pop.y }}>
-          <div className="spop__card" style={{ borderTopColor: pop.item.color }}>
+        <div className={`spop ${pop.touch ? 'is-touch' : ''}`} style={pop.touch ? undefined : { left: pop.x, top: pop.y }} onClick={() => pop.touch && setPop(null)}>
+          <div className="spop__card" style={{ borderTopColor: pop.item.color }} onClick={(click) => click.stopPropagation()}>
+            {pop.touch && <button className="spop__close" onClick={() => setPop(null)} aria-label="Закрыть информацию"><X size={19} /></button>}
             <div className="spop__type">{KIND_LBL[pop.item.kind] || 'Событие'}</div>
             <div className="spop__title">{pop.item.title}</div>
             <dl className="spop__details">
@@ -132,6 +161,7 @@ export default function Schedule() {
             </dl>
             {pop.item.kind === 'deadline' && <div className="spop__note">Последний день сдачи — успей до конца дня.</div>}
             {pop.item.link && <div className="spop__go"><Radio size={13} /> Для события доступна ссылка на эфир</div>}
+            {pop.touch && <button className="spop__action" onClick={() => goToEvent(pop.item)}>Перейти <ChevronRight size={16} /></button>}
           </div>
         </div>
       )}

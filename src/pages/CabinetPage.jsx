@@ -382,7 +382,7 @@ export default function CabinetPage() {
         ) : active === 'bank' ? (
           <BankView />
         ) : active === 'schedule' ? (
-          <Schedule />
+          <Schedule onNavigate={setActive} />
         ) : active === 'sub' ? (
           <Subscription />
         ) : active === 'mentor' ? (
