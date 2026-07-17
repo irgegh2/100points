@@ -55,9 +55,12 @@ try {
   $r = db()->prepare("SELECT user_id, homework_id, mock_id, max_score FROM submissions WHERE id = ?");
   $r->execute([$subId]);
   if ($row = $r->fetch()) {
-    $kind = $row['homework_id'] ? 'homework' : 'mock';
-    $what = $row['homework_id'] ? 'Домашняя работа' : 'Пробник';
-    notify((int)$row['user_id'], 'review', "$what проверена: {$score} из {$row['max_score']} баллов", $kind);
+    $isHomework = !empty($row['homework_id']);
+    $kind = $isHomework ? 'homework' : 'mock';
+    $message = $isHomework
+      ? "Домашняя работа проверена: {$score} из {$row['max_score']} баллов"
+      : "Пробник проверен: {$score} из {$row['max_score']} баллов";
+    notify((int)$row['user_id'], 'review', $message, $kind);
   }
 } catch (Throwable $e) { error_log('[notify] ' . $e->getMessage()); }
 

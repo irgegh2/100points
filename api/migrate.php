@@ -1025,6 +1025,13 @@ $MIGRATIONS = [
     ) {ENGINE}", $driver));
   },
 
+  // v30 — согласование рода в уведомлениях о проверенном пробнике.
+  30 => function (PDO $pdo, string $driver) {
+    $pdo->exec("UPDATE notifications
+                SET text = REPLACE(text, 'Пробник проверена:', 'Пробник проверен:')
+                WHERE text LIKE 'Пробник проверена:%'");
+  },
+
 ];
 
 // ── Прогон ──────────────────────────────────────────────────
