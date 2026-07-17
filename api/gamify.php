@@ -147,16 +147,22 @@ function g_touch_streak(int $uid): void {
   $w = g_wallet($uid);
   $today = date('Y-m-d');
   if ($w['last_active'] === $today) return; // уже отмечались сегодня
+  // Атомарно «забираем» сегодняшний день. Главная запрашивает wallet и daily
+  // параллельно; без условия оба запроса могли одновременно начислить бонус.
+  $previous = (string)($w['last_active'] ?? '');
+  $claim = db()->prepare("UPDATE wallets SET last_active = ? WHERE user_id = ? AND COALESCE(last_active,'') = ?");
+  $claim->execute([$today, $uid, $previous]);
+  if ($claim->rowCount() < 1) return;
   $yesterday = date('Y-m-d', strtotime('-1 day'));
-  $continued = $w['last_active'] === $yesterday;
-  if (!$continued && !empty($w['last_active'])) {
-    $missedDate = date('Y-m-d', strtotime((string)$w['last_active'] . ' +1 day'));
+  $continued = $previous === $yesterday;
+  if (!$continued && $previous !== '') {
+    $missedDate = date('Y-m-d', strtotime($previous . ' +1 day'));
     $continued = $missedDate === $yesterday && g_consume_streak_freeze($uid, $missedDate);
   }
   $streak = $continued ? (int)$w['streak'] + 1 : 1;
   $best = max((int)$w['streak_best'], $streak);
-  db()->prepare("UPDATE wallets SET streak = ?, streak_best = ?, last_active = ? WHERE user_id = ?")
-      ->execute([$streak, $best, $today, $uid]);
+  db()->prepare("UPDATE wallets SET streak = ?, streak_best = ? WHERE user_id = ?")
+      ->execute([$streak, $best, $uid]);
   g_log($uid, 'streak', 0, 'Активность дня', 'streak', $streak); // метка дня для недельной сетки
   g_add_crystals($uid, g_daily_reward($uid), "Серия: день $streak", 'streak', $streak);
   g_ach_set($uid, 'streak_7', $streak);
