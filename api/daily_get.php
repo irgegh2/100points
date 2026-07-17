@@ -17,9 +17,9 @@ $hasLog = function (string $refType) use ($uid, $today): bool {
 
 // Пункты = реальным начислениям (без дублей): вход за день серии (+5), сдача ДЗ (+10), пробник (+20).
 $tasks = [
-  ['label' => 'Зайди на платформу',     'pts' => G_STREAK_DAY, 'done' => $w['last_active'] === $today],
-  ['label' => 'Сдай домашку на 50%+',   'pts' => G_HW,   'done' => $hasLog('homework')],
-  ['label' => 'Пройди пробник на 50%+', 'pts' => G_MOCK, 'done' => $hasLog('mock')],
+  ['label' => 'Зайди на платформу',     'pts' => g_daily_reward($uid) * g_reward_multiplier($uid, 'streak'), 'done' => $w['last_active'] === $today],
+  ['label' => 'Сдай домашку на 50%+',   'pts' => G_HW * g_reward_multiplier($uid, 'homework'), 'done' => $hasLog('homework')],
+  ['label' => 'Пройди пробник на 50%+', 'pts' => G_MOCK * g_reward_multiplier($uid, 'mock'), 'done' => $hasLog('mock')],
 ];
 
 // Недельная сетка: какие дни этой недели были активны (есть метка серии).

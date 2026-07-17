@@ -5,6 +5,7 @@
 //   2) уроки-вебинары из программы курса (lessons type=webinar с датой эфира air_at);
 //   3) дедлайны домашних заданий (показываем на дату дедлайна).
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/gamify.php';
 $uid = require_user();
 release_session();
 
@@ -13,6 +14,7 @@ if (!strtotime($anchor)) $anchor = date('Y-m-d');
 $monday = date('Y-m-d', strtotime('monday this week', strtotime($anchor)));
 $sunday = date('Y-m-d', strtotime("$monday +6 days"));
 $today = date('Y-m-d');
+$deadlineStart = g_is_vip($uid) ? date('Y-m-d', strtotime("$monday -1 day")) : $monday;
 $enrollOk = "(en.expires_at IS NULL OR en.expires_at = '' OR en.expires_at >= ?)";
 
 $all = []; // плоский список событий недели
@@ -70,11 +72,14 @@ $st = db()->prepare(
    WHERE hw.deadline IS NOT NULL AND hw.deadline <> ''
      AND substr(hw.deadline,1,10) BETWEEN ? AND ?"
 );
-$st->execute([$uid, $today, $monday, $sunday]);
-foreach ($st as $r) $all[] = [
-  'date' => substr($r['deadline'], 0, 10), 'time' => '', 'kind' => 'deadline', 'allday' => true,
-  'title' => $r['title'], 'subject' => $r['subject'], 'color' => '#e0584f', 'link' => null, 'duration' => 0,
-];
+$st->execute([$uid, $today, $deadlineStart, $sunday]);
+foreach ($st as $r) {
+  $effectiveDeadline = g_effective_deadline($uid, $r['deadline']);
+  $all[] = [
+    'date' => substr($effectiveDeadline, 0, 10), 'time' => '', 'kind' => 'deadline', 'allday' => true,
+    'title' => $r['title'], 'subject' => $r['subject'], 'color' => '#e0584f', 'link' => null, 'duration' => 0,
+  ];
+}
 
 // Раскладываем по дням, дедлайны — в конец дня.
 $days = [];

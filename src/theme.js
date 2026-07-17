@@ -1,6 +1,6 @@
 // Оформление кабинета. Атрибут data-theme на <html>; выбор хранится в localStorage.
 const KEY = 'theme'
-export const THEME_IDS = ['light', 'dark', 'neon', 'space']
+export const THEME_IDS = ['light', 'dark', 'neon', 'space', 'vip']
 
 export function getTheme() {
   try {

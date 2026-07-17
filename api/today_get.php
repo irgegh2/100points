@@ -2,10 +2,12 @@
 // GET /today_get.php — блок «Обучение сегодня» на Главной.
 // Сегодняшние эфиры/практики + домашки, у которых СЕГОДНЯ последний день дедлайна (и не сданы). Пробников нет.
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/gamify.php';
 $uid = require_user();
 release_session();
 
 $today = date('Y-m-d');
+$deadlineSourceDate = g_is_vip($uid) ? date('Y-m-d', strtotime('-1 day')) : $today;
 $items = [];
 
 // 1) События сегодня (в доступных курсах).
@@ -60,7 +62,7 @@ $hw = db()->prepare(
      AND NOT EXISTS (SELECT 1 FROM submissions sub WHERE sub.homework_id = hw.id AND sub.user_id = ?)
    ORDER BY hw.id"
 );
-$hw->execute([$uid, $today, $today, $uid]);
+$hw->execute([$uid, $today, $deadlineSourceDate, $uid]);
 foreach ($hw as $r) $items[] = [
   'kind' => 'homework', 'title' => $r['title'], 'subject' => $r['subject'], 'color' => $r['color'] ?: '#ff7a00',
   'meta' => 'Последний день сдачи!', 'urgent' => true, 'action' => 'Решать',

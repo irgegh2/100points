@@ -22,6 +22,10 @@ foreach ($st->fetchAll() as $row) {
   if ($code && !in_array($code, $themes, true)) $themes[] = $code;
 }
 
+$vip = db()->prepare("SELECT 1 FROM purchases WHERE user_id = ? AND item_name = 'VIP-статус навсегда' AND status = 'done' LIMIT 1");
+$vip->execute([$uid]);
+if ($vip->fetchColumn()) $themes[] = 'vip';
+
 // Рамка — цифровая косметика: новые покупки выдаются сразу. Старые ожидающие
 // заявки тоже считаем активными, потому что кристаллы за них уже списаны.
 $frame = db()->prepare("SELECT 1

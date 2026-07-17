@@ -26,7 +26,13 @@ $cosmeticCodes = [
   'Цвет ника' => 'nickname_color',
 ];
 $cosmeticCode = $item['category'] === 'theme' ? ($cosmeticCodes[$item['name']] ?? null) : null;
-$instant = $themeCode !== null || $cosmeticCode !== null;
+$effectCodes = [
+  '+1 жизнь' => 'extra_life',
+  'Бустер ×2 кристалла' => 'crystal_booster',
+  'VIP-статус навсегда' => 'vip',
+];
+$effectCode = $effectCodes[$item['name']] ?? null;
+$instant = $themeCode !== null || $cosmeticCode !== null || $effectCode !== null;
 $status = $instant ? 'done' : 'pending';
 
 // once-only — нельзя купить повторно.
@@ -45,12 +51,16 @@ try {
 
   // Блокируем кошелёк: параллельные клики не спишут деньги и не создадут дубль.
   $lockSql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql'
-    ? 'SELECT crystals FROM wallets WHERE user_id = ? FOR UPDATE'
-    : 'SELECT crystals FROM wallets WHERE user_id = ?';
+    ? 'SELECT crystals, lives, booster_until FROM wallets WHERE user_id = ? FOR UPDATE'
+    : 'SELECT crystals, lives, booster_until FROM wallets WHERE user_id = ?';
   $lock = $pdo->prepare($lockSql);
   $lock->execute([$uid]);
-  $lockedBalance = (int)$lock->fetchColumn();
+  $lockedWallet = $lock->fetch();
+  $lockedBalance = (int)($lockedWallet['crystals'] ?? 0);
   if ($lockedBalance < $price) throw new RuntimeException('insufficient');
+  if ($effectCode === 'extra_life' && (int)$lockedWallet['lives'] >= g_max_lives($uid)) {
+    throw new RuntimeException('full_lives');
+  }
 
   if ((int)$item['once_only'] === 1) {
     $dup = $pdo->prepare("SELECT 1 FROM purchases WHERE user_id = ? AND item_id = ? AND status IN ('pending','done') LIMIT 1");
@@ -64,16 +74,32 @@ try {
   $pdo->prepare("INSERT INTO purchases (user_id, item_id, item_name, price, status, note, updated_at) VALUES (?,?,?,?, ?, ?, ?)")
       ->execute([$uid, $itemId, $item['name'], $price, $status, $instant ? 'Доступ активирован автоматически' : null, date('Y-m-d H:i:s')]);
   $pid = (int)$pdo->lastInsertId();
+
+  if ($effectCode === 'extra_life') {
+    $pdo->prepare("UPDATE wallets SET lives = lives + 1 WHERE user_id = ?")->execute([$uid]);
+    g_log($uid, 'lives', 1, 'Покупка: +1 жизнь', 'purchase', $pid);
+  } elseif ($effectCode === 'crystal_booster') {
+    $base = !empty($lockedWallet['booster_until']) && strtotime((string)$lockedWallet['booster_until']) > time()
+      ? strtotime((string)$lockedWallet['booster_until']) : time();
+    $boosterUntil = gmdate('Y-m-d\TH:i:s\Z', $base + 86400);
+    $pdo->prepare("UPDATE wallets SET booster_until = ? WHERE user_id = ?")->execute([$boosterUntil, $uid]);
+  } elseif ($effectCode === 'vip') {
+    $newLives = min(7, (int)$lockedWallet['lives'] + 2);
+    $delta = $newLives - (int)$lockedWallet['lives'];
+    $pdo->prepare("UPDATE wallets SET lives = ? WHERE user_id = ?")->execute([$newLives, $uid]);
+    if ($delta > 0) g_log($uid, 'lives', $delta, 'VIP: запас жизней увеличен', 'purchase', $pid);
+  }
   $pdo->commit();
 } catch (Throwable $e) {
   if (db()->inTransaction()) db()->rollBack();
   if ($e->getMessage() === 'duplicate') fail('Этот товар покупается один раз — он уже у тебя', 409);
   if ($e->getMessage() === 'insufficient') fail('Недостаточно кристаллов', 400);
+  if ($e->getMessage() === 'full_lives') fail('У тебя уже полный запас жизней', 409);
   fail('Не удалось оформить покупку', 500);
 }
 
 $message = $instant
-  ? "Покупка «{$item['name']}» активирована — оформление уже включено."
+  ? "Покупка «{$item['name']}» активирована сразу."
   : "Покупка «{$item['name']}» оформлена. Заявка принята — скоро выдадим.";
 notify($uid, 'shop', $message, 'shop');
 
@@ -87,4 +113,9 @@ ok([
   'theme' => $themeCode,
   'cosmetic_unlocked' => $cosmeticCode !== null,
   'cosmetic' => $cosmeticCode,
+  'effect' => $effectCode,
+  'lives' => (int)$w['lives'],
+  'max_lives' => g_max_lives($uid),
+  'booster_until' => (string)($w['booster_until'] ?? ''),
+  'vip' => g_is_vip($uid),
 ]);

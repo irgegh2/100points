@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, LockKeyhole, Moon, Orbit, Sparkles, Sun } from 'lucide-react'
+import { Check, ChevronDown, Crown, LockKeyhole, Moon, Orbit, Sparkles, Sun } from 'lucide-react'
 import { getTheme, setTheme } from '../theme.js'
 
 const THEMES = [
@@ -7,6 +7,7 @@ const THEMES = [
   { id: 'dark', label: 'Тёмная', note: 'Графитовая', icon: Moon, swatch: 'theme-swatch--dark' },
   { id: 'neon', label: 'Неоновая', note: 'Циан и ультрафиолет', icon: Sparkles, swatch: 'theme-swatch--neon' },
   { id: 'space', label: 'Космос', note: 'Звёздная ночь', icon: Orbit, swatch: 'theme-swatch--space' },
+  { id: 'vip', label: 'VIP', note: 'Чёрное золото', icon: Crown, swatch: 'theme-swatch--vip' },
 ]
 
 // Выпадающий выбор оформления. У ученика доступны только купленные темы;

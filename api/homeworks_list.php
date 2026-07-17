@@ -3,6 +3,7 @@
 // Только по курсам, на которые ученик зачислен. Со статусом сдачи и пометкой «замок» для
 // повышенного уровня без подписки.
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/gamify.php';
 $uid = require_user();
 release_session();
 
@@ -35,7 +36,7 @@ foreach ($stmt as $r) {
     'id'        => (int)$r['id'],
     'level'     => $r['level'],
     'title'     => $r['title'],
-    'deadline'  => $r['deadline'],
+    'deadline'  => g_effective_deadline($uid, $r['deadline']),
     'subject'   => $r['subject'],
     'icon'      => $r['icon'],
     'color'     => $r['color'],

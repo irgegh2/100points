@@ -812,6 +812,60 @@ $MIGRATIONS = [
     }
   },
 
+  // v26 — мгновенные игровые товары, 24-часовой бустер и VIP-привилегии.
+  26 => function (PDO $pdo, string $driver) {
+    if (!column_exists($pdo, $driver, 'wallets', 'booster_until')) {
+      $pdo->exec("ALTER TABLE wallets ADD COLUMN booster_until VARCHAR(30)");
+    }
+
+    $pdo->beginTransaction();
+    try {
+      $pdo->exec("UPDATE shop_items SET description = 'Мгновенно восстанавливает одну жизнь' WHERE name = '+1 жизнь'");
+      $pdo->exec("UPDATE shop_items SET description = 'Удваивает игровые начисления на 24 часа' WHERE name = 'Бустер ×2 кристалла'");
+      $pdo->exec("UPDATE shop_items SET description = 'VIP-тема · +1 день к ДЗ · 7 жизней · вход +10 кристаллов' WHERE name = 'VIP-статус навсегда'");
+
+      // Ранее оплаченные, но ожидающие цифровые товары активируем без повторного списания.
+      $pending = $pdo->query("SELECT id, user_id, item_name FROM purchases
+        WHERE status = 'pending' AND item_name IN ('+1 жизнь', 'Бустер ×2 кристалла', 'VIP-статус навсегда')")->fetchAll();
+      usort($pending, fn($a, $b) => ($a['item_name'] === 'VIP-статус навсегда' ? 0 : 1) <=> ($b['item_name'] === 'VIP-статус навсегда' ? 0 : 1));
+      foreach ($pending as $purchase) {
+        $pid = (int)$purchase['id'];
+        $uid = (int)$purchase['user_id'];
+        $name = (string)$purchase['item_name'];
+        $wallet = $pdo->prepare("SELECT lives, booster_until FROM wallets WHERE user_id = ? LIMIT 1");
+        $wallet->execute([$uid]);
+        $w = $wallet->fetch();
+
+        if ($w && $name === 'VIP-статус навсегда') {
+          $newLives = min(7, (int)$w['lives'] + 2);
+          $delta = $newLives - (int)$w['lives'];
+          $pdo->prepare("UPDATE wallets SET lives = ? WHERE user_id = ?")->execute([$newLives, $uid]);
+          if ($delta > 0) $pdo->prepare("INSERT INTO coin_log (user_id, kind, amount, reason, ref_type, ref_id) VALUES (?, 'lives', ?, 'VIP: запас жизней увеличен', 'purchase', ?)")->execute([$uid, $delta, $pid]);
+        } elseif ($w && $name === '+1 жизнь') {
+          $vip = $pdo->prepare("SELECT 1 FROM purchases WHERE user_id = ? AND item_name = 'VIP-статус навсегда' AND status IN ('pending','done') LIMIT 1");
+          $vip->execute([$uid]);
+          $maxLives = $vip->fetchColumn() ? 7 : 5;
+          $newLives = min($maxLives, (int)$w['lives'] + 1);
+          $delta = $newLives - (int)$w['lives'];
+          $pdo->prepare("UPDATE wallets SET lives = ? WHERE user_id = ?")->execute([$newLives, $uid]);
+          if ($delta > 0) $pdo->prepare("INSERT INTO coin_log (user_id, kind, amount, reason, ref_type, ref_id) VALUES (?, 'lives', ?, 'Покупка: +1 жизнь', 'purchase', ?)")->execute([$uid, $delta, $pid]);
+        } elseif ($w && $name === 'Бустер ×2 кристалла') {
+          $base = !empty($w['booster_until']) && strtotime((string)$w['booster_until']) > time()
+            ? strtotime((string)$w['booster_until']) : time();
+          $until = gmdate('Y-m-d\TH:i:s\Z', $base + 86400);
+          $pdo->prepare("UPDATE wallets SET booster_until = ? WHERE user_id = ?")->execute([$until, $uid]);
+        }
+
+        $pdo->prepare("UPDATE purchases SET status = 'done', note = 'Доступ активирован автоматически', updated_at = ? WHERE id = ?")
+            ->execute([date('Y-m-d H:i:s'), $pid]);
+      }
+      $pdo->commit();
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      throw $e;
+    }
+  },
+
 ];
 
 // ── Прогон ──────────────────────────────────────────────────
@@ -948,9 +1002,9 @@ if ($seed && (int)$pdo->query("SELECT COUNT(*) c FROM shop_items")->fetch()['c']
     ['Цвет ника', 'Палитра цветов для имени в кабинете', 'theme', 250, 1, null],
     ['Заморозка стрика', 'Серия не сгорит за пропуск дня', 'privilege', 150, 0, null],
     ['Продление дедлайна +24ч', 'Лишний день на домашку', 'privilege', 200, 0, null],
-    ['+1 жизнь', 'Дополнительная жизнь', 'privilege', 120, 0, null],
-    ['Бустер ×2 кристалла', 'Двойные кристаллы на 1 день', 'privilege', 250, 0, null],
-    ['VIP-статус навсегда', 'Все плюшки и значок VIP', 'privilege', 3000, 1, 'TOP'],
+    ['+1 жизнь', 'Мгновенно восстанавливает одну жизнь', 'privilege', 120, 0, null],
+    ['Бустер ×2 кристалла', 'Удваивает игровые начисления на 24 часа', 'privilege', 250, 0, null],
+    ['VIP-статус навсегда', 'VIP-тема · +1 день к ДЗ · 7 жизней · вход +10 кристаллов', 'privilege', 3000, 1, 'TOP'],
     ['Секретный конспект', 'Шпаргалка по сложной теме', 'content', 300, 0, null],
     ['Запись закрытого вебинара', 'Лучшие вебинары прошлых лет', 'content', 350, 0, null],
     ['Доп. пробник', 'Ещё один пробный экзамен', 'content', 250, 0, null],

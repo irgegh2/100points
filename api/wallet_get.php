@@ -15,8 +15,10 @@ release_session();
 ok([
   'crystals'    => (int)$w['crystals'],
   'lives'       => (int)$w['lives'],
-  'max_lives'   => G_WEEKLY_LIVES,
+  'max_lives'   => g_max_lives($uid),
   'streak'      => (int)$w['streak'],
   'streak_best' => (int)$w['streak_best'],
   'week_start'  => $w['week_start'],
+  'booster_until' => (string)($w['booster_until'] ?? ''),
+  'vip'         => g_is_vip($uid),
 ]);

@@ -10,6 +10,35 @@ const G_HW_PERFECT     = 15;   // доп. за тест на 100%
 const G_MOCK           = 20;   // за пробник
 const G_STREAK_DAY     = 5;    // за день серии (активность)
 
+function g_has_item(int $uid, string $name): bool {
+  $s = db()->prepare("SELECT 1 FROM purchases WHERE user_id = ? AND item_name = ? AND status = 'done' LIMIT 1");
+  $s->execute([$uid, $name]);
+  return (bool)$s->fetchColumn();
+}
+
+function g_is_vip(int $uid): bool { return g_has_item($uid, 'VIP-статус навсегда'); }
+function g_max_lives(int $uid): int { return g_is_vip($uid) ? 7 : G_WEEKLY_LIVES; }
+function g_daily_reward(int $uid): int { return g_is_vip($uid) ? 10 : G_STREAK_DAY; }
+
+function g_booster_until(int $uid): string {
+  $s = db()->prepare("SELECT booster_until FROM wallets WHERE user_id = ? LIMIT 1");
+  $s->execute([$uid]);
+  return (string)($s->fetchColumn() ?: '');
+}
+function g_booster_active(int $uid): bool {
+  $until = g_booster_until($uid);
+  return $until !== '' && strtotime($until) > time();
+}
+function g_reward_multiplier(int $uid, ?string $refType = null): int {
+  return $refType !== 'admin' && g_booster_active($uid) ? 2 : 1;
+}
+function g_effective_deadline(int $uid, ?string $deadline): string {
+  $deadline = trim((string)$deadline);
+  if ($deadline === '' || !g_is_vip($uid)) return $deadline;
+  $ts = strtotime($deadline);
+  return $ts ? date(strlen($deadline) > 10 ? 'Y-m-d H:i:s' : 'Y-m-d', $ts + 86400) : $deadline;
+}
+
 // Кошелёк ученика (создаёт при первом обращении).
 function g_wallet(int $uid): array {
   $w = db()->prepare("SELECT * FROM wallets WHERE user_id = ? LIMIT 1");
@@ -28,6 +57,10 @@ function g_log(int $uid, string $kind, int $amount, string $reason, ?string $ref
 
 function g_add_crystals(int $uid, int $amount, string $reason, ?string $refType = null, ?int $refId = null): void {
   if ($amount === 0) return;
+  if ($amount > 0 && g_reward_multiplier($uid, $refType) === 2) {
+    $amount *= 2;
+    $reason .= ' · бустер ×2';
+  }
   db()->prepare("UPDATE wallets SET crystals = crystals + ? WHERE user_id = ?")->execute([$amount, $uid]);
   g_log($uid, 'crystals', $amount, $reason, $refType, $refId);
   if ($amount > 0) g_ach_progress($uid, 'crystals_500', $amount); // прогресс «накопи 500»
@@ -53,7 +86,7 @@ function g_touch_streak(int $uid): void {
   db()->prepare("UPDATE wallets SET streak = ?, streak_best = ?, last_active = ? WHERE user_id = ?")
       ->execute([$streak, $best, $today, $uid]);
   g_log($uid, 'streak', 0, 'Активность дня', 'streak', $streak); // метка дня для недельной сетки
-  g_add_crystals($uid, G_STREAK_DAY, "Серия: день $streak", 'streak', $streak);
+  g_add_crystals($uid, g_daily_reward($uid), "Серия: день $streak", 'streak', $streak);
   g_ach_set($uid, 'streak_7', $streak);
 }
 
@@ -150,7 +183,7 @@ function g_sync(int $uid): void {
     $saved = (int)$w['lives'];
     if ($saved > 0) g_add_crystals($uid, $saved * G_LIFE_TO_CRYSTAL, 'Бонус за сохранённые жизни', 'weekly', $saved);
     $next = date('Y-m-d', strtotime($start . ' +7 days'));
-    db()->prepare("UPDATE wallets SET lives = ?, week_start = ? WHERE user_id = ?")->execute([G_WEEKLY_LIVES, $next, $uid]);
+    db()->prepare("UPDATE wallets SET lives = ?, week_start = ? WHERE user_id = ?")->execute([g_max_lives($uid), $next, $uid]);
   }
 }
 
@@ -170,7 +203,7 @@ function g_apply_deadline_penalties(int $uid): void {
   );
   $st->execute([$uid, $today, $uid, $uid]);
   foreach ($st->fetchAll() as $h) {
-    $ts = strtotime((string)$h['deadline']);
+    $ts = strtotime(g_effective_deadline($uid, (string)$h['deadline']));
     if (!$ts) continue;                 // дедлайн не дата — пропускаем
     if ($ts + 86400 > time()) continue; // ещё не прошёл (конец дня дедлайна)
     db()->prepare("INSERT INTO deadline_penalties (user_id, homework_id) VALUES (?,?)")->execute([$uid, (int)$h['id']]);

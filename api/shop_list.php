@@ -15,8 +15,8 @@ $owned = array_map('intval', array_column($ow->fetchAll(), 'item_id'));
 $w = g_wallet($uid);
 $out = [];
 foreach ($items as $it) {
-  $instantItems = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Рамка для аватара', 'Цвет ника'];
-  $instant = $it['category'] === 'theme' && in_array($it['name'], $instantItems, true);
+  $instantItems = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Рамка для аватара', 'Цвет ника', '+1 жизнь', 'Бустер ×2 кристалла', 'VIP-статус навсегда'];
+  $instant = in_array($it['name'], $instantItems, true);
   $out[] = [
     'id'          => (int)$it['id'],
     'name'        => $it['name'],
@@ -31,4 +31,11 @@ foreach ($items as $it) {
     'owned'       => (int)$it['once_only'] === 1 && in_array((int)$it['id'], $owned, true),
   ];
 }
-ok(['items' => $out, 'balance' => (int)$w['crystals']]);
+ok([
+  'items' => $out,
+  'balance' => (int)$w['crystals'],
+  'lives' => (int)$w['lives'],
+  'max_lives' => g_max_lives($uid),
+  'booster_until' => (string)($w['booster_until'] ?? ''),
+  'vip' => g_is_vip($uid),
+]);

@@ -4,7 +4,7 @@ import {
   Home, BookOpen, CalendarDays, Trophy, Headset, Sparkles, Dumbbell, Library,
   ClipboardCheck, PencilLine, LogOut,
   Bell, Gem, ChevronRight, Check, Plus, Video,
-  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X,
+  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X, Crown,
 } from 'lucide-react'
 import { brand } from '../data/content.js'
 import { setAuthed } from '../auth.js'
@@ -183,7 +183,7 @@ export default function CabinetPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [avatar, setAvatar] = useState('')
-  const [wallet, setWallet] = useState({ crystals: 0, lives: 5, max_lives: 5 })
+  const [wallet, setWallet] = useState({ crystals: 0, lives: 5, max_lives: 5, vip: false })
   const [themeAccessList, setThemeAccessList] = useState(['light'])
   const [hasAvatarFrame, setHasAvatarFrame] = useState(false)
   const [nicknameColorAccess, setNicknameColorAccess] = useState(false)
@@ -337,6 +337,7 @@ export default function CabinetPage() {
             <button className={`lk__user ${active === 'profile' ? 'active' : ''}`} onClick={() => setActive('profile')}>
               <span className={`lk__ava ${hasAvatarFrame ? 'avatar--framed' : ''}`} style={avatar ? { backgroundImage: `url(${avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
               <span className="lk__username" style={nicknameColorAccess ? { color: nicknameColor || '#7b5cff' } : undefined}>{user?.name || 'Ученик'}</span>
+              {wallet.vip && <span className="lk__vip-badge"><Crown size={11} /> VIP</span>}
             </button>
           </div>
         </header>
@@ -348,6 +349,7 @@ export default function CabinetPage() {
           <HomeDash onNavigate={setActive} crystals={wallet.crystals} />
         ) : active === 'shop' ? (
           <Shop balance={wallet.crystals} onBack={() => setActive('home')} onBalance={(c) => setWallet((w) => ({ ...w, crystals: c }))}
+            onWalletUpdate={(data) => setWallet((w) => ({ ...w, crystals: data.balance ?? w.crystals, lives: data.lives ?? w.lives, max_lives: data.max_lives ?? w.max_lives, vip: data.vip ?? w.vip }))}
             onThemeUnlocked={(theme) => {
               setThemeAccessList((list) => list.includes(theme) ? list : [...list, theme])
               setTheme(theme)
@@ -357,6 +359,12 @@ export default function CabinetPage() {
               if (cosmetic === 'nickname_color') {
                 setNicknameColorAccess(true)
                 setNicknameColor('#7b5cff')
+              }
+            }}
+            onEffectUnlocked={(effect) => {
+              if (effect === 'vip') {
+                setThemeAccessList((list) => list.includes('vip') ? list : [...list, 'vip'])
+                setTheme('vip')
               }
             }} />
         ) : active === 'achievements' ? (

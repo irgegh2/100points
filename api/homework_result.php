@@ -2,6 +2,7 @@
 // GET /homework_result.php?id=<homework_id> — разбор после сдачи (своей).
 // ЗДЕСЬ (и только здесь) отдаём правильные ответы, решения, баллы и комментарии наставника.
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/gamify.php';
 $uid = require_user();
 release_session();
 
@@ -67,7 +68,7 @@ foreach ($q as $r) {
 }
 
 ok([
-  'homework'   => ['id' => (int)$homework['id'], 'level' => $homework['level'], 'title' => $homework['title'], 'deadline' => $homework['deadline']],
+  'homework'   => ['id' => (int)$homework['id'], 'level' => $homework['level'], 'title' => $homework['title'], 'deadline' => g_effective_deadline($uid, $homework['deadline'])],
   'submission' => ['status' => $s['status'], 'score' => (int)$s['score'], 'max_score' => (int)$s['max_score'], 'comment' => $s['comment']],
   'expert'     => $expert,
   'results'    => $results,
