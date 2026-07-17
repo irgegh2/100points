@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Gem, ArrowRight, Check, Clock, Package, X, Timer, Heart } from 'lucide-react'
 import { shopList, shopBuy, purchasesList } from '../api.js'
 
@@ -54,7 +54,9 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
   const [purchases, setPurchases] = useState([])
   const [busy, setBusy] = useState(0)
   const [toast, setToast] = useState(null)
+  const [highlightedPurchase, setHighlightedPurchase] = useState(0)
   const [loading, setLoading] = useState(true)
+  const ordersRef = useRef(null)
 
   const reload = () => Promise.all([shopList(), purchasesList()]).then(([s, p]) => {
     setItems(s.items || []); setCoins(s.balance); setPurchases(p.purchases || [])
@@ -82,10 +84,13 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
       if (d.effect) onEffectUnlocked?.(d.effect, d)
       setToast(d.instant
         ? `«${it.name}» куплено и включено!`
-        : it.category === 'reward'
-        ? `«${it.name}» — заявка принята! Скоро свяжемся в ВК и выдадим.`
-        : `«${it.name}» куплено! Заявка отправлена — скоро откроем.`)
+        : `«${it.name}» куплено. Заявка появилась в «Моих покупках» — ожидай выдачу.`)
+      if (!d.instant) setHighlightedPurchase(d.purchase_id)
       await reload()
+      if (!d.instant) {
+        setTimeout(() => ordersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80)
+        setTimeout(() => setHighlightedPurchase(0), 5000)
+      }
     } catch (e) { setToast(e.message) }
     finally { setBusy(0); setTimeout(() => setToast(null), 4000) }
   }
@@ -97,7 +102,7 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
   return (
     <div className="shop">
       <button className="shop__back" onClick={onBack}><ArrowLeft size={17} /> На главную</button>
-      {toast && <div className="shop__toast">{toast}</div>}
+      {toast && <div className="shop__toast" role="status" aria-live="polite"><Check size={17} />{toast}</div>}
 
       <div className="shop__layout">
         <div className="shop__col">
@@ -147,13 +152,13 @@ export default function Shop({ balance = 0, onBack, onBalance, onWalletUpdate, o
 
           {/* Мои заявки */}
           {purchases.length > 0 && (
-            <div className="shop__orders">
+            <div className="shop__orders" ref={ordersRef}>
               <div className="shop__earn-head"><Package size={15} /> Мои покупки <span className="shop__orders-cnt">{purchases.length}</span></div>
               <div className="shop__orders-scroll">
                 {purchases.map((p) => {
                   const st = STATUS[p.status] || STATUS.pending
                   return (
-                    <div className="shop__order" key={p.id}>
+                    <div className={`shop__order ${Number(p.id) === Number(highlightedPurchase) ? 'is-new' : ''}`} key={p.id}>
                       <div className="shop__order-name">{p.item_name}</div>
                       <div className={`shop__order-status ${st.cls}`}><st.ico size={12} /> {st.label}</div>
                       {p.note && p.status === 'done' && <div className="shop__order-note">{p.note}</div>}
