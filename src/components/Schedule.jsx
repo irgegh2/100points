@@ -11,6 +11,12 @@ const KIND_LBL = { practice: 'Практика', theory: 'Теория', webinar
 const START = 10, END = 22, HOURS = END - START   // 10:00–22:00
 const HEAD = 46, ALLDAY = 38
 const toMin = (t) => parseInt(t.slice(0, 2), 10) * 60 + parseInt(t.slice(3, 5), 10)
+const longDate = (iso) => iso ? `${dnum(iso)} ${mon(iso)}` : 'Дата не указана'
+const endTime = (time, duration) => {
+  if (!time) return ''
+  const total = toMin(time) + (Number(duration) || 0)
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
 
 export default function Schedule() {
   const [week, setWeek] = useState(null)
@@ -42,15 +48,15 @@ export default function Schedule() {
     return () => ro.disconnect()
   }, [data])
 
-  // Навёл и подождал 2 сек — показываем карточку. Любое движение мыши её убирает.
-  const onEnter = (e) => { clearTimeout(hoverT.current); hoverT.current = setTimeout(() => setPop(e), 2000) }
-  const onLeave = () => clearTimeout(hoverT.current)
-  useEffect(() => {
-    if (!pop) return
-    const hide = () => setPop(null)
-    const t = setTimeout(() => window.addEventListener('mousemove', hide, { once: true }), 60)
-    return () => { clearTimeout(t); window.removeEventListener('mousemove', hide) }
-  }, [pop])
+  // Небольшая задержка не даёт подсказке мигать при случайном пересечении ячейки.
+  const onEnter = (item, pointer) => {
+    clearTimeout(hoverT.current)
+    const x = Math.max(12, Math.min(pointer.clientX + 14, window.innerWidth - 374))
+    const y = Math.max(12, Math.min(pointer.clientY + 14, window.innerHeight - 270))
+    hoverT.current = setTimeout(() => setPop({ item, x, y }), 320)
+  }
+  const onLeave = () => { clearTimeout(hoverT.current); setPop(null) }
+  useEffect(() => () => clearTimeout(hoverT.current), [])
 
   const days = data?.days || Array.from({ length: 7 }, () => ({ date: '', events: [] }))
   const label = data?.days?.length ? `${dnum(days[0].date)} ${mon(days[0].date)} – ${dnum(days[6].date)} ${mon(days[6].date)}` : '…'
@@ -86,7 +92,7 @@ export default function Schedule() {
               <div className="scol__head" style={{ height: HEAD }}>{DOW[di]} {day.date && <span className={day.today ? 'today' : ''}>{dnum(day.date)}</span>}</div>
               <div className="sallday" style={{ height: ALLDAY }}>
                 {day.events.filter((e) => e.allday).map((e) => (
-                  <div className="sallday__chip" key={e.id} title={e.title} onMouseEnter={() => onEnter(e)} onMouseLeave={onLeave}><AlertCircle size={11} /> {e.title}</div>
+                  <div className="sallday__chip" key={e.id} onMouseEnter={(pointer) => onEnter(e, pointer)} onMouseLeave={onLeave}><AlertCircle size={11} /> {e.title}</div>
                 ))}
               </div>
               <div className="sbody" style={{ height: gridH, backgroundSize: `100% ${hourH}px` }}>
@@ -97,7 +103,7 @@ export default function Schedule() {
                   const h = Math.max(24, (e.duration || 60) / 60 * hourH - 3)
                   return (
                     <div className="sevent" key={e.id} style={{ top, height: h, borderLeftColor: e.color }}
-                      onMouseEnter={() => onEnter(e)} onMouseLeave={onLeave}>
+                      onMouseEnter={(pointer) => onEnter(e, pointer)} onMouseLeave={onLeave}>
                       <div className="sevent__top">
                         <span className="sevent__time">{e.kind === 'practice' ? <BookOpen size={11} /> : e.kind === 'theory' ? <GraduationCap size={11} /> : <Video size={11} />} {e.time}</span>
                         {e.link && <a className="sevent__go" href={e.link} target="_blank" rel="noreferrer" onMouseEnter={onLeave}><Radio size={10} /> эфир</a>}
@@ -114,13 +120,18 @@ export default function Schedule() {
 
       {/* Карточка-подсказка по наведению */}
       {pop && (
-        <div className="spop">
-          <div className="spop__card" style={{ borderTopColor: pop.color }}>
-            <div className="spop__type">{KIND_LBL[pop.kind] || 'Событие'}{pop.time ? ` · ${pop.time}` : ''}{pop.duration ? ` · ${pop.duration} мин` : ''}</div>
-            <div className="spop__title">{pop.title}</div>
-            <div className="spop__subj"><span style={{ background: pop.color }} />{pop.subject}</div>
-            {pop.kind === 'deadline' && <div className="spop__note">Последний день сдачи — успей до конца дня.</div>}
-            {pop.link && <div className="spop__go"><Radio size={13} /> Эфир: открой карточку и нажми «эфир»</div>}
+        <div className="spop" style={{ left: pop.x, top: pop.y }}>
+          <div className="spop__card" style={{ borderTopColor: pop.item.color }}>
+            <div className="spop__type">{KIND_LBL[pop.item.kind] || 'Событие'}</div>
+            <div className="spop__title">{pop.item.title}</div>
+            <dl className="spop__details">
+              <div><dt>Когда</dt><dd>{longDate(pop.item.date)}{pop.item.time ? ` · ${pop.item.time}${pop.item.duration ? `–${endTime(pop.item.time, pop.item.duration)}` : ''}` : ' · весь день'}</dd></div>
+              {pop.item.duration > 0 && <div><dt>Длительность</dt><dd>{pop.item.duration} мин</dd></div>}
+              <div><dt>Предмет</dt><dd><span className="spop__dot" style={{ background: pop.item.color }} />{pop.item.subject || 'Не указан'}</dd></div>
+              {pop.item.course && <div><dt>Курс</dt><dd>{pop.item.course}</dd></div>}
+            </dl>
+            {pop.item.kind === 'deadline' && <div className="spop__note">Последний день сдачи — успей до конца дня.</div>}
+            {pop.item.link && <div className="spop__go"><Radio size={13} /> Для события доступна ссылка на эфир</div>}
           </div>
         </div>
       )}

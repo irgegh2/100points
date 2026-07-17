@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const MODELS = ['deepseek/deepseek-v4-flash', 'deepseek/deepseek-chat-v3.1', 'qwen/qwen3-max', 'google/gemini-3.5-flash', 'openai/gpt-5-mini', 'anthropic/claude-opus-4.8-fast']
 
 export default function AdminTrainer() {
+  const confirmDelete = useDangerConfirm()
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState('')
   const [tab, setTab] = useState('tasks')     // tasks | qa
@@ -35,7 +37,10 @@ export default function AdminTrainer() {
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
   const saveTask = (t) => catUpdate('trainer_tasks', { id: t.id, level: t.level, text: t.text, answer: t.answer, solution: t.solution, model: t.model }).catch((e) => alert(e.message))
-  const delTask = (t) => confirm('Удалить задачу?') && catDelete('trainer_tasks', t.id).then(() => setTasks((list) => list.filter((x) => x.id !== t.id)))
+  const delTask = async (t) => {
+    if (!await confirmDelete({ title: 'Удалить задачу?', target: (t.text || 'Задача без текста').slice(0, 120), consequence: 'Задача пропадёт из ИИ-тренажёра и больше не будет выдаваться ученикам.' })) return
+    try { await catDelete('trainer_tasks', t.id); setTasks((list) => list.filter((x) => x.id !== t.id)) } catch (e) { alert(e.message) }
+  }
   const patchTask = (id, k, v) => setTasks((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   // темы (режим «Вопрос-ответ»)
@@ -48,7 +53,10 @@ export default function AdminTrainer() {
     catch (err) { setMsg({ type: 'err', text: err.message }) } finally { setBusy(false) }
   }
   const saveQa = (t) => catUpdate('trainer_qa_topics', { id: t.id, level: t.level, name: t.name, examples: t.examples, model: t.model }).catch((e) => alert(e.message))
-  const delQa = (t) => confirm('Удалить тему?') && catDelete('trainer_qa_topics', t.id).then(() => setQa((list) => list.filter((x) => x.id !== t.id)))
+  const delQa = async (t) => {
+    if (!await confirmDelete({ title: 'Удалить тему тренажёра?', target: `Тема «${t.name}»`, consequence: 'Тема и её настройки генерации больше не будут доступны ученикам.' })) return
+    try { await catDelete('trainer_qa_topics', t.id); setQa((list) => list.filter((x) => x.id !== t.id)) } catch (e) { alert(e.message) }
+  }
   const patchQa = (id, k, v) => setQa((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   return (

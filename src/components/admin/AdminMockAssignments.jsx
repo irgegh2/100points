@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Eye, Plus, Trash2, X, Video } from 'lucide-react'
 import { adminMockAssignments, adminMockAssign, adminMockUnassign } from '../../api.js'
 import AdminProctoredMonitor from './AdminProctoredMonitor.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const localValue = (value) => value ? String(value).replace(' ', 'T').slice(0, 16) : ''
 const formatDate = (value) => value ? new Date(String(value).replace(' ', 'T')).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Без даты'
 
 export default function AdminMockAssignments({ mock, onClose }) {
+  const confirmDelete = useDangerConfirm()
   const proctored = (mock.format || 'normal') === 'proctored'
   const [data, setData] = useState({ users: [], assignments: [] })
   const [form, setForm] = useState({ user_id: '', starts_at: '', duration: 180 })
@@ -27,8 +29,8 @@ export default function AdminMockAssignments({ mock, onClose }) {
     } catch (err) { setMsg(err.message) } finally { setBusy(false) }
   }
   const remove = async (a) => {
-    if (!confirm(`Снять назначение с ${a.user_name || a.user_email}?`)) return
-    await adminMockUnassign(a.id); await load()
+    if (!await confirmDelete({ title: 'Снять назначение пробника?', target: `Ученик «${a.user_name || a.user_email}» · ${mock.title}`, consequence: 'Личный доступ ученика, чат и данные наблюдения этой сессии будут удалены.' })) return
+    try { await adminMockUnassign(a.id); await load() } catch (e) { setMsg(e.message) }
   }
 
   if (monitor) return <div className="admin__modal"><div className="admin__modal-box admin__modal-box--wide admin-live__modal"><AdminProctoredMonitor assignment={monitor} onClose={() => { setMonitor(null); load() }} /></div></div>

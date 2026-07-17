@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save, Check, X, Clock, Phone, Mail } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete, adminPurchases, adminPurchaseUpdate } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const CATS = [['theme', 'Оформление'], ['privilege', 'Привилегия'], ['content', 'Контент'], ['reward', 'Цифровая награда'], ['other', 'Прочее']]
 const EMPTY = { name: '', description: '', category: 'privilege', price: 100, once_only: 0, badge: '', active: 1 }
 const num = (v) => v === undefined ? 1 : Number(v)
 
 export default function AdminShop() {
+  const confirmDelete = useDangerConfirm()
   const [tab, setTab] = useState('orders')   // orders | items
   const [items, setItems] = useState([])
   const [form, setForm] = useState(EMPTY)
@@ -33,7 +35,10 @@ export default function AdminShop() {
   }
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const saveItem = (it) => catUpdate('shop_items', { id: it.id, name: it.name, description: it.description, category: it.category, price: it.price, once_only: num(it.once_only) ? 1 : 0, active: num(it.active) ? 1 : 0, badge: it.badge }).catch((e) => alert(e.message))
-  const delItem = (it) => confirm(`Удалить товар «${it.name}»?`) && catDelete('shop_items', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
+  const delItem = async (it) => {
+    if (!await confirmDelete({ title: 'Удалить товар?', target: `Товар «${it.name}»`, consequence: 'Товар исчезнет из магазина. История уже совершённых покупок останется связанной с удалённой позицией, если это допускает база.' })) return
+    try { await catDelete('shop_items', it.id); setItems((list) => list.filter((x) => x.id !== it.id)) } catch (e) { alert(e.message) }
+  }
 
   // заявки
   const act = async (o, status) => {

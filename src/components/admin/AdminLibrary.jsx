@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2, Save, Upload, Link2 } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete, libraryUpload } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const CATS = ['Конспекты', 'Шпаргалки', 'Кодификаторы', 'Демоверсии', 'Пробники прошлых лет', 'Карточки', 'Материалы']
 
 export default function AdminLibrary() {
+  const confirmDelete = useDangerConfirm()
   const [subjects, setSubjects] = useState([])
   const [items, setItems] = useState([])
   const [form, setForm] = useState({ subject_id: '', category: 'Конспекты', title: '', url: '' })
@@ -38,7 +40,10 @@ export default function AdminLibrary() {
 
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const save = (it) => catUpdate('library_items', { id: it.id, subject_id: it.subject_id || '', category: it.category, title: it.title, url: it.url }).catch((e) => alert(e.message))
-  const del = (it) => confirm(`Удалить «${it.title}»?`) && catDelete('library_items', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
+  const del = async (it) => {
+    if (!await confirmDelete({ title: 'Удалить материал?', target: `Материал «${it.title}»`, consequence: 'Материал исчезнет из библиотеки учеников. Загруженный файл больше не будет доступен из кабинета.' })) return
+    try { await catDelete('library_items', it.id); setItems((list) => list.filter((x) => x.id !== it.id)) } catch (e) { alert(e.message) }
+  }
 
   return (
     <div className="admin__cols">

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save, FolderOpen, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 // База знаний техподдержки: категории → вопросы-ответы. Используется ИИ-чатом «Помощь по платформе».
 export default function AdminSupport() {
+  const confirmDelete = useDangerConfirm()
   const [cats, setCats] = useState([])
   const [activeCat, setActiveCat] = useState(null)
   const [qa, setQa] = useState([])
@@ -27,7 +29,10 @@ export default function AdminSupport() {
   }
   const renameCat = (c, name) => setCats((a) => a.map((x) => x.id === c.id ? { ...x, name } : x))
   const saveCat = (c) => catUpdate('help_categories', { id: c.id, name: c.name }).catch((e) => alert(e.message))
-  const delCat = (c) => confirm(`Удалить категорию «${c.name}» со всеми вопросами?`) && catDelete('help_categories', c.id).then(() => { setCats((list) => list.filter((x) => x.id !== c.id)); if (activeCat === c.id) { setActiveCat(null); setQa([]) } })
+  const delCat = async (c) => {
+    if (!await confirmDelete({ title: 'Удалить категорию помощи?', target: `Категория «${c.name}»`, consequence: 'Категория и все вопросы с ответами внутри неё будут удалены.' })) return
+    try { await catDelete('help_categories', c.id); setCats((list) => list.filter((x) => x.id !== c.id)); if (activeCat === c.id) { setActiveCat(null); setQa([]) } } catch (e) { alert(e.message) }
+  }
 
   const addQa = async (e) => {
     e.preventDefault()
@@ -38,7 +43,10 @@ export default function AdminSupport() {
   }
   const patchQa = (id, k, v) => setQa((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const saveQa = (q) => catUpdate('help_qa', { id: q.id, question: q.question, answer: q.answer }).catch((e) => alert(e.message))
-  const delQa = (q) => confirm('Удалить вопрос?') && catDelete('help_qa', q.id).then(() => setQa((list) => list.filter((x) => x.id !== q.id)))
+  const delQa = async (q) => {
+    if (!await confirmDelete({ title: 'Удалить вопрос помощи?', target: q.question || 'Вопрос без названия', consequence: 'Вопрос и подготовленный ответ больше не будут использоваться техподдержкой.' })) return
+    try { await catDelete('help_qa', q.id); setQa((list) => list.filter((x) => x.id !== q.id)) } catch (e) { alert(e.message) }
+  }
 
   const cat = cats.find((c) => c.id === activeCat)
 

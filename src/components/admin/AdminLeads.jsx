@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Phone, Check, X, Trash2, CreditCard, LifeBuoy, UserPlus, Download } from 'lucide-react'
 import { adminLeads, adminLeadUpdate, adminExportUrl } from '../../api.js'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const KINDS = {
   lead:         { label: 'Заявка с сайта',      icon: UserPlus },
@@ -12,6 +13,7 @@ const SOURCES = { hero: 'Главный экран', consult: 'Консульт�
 const statusLabel = (s) => (s === 'new' ? 'Новая' : s === 'done' ? 'Обработана' : 'Отклонена')
 
 export default function AdminLeads() {
+  const confirmDelete = useDangerConfirm()
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('new')
   const [kind, setKind] = useState('')
@@ -26,7 +28,10 @@ export default function AdminLeads() {
 
   const setStatusFor = async (id, st) => { try { await adminLeadUpdate({ id, status: st }); load() } catch (e) { alert(e.message) } }
   const saveNote = async (id) => { try { await adminLeadUpdate({ id, note: notes[id] ?? '' }) } catch (e) { alert(e.message) } }
-  const del = async (id) => { if (confirm('Удалить заявку?')) { try { await adminLeadUpdate({ id, delete: true }); load() } catch (e) { alert(e.message) } } }
+  const del = async (lead) => {
+    if (!await confirmDelete({ title: 'Удалить заявку?', target: `Заявка от «${lead.name || lead.user_name || 'Без имени'}»`, consequence: 'Заявка, контакты и комментарий администратора будут удалены.' })) return
+    try { await adminLeadUpdate({ id: lead.id, delete: true }); load() } catch (e) { alert(e.message) }
+  }
 
   return (
     <div className="admin-wrap">
@@ -75,7 +80,7 @@ export default function AdminLeads() {
                 {l.status !== 'done' && <button className="btn btn-blue btn-sm" onClick={() => setStatusFor(l.id, 'done')}><Check size={14} /> Обработана</button>}
                 {l.status !== 'rejected' && <button className="btn btn-light btn-sm" onClick={() => setStatusFor(l.id, 'rejected')}><X size={14} /> Отклонить</button>}
                 {l.status !== 'new' && <button className="btn btn-light btn-sm" onClick={() => setStatusFor(l.id, 'new')}>В новые</button>}
-                <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => del(l.id)}><Trash2 size={15} /></button>
+                <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => del(l)}><Trash2 size={15} /></button>
               </div>
             </div>
           )

@@ -3,11 +3,13 @@ import { Plus, Trash2, Save, ChevronRight, X } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete, adminBankQuestions } from '../../api.js'
 import ReorderList from './ReorderList.jsx'
 import AdminQuestionsModal from './AdminQuestionsModal.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const PARTS = [['first', 'Первая часть'], ['second', 'Вторая часть']]
 
 // ── Состав варианта-пробника: выбор существующих вопросов банка ──
 function VariantQuestionsModal({ variant, subjectId, onClose }) {
+  const confirmDelete = useDangerConfirm()
   const [questions, setQuestions] = useState([]) // все вопросы банка предмета
   const [selected, setSelected] = useState([])   // [{ id (variant_question), question_id, position }]
   const [q, setQ] = useState('')
@@ -24,6 +26,8 @@ function VariantQuestionsModal({ variant, subjectId, onClose }) {
     catch (e) { alert(e.message) } finally { setBusy(false) }
   }
   const remove = async (vq) => {
+    const item = questions.find((question) => Number(question.id) === Number(vq.question_id))
+    if (!await confirmDelete({ title: 'Убрать вопрос из варианта?', target: (item?.text || `Вопрос #${vq.question_id}`).slice(0, 140), consequence: 'Вопрос будет убран только из этого варианта. Сам вопрос в банке останется.' })) return
     setBusy(true)
     try { await catDelete('variant_questions', vq.id); await load() }
     catch (e) { alert(e.message) } finally { setBusy(false) }
@@ -68,13 +72,17 @@ function VariantQuestionsModal({ variant, subjectId, onClose }) {
 
 // ── Подтемы темы + переход к вопросам ──
 function SubtopicsModal({ topic, onClose }) {
+  const confirmDelete = useDangerConfirm()
   const [items, setItems] = useState([])
   const [qModal, setQModal] = useState(null)
   const load = () => catList('subtopics', { topic_id: topic.id }).then((d) => setItems(d.items || []))
   useEffect(() => { load() }, [])
   const add = () => catCreate('subtopics', { topic_id: topic.id, name: 'Новая подтема', position: items.length }).then((d) => setItems((list) => [...list, d.item]))
   const save = (s) => catUpdate('subtopics', { id: s.id, name: s.name }).catch((e) => alert(e.message))
-  const del = (s) => confirm(`Удалить подтему «${s.name}» с вопросами?`) && catDelete('subtopics', s.id).then(() => setItems((list) => list.filter((x) => x.id !== s.id)))
+  const del = async (s) => {
+    if (!await confirmDelete({ title: 'Удалить подтему?', target: `Подтема «${s.name}»`, consequence: 'Подтема и все вопросы внутри неё будут удалены из банка.' })) return
+    try { await catDelete('subtopics', s.id); setItems((list) => list.filter((x) => x.id !== s.id)) } catch (e) { alert(e.message) }
+  }
   const patch = (id, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, name: v } : x))
   return (
     <div className="admin__modal" onClick={onClose}>
@@ -97,6 +105,7 @@ function SubtopicsModal({ topic, onClose }) {
 }
 
 export default function AdminBank() {
+  const confirmDelete = useDangerConfirm()
   const [subjects, setSubjects] = useState([])
   const [subjectId, setSubjectId] = useState('')
   const [topics, setTopics] = useState([])
@@ -118,17 +127,26 @@ export default function AdminBank() {
   // темы
   const addTopic = () => catCreate('topics', { subject_id: subjectId, number: (topics.length + 1), name: 'Новая тема', part: 'first', error_rate: '', position: topics.length }).then((d) => setTopics((list) => [...list, d.item]))
   const saveTopic = (t) => catUpdate('topics', { id: t.id, number: t.number, name: t.name, part: t.part, error_rate: t.error_rate }).catch((e) => alert(e.message))
-  const delTopic = (t) => confirm(`Удалить тему «${t.name}» со всеми подтемами и вопросами?`) && catDelete('topics', t.id).then(() => setTopics((list) => list.filter((x) => x.id !== t.id)))
+  const delTopic = async (t) => {
+    if (!await confirmDelete({ title: 'Удалить тему банка?', target: `Тема «${t.name}»`, consequence: 'Все подтемы, вопросы и связанный прогресс учеников будут удалены.' })) return
+    try { await catDelete('topics', t.id); setTopics((list) => list.filter((x) => x.id !== t.id)) } catch (e) { alert(e.message) }
+  }
   const patchTopic = (id, k, v) => setTopics((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
 
   // источники / варианты
   const addSource = () => catCreate('bank_sources', { subject_id: subjectId, name: 'Новый источник', position: sources.length }).then((d) => setSources((list) => [...list, d.item]))
   const saveSource = (s) => catUpdate('bank_sources', { id: s.id, name: s.name }).catch((e) => alert(e.message))
-  const delSource = (s) => confirm(`Удалить источник «${s.name}» с вариантами?`) && catDelete('bank_sources', s.id).then(() => { setSources((list) => list.filter((x) => x.id !== s.id)); setVariants((list) => list.filter((v) => v.source_id !== s.id)) })
+  const delSource = async (s) => {
+    if (!await confirmDelete({ title: 'Удалить источник?', target: `Источник «${s.name}»`, consequence: 'Источник и все собранные внутри него варианты будут удалены.' })) return
+    try { await catDelete('bank_sources', s.id); setSources((list) => list.filter((x) => x.id !== s.id)); setVariants((list) => list.filter((v) => v.source_id !== s.id)) } catch (e) { alert(e.message) }
+  }
   const patchSource = (id, v) => setSources((a) => a.map((x) => x.id === id ? { ...x, name: v } : x))
   const addVariant = (sourceId) => catCreate('bank_variants', { source_id: sourceId, subject_id: subjectId, name: 'Новый вариант', position: variants.length }).then((d) => setVariants((list) => [...list, d.item]))
   const saveVariant = (v) => catUpdate('bank_variants', { id: v.id, name: v.name }).catch((e) => alert(e.message))
-  const delVariant = (v) => confirm(`Удалить вариант «${v.name}»?`) && catDelete('bank_variants', v.id).then(() => setVariants((list) => list.filter((x) => x.id !== v.id)))
+  const delVariant = async (v) => {
+    if (!await confirmDelete({ title: 'Удалить вариант?', target: `Вариант «${v.name}»`, consequence: 'Состав варианта и прогресс учеников по нему будут удалены. Исходные вопросы банка останутся.' })) return
+    try { await catDelete('bank_variants', v.id); setVariants((list) => list.filter((x) => x.id !== v.id)) } catch (e) { alert(e.message) }
+  }
   const patchVariant = (id, val) => setVariants((a) => a.map((x) => x.id === id ? { ...x, name: val } : x))
 
   return (

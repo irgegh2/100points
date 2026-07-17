@@ -6,11 +6,13 @@ import { catList, catCreate, catUpdate, catDelete, materialUpload } from '../../
 import { COURSE_TYPES } from './AdminCourses.jsx'
 import ReorderList from './ReorderList.jsx'
 import AdminQuestionsModal from './AdminQuestionsModal.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const LESSON_TYPES = [['theory', 'Теория'], ['practice', 'Практика'], ['webinar', 'Вебинар']]
 const typeLabel = (t) => (LESSON_TYPES.find((x) => x[0] === t) || [, t])[1]
 
 export default function AdminCourseEditor({ courseId, subjects, onBack }) {
+  const confirmDelete = useDangerConfirm()
   const [meta, setMeta] = useState(null)
   const [level, setLevel] = useState('months')      // months | blocks | lessons | lesson
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -57,19 +59,28 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
   // ── месяцы ──
   const addMonth = () => catCreate('months', { course_id: courseId, name: 'Новый месяц', position: months.length }).then((d) => setMonths((list) => [...list, d.item]))
   const saveMonth = (m) => catUpdate('months', { id: m.id, name: m.name }).catch((e) => alert(e.message))
-  const delMonth = (m) => confirm(`Удалить месяц «${m.name}» со всеми блоками и уроками?`) && catDelete('months', m.id).then(() => setMonths((list) => list.filter((x) => x.id !== m.id)))
+  const delMonth = async (m) => {
+    if (!await confirmDelete({ title: 'Удалить месяц курса?', target: `Месяц «${m.name}»`, consequence: 'Все блоки, уроки, материалы, ДЗ, вопросы и ответы учеников внутри месяца будут удалены.' })) return
+    try { await catDelete('months', m.id); setMonths((list) => list.filter((x) => x.id !== m.id)) } catch (e) { alert(e.message) }
+  }
   const patchMonth = (id, v) => setMonths((a) => a.map((m) => m.id === id ? { ...m, name: v } : m))
 
   // ── блоки ──
   const addBlock = () => catCreate('blocks', { course_id: courseId, month_id: selMonth.id, n: blocks.length + 1, title: 'Новый блок', position: blocks.length }).then((d) => setBlocks((list) => [...list, d.item]))
   const saveBlock = (b) => catUpdate('blocks', { id: b.id, n: b.n, title: b.title }).catch((e) => alert(e.message))
-  const delBlock = (b) => confirm(`Удалить блок «${b.title}» со всеми уроками?`) && catDelete('blocks', b.id).then(() => setBlocks((list) => list.filter((x) => x.id !== b.id)))
+  const delBlock = async (b) => {
+    if (!await confirmDelete({ title: 'Удалить блок?', target: `Блок «${b.title}»`, consequence: 'Все уроки, материалы, ДЗ, вопросы и ответы учеников внутри блока будут удалены.' })) return
+    try { await catDelete('blocks', b.id); setBlocks((list) => list.filter((x) => x.id !== b.id)) } catch (e) { alert(e.message) }
+  }
   const patchBlock = (id, k, v) => setBlocks((a) => a.map((b) => b.id === id ? { ...b, [k]: v } : b))
 
   // ── уроки ──
   const addLesson = (type) => catCreate('lessons', { block_id: selBlock.id, type, title: type === 'theory' ? 'Новый урок' : 'Практика', position: lessons.length }).then((d) => setLessons((list) => [...list, d.item]))
   const saveLesson = (l) => catUpdate('lessons', { id: l.id, type: l.type, title: l.title, meta: l.meta, kinescope_id: l.kinescope_id, air: l.air, air_at: l.air_at ? l.air_at.replace('T', ' ').slice(0, 16) : '', duration: l.duration, locked_hint: l.locked_hint }).then(() => { setLessons((list) => list.map((x) => x.id === l.id ? { ...x, ...l } : x)); setSelLesson(l) }).catch((e) => alert(e.message))
-  const delLesson = (l) => { if (confirm(`Удалить урок «${l.title}»?`)) catDelete('lessons', l.id).then(() => { setLessons((list) => list.filter((x) => x.id !== l.id)); setLevel('lessons') }) }
+  const delLesson = async (l) => {
+    if (!await confirmDelete({ title: 'Удалить урок?', target: `Урок «${l.title}»`, consequence: 'Материалы, тайм-коды, ДЗ, вопросы и ответы учеников этого урока будут удалены.' })) return
+    try { await catDelete('lessons', l.id); setLessons((list) => list.filter((x) => x.id !== l.id)); setLevel('lessons') } catch (e) { alert(e.message) }
+  }
   const patchLessonRow = (id, k, v) => setLessons((a) => a.map((l) => l.id === id ? { ...l, [k]: v } : l))
   const patchSel = (k, v) => setSelLesson((l) => ({ ...l, [k]: v }))
 
@@ -80,18 +91,27 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
     const url = prompt('Ссылка (URL)') || ''
     catCreate('materials', { lesson_id: selLesson.id, name, url, size: '—', kind: 'link', position: materials.length }).then((d) => setMaterials((list) => [...list, d.item]))
   }
-  const delMat = (id) => catDelete('materials', id).then(() => setMaterials((list) => list.filter((x) => x.id !== id)))
+  const delMat = async (material) => {
+    if (!await confirmDelete({ title: 'Удалить материал урока?', target: `Материал «${material.name || 'Без названия'}»`, consequence: 'Материал исчезнет из урока и больше не будет доступен ученикам.' })) return
+    try { await catDelete('materials', material.id); setMaterials((list) => list.filter((x) => x.id !== material.id)) } catch (e) { alert(e.message) }
+  }
   const addTc = () => {
     const t = prompt('Метка времени (например 03:40)'); if (!t) return
     const label = prompt('Подпись') || ''
     catCreate('timecodes', { lesson_id: selLesson.id, t, label, position: timecodes.length }).then((d) => setTimecodes((list) => [...list, d.item]))
   }
-  const delTc = (id) => catDelete('timecodes', id).then(() => setTimecodes((list) => list.filter((x) => x.id !== id)))
+  const delTc = async (timecode) => {
+    if (!await confirmDelete({ title: 'Удалить тайм-код?', target: `${timecode.t || 'Без времени'} · ${timecode.label || 'Без подписи'}`, consequence: 'Метка времени исчезнет из навигации по уроку.' })) return
+    try { await catDelete('timecodes', timecode.id); setTimecodes((list) => list.filter((x) => x.id !== timecode.id)) } catch (e) { alert(e.message) }
+  }
 
   // ── домашние задания урока ──
   const addHomework = (level) => catCreate('homeworks', { lesson_id: selLesson.id, level, title: level === 'hard' ? 'Повышенная сложность' : 'Домашняя работа', deadline: '', position: homeworks.length }).then((d) => setHomeworks((list) => [...list, d.item]))
   const saveHomework = (hw) => catUpdate('homeworks', { id: hw.id, title: hw.title, deadline: hw.deadline, level: hw.level }).catch((e) => alert(e.message))
-  const delHomework = (hw) => confirm(`Удалить ДЗ «${hw.title}» со всеми вопросами?`) && catDelete('homeworks', hw.id).then(() => setHomeworks((list) => list.filter((x) => x.id !== hw.id)))
+  const delHomework = async (hw) => {
+    if (!await confirmDelete({ title: 'Удалить домашнее задание?', target: `ДЗ «${hw.title}»`, consequence: 'Вопросы, сдачи, ответы, файлы учеников и продления дедлайна этого ДЗ будут удалены.' })) return
+    try { await catDelete('homeworks', hw.id); setHomeworks((list) => list.filter((x) => x.id !== hw.id)) } catch (e) { alert(e.message) }
+  }
   const patchHw = (id, k, v) => setHomeworks((a) => a.map((h) => h.id === id ? { ...h, [k]: v } : h))
 
   if (!meta) return <div className="admin-wrap"><div className="admin__empty">Загрузка курса…</div></div>
@@ -240,7 +260,7 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
               <div className="admin__drow">
                 <FileText size={15} /><b className="admin__drow-name">{mt.name}</b>
                 <span className="admin__extra-meta">{mt.size} · {mt.kind}</span>
-                <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => delMat(mt.id)}><Trash2 size={14} /></button>
+                <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => delMat(mt)}><Trash2 size={14} /></button>
               </div>
             )} />
           </section>
@@ -254,7 +274,7 @@ export default function AdminCourseEditor({ courseId, subjects, onBack }) {
             <ReorderList entity="timecodes" items={timecodes} onChange={setTimecodes} renderRow={(tc) => (
               <div className="admin__drow">
                 <b className="admin__tc-t">{tc.t}</b><span className="admin__drow-name">{tc.label}</span>
-                <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => delTc(tc.id)}><Trash2 size={14} /></button>
+                <button className="admin__iconbtn admin__iconbtn--danger" onClick={() => delTc(tc)}><Trash2 size={14} /></button>
               </div>
             )} />
           </section>

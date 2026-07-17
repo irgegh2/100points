@@ -6,6 +6,7 @@
 // Безопасность: только админ; пишем ТОЛЬКО колонки из белого списка $SCHEMA
 // (имя сущности = имя таблицы, проверяется по ключам $SCHEMA — SQL-инъекция в имя таблицы исключена).
 require __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/delete_helpers.php';
 require_admin();
 release_session(); // ни одно действие каталога не пишет в сессию — снимаем лок для параллельных запросов
 
@@ -104,16 +105,6 @@ function pick_fields(array $data, array $allowed, array $intFields): array {
   return [$cols, $vals];
 }
 
-// Рекурсивное каскадное удаление поддерева (entity = имя таблицы из $SCHEMA).
-function delete_entity(string $entity, int $id, array $schema) {
-  foreach ($schema[$entity]['children'] as [$childTable, $fk]) {
-    $ids = db()->prepare("SELECT id FROM $childTable WHERE $fk = ?");
-    $ids->execute([$id]);
-    foreach ($ids->fetchAll(PDO::FETCH_COLUMN) as $cid) delete_entity($childTable, (int)$cid, $schema);
-  }
-  db()->prepare("DELETE FROM $entity WHERE id = ?")->execute([$id]);
-}
-
 if ($action === 'list') {
   // Фильтр по любому переданному id-полю из whitelist (parent, homework_id, mock_id и т.п.).
   $sql = "SELECT * FROM $entity";
@@ -158,8 +149,17 @@ if ($action === 'update') {
 if ($action === 'delete') {
   $id = (int)($data['id'] ?? 0);
   if ($id <= 0) fail('Не указан id', 400);
-  delete_entity($entity, $id, $SCHEMA);
-  ok(['deleted' => $id]);
+  try {
+    $pdo = db(); $pdo->beginTransaction();
+    $deleted = delete_root_row($pdo, $entity, $id);
+    if ($deleted < 1) { $pdo->rollBack(); fail('Объект уже удалён или не найден', 404); }
+    $pdo->commit();
+    ok(['deleted' => $id, 'rows' => $deleted]);
+  } catch (Throwable $e) {
+    if (db()->inTransaction()) db()->rollBack();
+    error_log('[admin delete] ' . $entity . '#' . $id . ': ' . $e->getMessage());
+    fail('Удаление остановлено: связанные данные не удалось безопасно очистить', 409);
+  }
 }
 
 if ($action === 'reorder') {

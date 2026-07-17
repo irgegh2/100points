@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 // Иконки предметов совпадают с фронтом курсов (ICONS в Courses.jsx).
 const ICON_OPTS = ['pi', 'feather', 'landmark', 'social', 'english', 'leaf', 'book', 'cap']
@@ -9,6 +10,7 @@ const EMPTY = { name: '', slug: '', color: '#3f9bff', icon: 'pi', show_features:
 const isShown = (v) => v === undefined || Number(v) === 1
 
 export default function AdminSubjects() {
+  const confirmDelete = useDangerConfirm()
   const [items, setItems] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [msg, setMsg] = useState(null)
@@ -36,7 +38,7 @@ export default function AdminSubjects() {
     catch (err) { alert(err.message) }
   }
   const removeRow = async (it) => {
-    if (!confirm(`Удалить предмет «${it.name}»? Все его курсы тоже удалятся.`)) return
+    if (!await confirmDelete({ title: 'Удалить предмет?', target: `Предмет «${it.name}»`, consequence: 'Будут удалены все курсы этого предмета и весь вложенный учебный контент.' })) return
     try { await catDelete('subjects', it.id); setItems((list) => list.filter((x) => x.id !== it.id)) }
     catch (err) { alert(err.message) }
   }

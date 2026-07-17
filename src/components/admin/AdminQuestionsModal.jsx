@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Plus, Trash2, Save, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const TYPES = [['single', 'Один из вариантов'], ['multi', 'Несколько вариантов'], ['text', 'Короткий ответ (строка)'], ['textarea', 'Развёрнутый (ручная проверка)'], ['file', 'Развёрнутый + файл(ы)']]
 
@@ -46,6 +47,7 @@ function toPayload(f, parentKey, parentId, position) {
 
 // parent: { key: 'homework_id'|'mock_id', id, title, level? }
 export default function AdminQuestionsModal({ parent, onClose }) {
+  const confirmDelete = useDangerConfirm()
   const types = parent.key === 'subtopic_id' ? TYPES.filter(([value]) => value !== 'file') : TYPES
   const [items, setItems] = useState([])
   const [busy, setBusy] = useState(false)
@@ -105,19 +107,28 @@ export default function AdminQuestionsModal({ parent, onClose }) {
   }
   const save = (f) => persist([{ q: f, position: itemsRef.current.findIndex((q) => q.id === f.id) }])
   const saveAll = () => persist(dirtyEntries())
-  const remove = async (f) => { if (confirm('Удалить вопрос?')) { await catDelete('questions', f.id); setItems((list) => list.filter((q) => q.id !== f.id)); if (openId === f.id) setOpenId(null) } }
+  const remove = async (f) => {
+    if (!await confirmDelete({ title: 'Удалить вопрос?', target: (f.text || 'Вопрос без текста').slice(0, 140), consequence: 'Вопрос, варианты ответа и уже прикреплённые к нему файлы ответов будут удалены.' })) return
+    try { await catDelete('questions', f.id); setItems((list) => list.filter((q) => q.id !== f.id)); if (openId === f.id) setOpenId(null) } catch (e) { alert(e.message) }
+  }
 
   // редакторы вариантов
   const setOpt = (q, i, v) => patch(q.id, 'options', q.options.map((o, j) => j === i ? v : o))
   const addOpt = (q) => patch(q.id, 'options', [...q.options, ''])
-  const delOpt = (q, i) => patch(q.id, 'options', q.options.filter((_, j) => j !== i))
+  const delOpt = async (q, i) => {
+    if (!await confirmDelete({ title: 'Удалить вариант ответа?', target: q.options[i] || `Пустой вариант ${i + 1}`, consequence: 'Вариант исчезнет из вопроса. Изменение сохранится автоматически.' })) return
+    patch(q.id, 'options', q.options.filter((_, j) => j !== i))
+  }
   const toggleCorrect = (q, i) => {
     if (q.type === 'single') patch(q.id, 'correctSet', q.correctSet.includes(i) ? q.correctSet.filter((x) => x !== i) : [...q.correctSet, i])
     else patch(q.id, 'correctSet', q.correctSet.includes(i) ? q.correctSet.filter((x) => x !== i) : [...q.correctSet, i])
   }
   const setAcc = (q, i, v) => patch(q.id, 'accepted', q.accepted.map((a, j) => j === i ? v : a))
   const addAcc = (q) => patch(q.id, 'accepted', [...q.accepted, ''])
-  const delAcc = (q, i) => patch(q.id, 'accepted', q.accepted.filter((_, j) => j !== i))
+  const delAcc = async (q, i) => {
+    if (!await confirmDelete({ title: 'Удалить допустимый ответ?', target: q.accepted[i] || `Пустой ответ ${i + 1}`, consequence: 'Ответ больше не будет считаться правильным. Изменение сохранится автоматически.' })) return
+    patch(q.id, 'accepted', q.accepted.filter((_, j) => j !== i))
+  }
 
   return (
     <div className="admin__modal" onClick={onClose}>

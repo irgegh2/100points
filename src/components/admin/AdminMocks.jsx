@@ -3,10 +3,12 @@ import { Plus, Trash2, Save, ChevronRight, UserRound, Search } from 'lucide-reac
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 import AdminQuestionsModal from './AdminQuestionsModal.jsx'
 import AdminMockAssignments from './AdminMockAssignments.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const PAGE_SIZE = 20
 
 export default function AdminMocks() {
+  const confirmDelete = useDangerConfirm()
   const [courses, setCourses] = useState([])
   const [mocks, setMocks] = useState([])
   const [form, setForm] = useState({ course_id: '', month: '', title: '', format: 'normal', access_mode: 'general' })
@@ -45,7 +47,10 @@ export default function AdminMocks() {
     finally { setBusy(false) }
   }
   const saveRow = (m) => catUpdate('mock_exams', { id: m.id, course_id: m.course_id, month: m.month, title: m.title, format: m.format || 'normal', access_mode: (m.format || 'normal') === 'proctored' ? 'individual' : (m.access_mode || 'general') }).catch((e) => alert(e.message))
-  const remove = (m) => confirm(`Удалить пробник «${m.title}» со всеми вопросами?`) && catDelete('mock_exams', m.id).then(() => { setMocks((list) => list.filter((x) => x.id !== m.id)); if (openId === m.id) setOpenId(null) })
+  const remove = async (m) => {
+    if (!await confirmDelete({ title: 'Удалить пробник?', target: `Пробник «${m.title}»`, consequence: 'Будут удалены вопросы, назначения, ответы учеников, чат и данные сессий этого пробника.' })) return
+    try { await catDelete('mock_exams', m.id); setMocks((list) => list.filter((x) => x.id !== m.id)); if (openId === m.id) setOpenId(null) } catch (e) { alert(e.message) }
+  }
   const patch = (id, k, v) => setMocks((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const courseName = (id) => courses.find((c) => Number(c.id) === Number(id))?.title || 'Курс не найден'
   const needle = query.trim().toLowerCase()

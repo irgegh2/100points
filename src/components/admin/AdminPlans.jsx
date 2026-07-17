@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 // features в БД хранятся JSON-строкой массива; в форме — по строке на фичу.
 const parseFeatures = (s) => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a : [] } catch { return [] } }
 const EMPTY = { name: '', tagline: '', price: '', featuresText: '', badge: '' }
 
 export default function AdminPlans() {
+  const confirmDelete = useDangerConfirm()
   const [items, setItems] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [msg, setMsg] = useState(null)
@@ -34,7 +36,7 @@ export default function AdminPlans() {
     catch (err) { alert(err.message) }
   }
   const removeRow = async (p) => {
-    if (!confirm(`Удалить тариф «${p.name}»?`)) return
+    if (!await confirmDelete({ title: 'Удалить тариф?', target: `Тариф «${p.name}»`, consequence: 'Тариф исчезнет из раздела подписок. Связанные подписки учеников также могут быть удалены.' })) return
     try { await catDelete('plans', p.id); setItems((list) => list.filter((x) => x.id !== p.id)) } catch (err) { alert(err.message) }
   }
   const patch = (id, k, v) => setItems((list) => list.map((x) => x.id === id ? { ...x, [k]: v } : x))

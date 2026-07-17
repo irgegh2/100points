@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, X, MessageSquare, ChevronLeft, Sparkles, Download } from 'lucide-react'
 import { usersList, userCreate, userGet, userUpdate, userDelete, adminAccessGet, adminSubscriptionSet, adminEnroll, adminUserChats, adminChatMessages, adminWalletGrant, adminExportUrl } from '../../api.js'
 import PhoneInput from '../PhoneInput.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const EMPTY = { name: '', email: '', phone: '', password: '' }
 const ROLES = [['student', 'Ученик'], ['mentor', 'Наставник'], ['teacher', 'Преподаватель']]
 
 export default function AdminUsers() {
+  const confirmDelete = useDangerConfirm()
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [msg, setMsg] = useState(null)
@@ -73,7 +75,11 @@ export default function AdminUsers() {
     return { ...s, profile: { ...s.profile, goals } }
   })
   const addGoal = () => setEdit((s) => ({ ...s, profile: { ...s.profile, goals: [...s.profile.goals, { subject: '', target_score: '', hours_per_week: '' }] } }))
-  const delGoal = (i) => setEdit((s) => ({ ...s, profile: { ...s.profile, goals: s.profile.goals.filter((_, j) => j !== i) } }))
+  const delGoal = async (i) => {
+    const goal = edit.profile.goals[i]
+    if (!await confirmDelete({ title: 'Удалить цель ученика?', target: `Цель «${goal?.subject || 'Без предмета'}»`, consequence: 'Цель исчезнет из профиля после сохранения карточки ученика.' })) return
+    setEdit((s) => ({ ...s, profile: { ...s.profile, goals: s.profile.goals.filter((_, j) => j !== i) } }))
+  }
 
   const saveEdit = async (e) => {
     e.preventDefault()
@@ -92,7 +98,7 @@ export default function AdminUsers() {
   }
 
   const remove = async (u) => {
-    if (!confirm(`Удалить ученика ${u.name || u.email || u.phone}? Это необратимо.`)) return
+    if (!await confirmDelete({ title: 'Удалить ученика?', target: `Аккаунт «${u.name || u.email || u.phone}»`, consequence: 'Будут удалены профиль, доступы, подписка, ответы, прогресс, покупки, кристаллы, чаты и вся история ученика.' })) return
     try { await userDelete(u.id); setEdit(null); await load() }
     catch (err) { alert(err.message) }
   }

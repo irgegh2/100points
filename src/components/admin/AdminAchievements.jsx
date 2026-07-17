@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Trash2, Save, Flag, PencilLine, Trophy, ClipboardCheck, Flame, Sunrise, Gem } from 'lucide-react'
 import { catList, catUpdate, catDelete } from '../../api.js'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 // Иконки достижений (значение в БД → компонент). Совпадает с фронтом ученика.
 const ICONS = { flag: Flag, pencil: PencilLine, target: Trophy, clipboard: ClipboardCheck, flame: Flame, sunrise: Sunrise, gem: Gem }
 const ICON_OPTS = ['flag', 'pencil', 'target', 'clipboard', 'flame', 'sunrise', 'gem']
 
 export default function AdminAchievements() {
+  const confirmDelete = useDangerConfirm()
   const [items, setItems] = useState([])
 
   const load = () => catList('achievements').then((d) => setItems(d.items || []))
@@ -14,7 +16,10 @@ export default function AdminAchievements() {
 
   const patch = (id, k, v) => setItems((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const save = (it) => catUpdate('achievements', { id: it.id, title: it.title, description: it.description, icon: it.icon, reward: it.reward, target: it.target }).catch((e) => alert(e.message))
-  const del = (it) => confirm(`Удалить достижение «${it.title}»? Прогресс учеников по нему тоже удалится.`) && catDelete('achievements', it.id).then(() => setItems((list) => list.filter((x) => x.id !== it.id)))
+  const del = async (it) => {
+    if (!await confirmDelete({ title: 'Удалить достижение?', target: `Достижение «${it.title}»`, consequence: 'Достижение и прогресс всех учеников по нему будут удалены.' })) return
+    try { await catDelete('achievements', it.id); setItems((list) => list.filter((x) => x.id !== it.id)) } catch (e) { alert(e.message) }
+  }
 
   return (
     <section className="admin__panel admin__panel--wide">

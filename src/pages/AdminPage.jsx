@@ -28,6 +28,7 @@ import AdminLibrary from '../components/admin/AdminLibrary.jsx'
 import AdminLeads from '../components/admin/AdminLeads.jsx'
 import AdminStub from '../components/admin/AdminStub.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
+import { DangerConfirmProvider } from '../components/admin/DangerConfirm.jsx'
 
 // Рабочие разделы админки (сверху) — то, что реально управляется сейчас.
 const REAL = [
@@ -83,6 +84,7 @@ export default function AdminPage() {
   const stub = STUBS.find((n) => n.key === active)
 
   return (
+    <DangerConfirmProvider>
     <div className="lk">
       {menuOpen && <div className="lk__overlay" onClick={() => setMenuOpen(false)} />}
       <aside className={`lk__side ${menuOpen ? 'open' : ''}`}>
@@ -137,5 +139,6 @@ export default function AdminPage() {
         </div>
       </main>
     </div>
+    </DangerConfirmProvider>
   )
 }

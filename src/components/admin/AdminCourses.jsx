@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catDelete } from '../../api.js'
 import AdminCourseEditor from './AdminCourseEditor.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 export const COURSE_TYPES = ['Вводные', 'Основные', 'Летняя школа', 'Профориентация']
 
 export default function AdminCourses() {
+  const confirmDelete = useDangerConfirm()
   const [subjects, setSubjects] = useState([])
   const [courses, setCourses] = useState([])
   const [form, setForm] = useState({ subject_id: '', title: '', type: 'Вводные', color: '#3f9bff' })
@@ -39,7 +41,7 @@ export default function AdminCourses() {
   }
 
   const remove = async (c) => {
-    if (!confirm(`Удалить курс «${c.title}»? Все месяцы, блоки и уроки внутри тоже удалятся.`)) return
+    if (!await confirmDelete({ title: 'Удалить курс?', target: `Курс «${c.title}»`, consequence: 'Будут удалены месяцы, блоки, уроки, ДЗ, вопросы, пробники, сдачи и доступы учеников к этому курсу.' })) return
     try { await catDelete('courses', c.id); await load() }
     catch (err) { alert(err.message) }
   }

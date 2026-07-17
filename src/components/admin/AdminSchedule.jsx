@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
+import { useDangerConfirm } from './DangerConfirm.jsx'
 
 const TYPES = [['webinar', 'Вебинар'], ['practice', 'Практика']]
 // 'YYYY-MM-DD HH:MM' ↔ input datetime-local 'YYYY-MM-DDTHH:MM'
@@ -9,6 +10,7 @@ const toInput = (s) => (s || '').replace(' ', 'T').slice(0, 16)
 const fromInput = (s) => (s || '').replace('T', ' ').slice(0, 16)
 
 export default function AdminSchedule() {
+  const confirmDelete = useDangerConfirm()
   const [courses, setCourses] = useState([])
   const [courseId, setCourseId] = useState('')
   const [events, setEvents] = useState([])
@@ -33,7 +35,10 @@ export default function AdminSchedule() {
   }
   const patch = (id, k, v) => setEvents((a) => a.map((x) => x.id === id ? { ...x, [k]: v } : x))
   const save = (ev) => catUpdate('events', { id: ev.id, type: ev.type, title: ev.title, starts_at: fromInput(toInput(ev.starts_at)), duration: ev.duration, link: ev.link }).catch((e) => alert(e.message))
-  const del = (ev) => confirm('Удалить событие?') && catDelete('events', ev.id).then(() => setEvents((list) => list.filter((x) => x.id !== ev.id)))
+  const del = async (ev) => {
+    if (!await confirmDelete({ title: 'Удалить событие?', target: `Событие «${ev.title}»`, consequence: 'Событие исчезнет из расписания всех учеников курса.' })) return
+    try { await catDelete('events', ev.id); setEvents((list) => list.filter((x) => x.id !== ev.id)) } catch (e) { alert(e.message) }
+  }
 
   return (
     <div className="admin__cols">
