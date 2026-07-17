@@ -135,6 +135,7 @@ export default function ProctoredMock({ assignmentId, onBack }) {
   }
   const send = async (e) => { e.preventDefault(); if (!chat.trim()) return; const d = await proctoredChatSend(assignmentId, chat.trim()); setMessages((old) => [...old, d.message]); setChat('') }
   const trackPointer = (e) => { const r = e.currentTarget.getBoundingClientRect(); pointerRef.current = { x: Math.round(((e.clientX - r.left) / r.width) * 10000), y: Math.round(((e.clientY - r.top) / r.height) * 10000), w: Math.round(r.width), h: Math.round(r.height) } }
+  const chatPanel = <div className="proctor-session__chat"><h3><MessageSquare size={15} /> Чат с наставником</h3><div>{messages.length === 0 && <span className="proctor-session__chat-empty">Сообщений пока нет</span>}{messages.map((m) => <p className={`is-${m.sender}`} key={m.id}><b>{m.sender === 'student' ? 'Ты' : 'Наставник'}</b>{m.content}</p>)}</div><form onSubmit={send}><input value={chat} onChange={(e) => setChat(e.target.value)} placeholder="Сообщение наставнику" aria-label="Сообщение наставнику" /><button aria-label="Отправить сообщение"><Send size={15} /></button></form></div>
 
   if (!active) return <div className="proctor-gate">
     <button className="lesson__back" onClick={onBack}><ArrowLeft size={16} /> К пробникам</button>
@@ -148,7 +149,10 @@ export default function ProctoredMock({ assignmentId, onBack }) {
   </div>
 
   if (!startedByClock) return <div className="proctor-lobby"><video ref={videoRef} autoPlay playsInline muted /><ShieldCheck size={34} /><h2>Камера подключена</h2><p>Наставник уже может подключиться. Задания откроются точно в назначенное время.</p><b>{formatLeft(startAt - now)}</b><button className="lesson__back" onClick={onBack}><ArrowLeft size={16} /> Выйти из ожидания</button></div>
-  if (!q) return <div className="proctor-gate"><button className="lesson__back" onClick={onBack}><ArrowLeft size={16} /> К пробникам</button><div className="hw__empty">В этом пробнике пока нет заданий. Сообщи администратору.</div></div>
+  if (!q) return <div className="proctor-session">
+    <header className="proctor-session__head"><div><span>Пробник под наблюдением</span><h2>{a.title}</h2></div><div className="proctor-session__timer"><Clock3 size={17} /> {formatLeft(timeLeft)}</div><div className={`proctor-session__camera is-${cameraState}`}><CircleDot /> Камера {cameraState === 'on' ? 'включена' : 'отключена'}</div></header>
+    <div className="proctor-session__layout"><main className="proctor-session__work proctor-session__work--empty"><ShieldCheck size={34} /><h3>Задания пока не добавлены</h3><p>Чат с наставником уже работает — можешь написать ему справа.</p></main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div>{chatPanel}</aside></div>
+  </div>
   return <div className="proctor-session">
     <header className="proctor-session__head"><div><span>Пробник под наблюдением</span><h2>{a.title}</h2></div><div className="proctor-session__timer"><Clock3 size={17} /> {formatLeft(timeLeft)}</div><div className={`proctor-session__camera is-${cameraState}`}><CircleDot /> Камера {cameraState === 'on' ? 'включена' : 'отключена'}</div></header>
     <div className="proctor-session__layout"><main className="proctor-session__work" onPointerMove={trackPointer}>
@@ -159,7 +163,7 @@ export default function ProctoredMock({ assignmentId, onBack }) {
       {q.type === 'textarea' && <textarea className="test__textarea" rows={7} value={value || ''} onChange={(e) => setChoice(e.target.value)} placeholder="Напиши развёрнутый ответ…" />}
       <div className="proctor-session__nav"><button className="btn btn-light" disabled={cur === 0} onClick={() => setCur((i) => i - 1)}>Назад</button>{cur < questions.length - 1 ? <button className="btn btn-blue" onClick={() => setCur((i) => i + 1)}>Следующее</button> : <button className="btn btn-orange" disabled={!requiredDone || busy} onClick={finish}>{busy ? 'Завершаем…' : 'Завершить пробник'}</button>}</div>
     </main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div><div className="test__progress"><div className="test__progress-top"><b>Прогресс</b><span>{answeredCount}/{questions.length}</span></div><div className="test__progress-bar"><span style={{ width: `${questions.length ? Math.round(answeredCount / questions.length * 100) : 0}%` }} /></div></div><div className="test__sidesteps">{questions.map((item, i) => <button key={item.id} className={`test__step ${i === cur ? 'active' : ''} ${isAnswered(item.type, answers[item.id]) ? 'done' : ''}`} onClick={() => setCur(i)}>{i + 1}</button>)}</div>
-      <div className="proctor-session__chat"><h3><MessageSquare size={15} /> Чат с наставником</h3><div>{messages.map((m) => <p className={`is-${m.sender}`} key={m.id}><b>{m.sender === 'student' ? 'Ты' : 'Наставник'}</b>{m.content}</p>)}</div><form onSubmit={send}><input value={chat} onChange={(e) => setChat(e.target.value)} placeholder="Сообщение" /><button><Send size={15} /></button></form></div>
+      {chatPanel}
     </aside></div>
   </div>
 }

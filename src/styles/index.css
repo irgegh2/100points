@@ -1574,7 +1574,7 @@ select.admin__inp { padding: 0 6px; }
 .admin__enroll-row input { width: 17px; height: 17px; }
 
 /* ── Этап 4-5: ДЗ, статусы, эксперт ── */
-.hwcard__statusrow { display: flex; align-items: center; gap: 8px; }
+.hwcard__statusrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .hwcard__status.review { background: #fff4e6; color: #b25f00; }
 .hwcard__level { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #7c4dff; background: #f0ebff; padding: 2px 7px; border-radius: 999px; }
 .test__locked { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 50px 20px; color: var(--muted); }
@@ -1889,6 +1889,12 @@ select.admin__inp { padding: 0 6px; }
 .hwcard__proctor { color: #a73a34; background: #fff0ef; border: 1px solid #f2c5c2; }
 .hwcard__personal { color: #6d4a9a; background: #f3ecfb; border: 1px solid #dfcff1; }
 .hwcard--proctored { box-shadow: inset 3px 0 #dd4b43; }
+.hwcard__timer { width: fit-content; display: inline-flex; align-items: center; gap: 6px; margin-top: 7px; padding: 7px 10px; border-radius: 10px; color: #7a4f17; background: #fff7e3; border: 1px solid #f2dfac; font-size: 11px; font-weight: 750; }
+.hwcard__timer svg { flex: none; }
+.hwcard__timer b { font-size: 12px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.hwcard__timer.is-live { color: #a72f2c; background: #fff0ef; border-color: #f2c5c2; }
+.hwcard__timer.is-live svg { animation: livePulse 1.6s infinite; }
+.hwcard__timer:is(.is-ended,.is-done) { color: var(--muted); background: var(--bg-soft); border-color: var(--line); }
 
 .admin-assign__form { display: grid; grid-template-columns: minmax(180px,1fr) minmax(180px,.8fr) 100px auto; gap: 12px; align-items: end; margin: 18px 0; padding: 16px; background: var(--bg-soft); border-radius: 14px; }
 .admin-assign__form label { display: grid; gap: 6px; font-size: 12px; font-weight: 750; color: var(--muted); }
@@ -1925,11 +1931,16 @@ select.admin__inp { padding: 0 6px; }
 .proctor-session__camera { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; }.proctor-session__dot { width: 9px; height: 9px; border-radius: 50%; background: #ef5149; box-shadow: 0 0 0 4px rgba(239,81,73,.15); animation: livePulse 1.6s infinite; }
 .proctor-session__layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 18px 18px; overflow: hidden; background: var(--surface); }
 .proctor-session__work { min-height: 650px; padding: clamp(24px,4vw,48px); border-right: 1px solid var(--line); }
+.proctor-session__work--empty { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: var(--muted); }
+.proctor-session__work--empty svg { color: #53627a; margin-bottom: 4px; }
+.proctor-session__work--empty h3 { color: var(--ink); font-size: 18px; }
+.proctor-session__work--empty p { max-width: 360px; font-size: 13px; line-height: 1.5; }
 .proctor-session__nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
 .proctor-session__rail { padding: 16px; background: var(--bg-soft); display: grid; align-content: start; gap: 14px; }
 .proctor-session__self { position: relative; overflow: hidden; border-radius: 14px; background: #151b25; }.proctor-session__self video { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; transform: scaleX(-1); }.proctor-session__self span { position: absolute; left: 9px; bottom: 9px; display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 8px; background: rgba(10,14,20,.72); color: #fff; font-size: 10px; font-weight: 800; }
 .proctor-session__chat { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; overflow: hidden; }.proctor-session__chat h3 { display: flex; align-items: center; gap: 6px; padding: 11px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
 .proctor-session__chat > div { display: grid; gap: 7px; max-height: 180px; overflow: auto; padding: 10px; }.proctor-session__chat p { width: fit-content; max-width: 90%; padding: 7px 9px; border-radius: 9px; background: var(--bg-soft); font-size: 11px; line-height: 1.35; }.proctor-session__chat p.is-student { justify-self: end; background: #e9f1ff; }.proctor-session__chat p b { display: block; margin-bottom: 2px; font-size: 9px; color: var(--muted); }
+.proctor-session__chat-empty { justify-self: center; padding: 12px 6px; color: var(--muted); font-size: 11px; }
 .proctor-session__chat form, .admin-live__chat form { display: grid; grid-template-columns: 1fr 38px; border-top: 1px solid var(--line); }.proctor-session__chat input, .admin-live__chat input { min-width: 0; padding: 10px; color: var(--ink); background: var(--surface); }.proctor-session__chat form button, .admin-live__chat form button { display: grid; place-items: center; color: var(--blue); }
 
 .admin-live { width: 100%; }.admin-live__top { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 16px; margin-bottom: 18px; }.admin-live__top h2 { font-size: 19px; }.admin-live__top p { color: var(--muted); font-size: 12px; margin-top: 2px; }
@@ -1950,6 +1961,9 @@ select.admin__inp { padding: 0 6px; }
 
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .hwcard__proctor { color: #ffaaa5; background: rgba(221,75,67,.12); border-color: rgba(221,75,67,.35); }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .hwcard__personal { color: #d0a9ff; background: rgba(151,92,219,.1); border-color: rgba(151,92,219,.3); }
+:is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .hwcard__timer { color: #ffd786; background: rgba(210,154,45,.1); border-color: rgba(210,154,45,.3); }
+:is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .hwcard__timer.is-live { color: #ffaaa5; background: rgba(221,75,67,.12); border-color: rgba(221,75,67,.35); }
+:is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .hwcard__timer:is(.is-ended,.is-done) { color: var(--muted); background: var(--bg-soft); border-color: var(--line); }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) :is(.proctor-gate__wait,.proctor-gate__error,.proctor-session__chat p.is-student,.admin-live__msg.is-admin,.admin-live__answer,.admin-live__answers button.active) { background: var(--night-blue); color: #a9c8ff; }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .admin-live__signals span { background: var(--night-green); color: #72e391; }
 :is([data-theme="dark"], [data-theme="neon"], [data-theme="space"], [data-theme="vip"]) .admin-live__signals span.is-warn { background: var(--night-red); color: #ff9898; }

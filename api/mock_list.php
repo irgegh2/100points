@@ -53,6 +53,9 @@ foreach ($stmt as $r) {
     'starts_at' => $r['starts_at'], 'duration' => $r['duration'] !== null ? (int)$r['duration'] : null,
   ];
   if ($r['assignment_id'] !== null) {
+    $startTs = strtotime((string)$r['starts_at']);
+    $item['starts_at_ts'] = $startTs ? $startTs * 1000 : null;
+    $item['ends_at_ts'] = $startTs ? ($startTs + max(15, (int)($r['duration'] ?? 180)) * 60) * 1000 : null;
     $item['session_state'] = p_time_state([
       'format' => $r['format'], 'starts_at' => $r['starts_at'], 'duration' => $r['duration'],
       'status' => $r['assignment_status'], 'finished_at' => $r['finished_at'],
@@ -65,4 +68,4 @@ foreach ($stmt as $r) {
 $months = [];
 foreach ($mocks as $mock) if (!in_array($mock['month'], $months, true)) $months[] = $mock['month'];
 
-ok(['mocks' => $mocks, 'months' => $months]);
+ok(['mocks' => $mocks, 'months' => $months, 'server_now_ms' => time() * 1000]);
