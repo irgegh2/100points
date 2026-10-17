@@ -1,6 +1,11 @@
 # Защита бэкенда. Лежит в public_html/api/.htaccess.
 # .php-файлы выполняются как обычно; закрываем только секреты и локальную БД.
 
+# Передаём Bearer-заголовок в PHP/FastCGI для закрытого API личного GPT.
+<IfModule mod_setenvif.c>
+  SetEnvIfNoCase Authorization "(.+)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
 # Секреты прода — наружу никогда.
 <FilesMatch "(?i)^secrets.*\.php$">
   <IfModule mod_authz_core.c>
