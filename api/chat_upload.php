@@ -46,8 +46,7 @@ if (!file_exists($hta)) {
 }
 
 $fname = 'c' . $uid . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
-$dest = $dir . '/' . $fname;
-if (!move_uploaded_file($f['tmp_name'], $dest)) fail('Не удалось сохранить файл', 500);
-@chmod($dest, 0644);
+$storageKey = 'chat/' . $fname;
+storage_save_uploaded_file($f['tmp_name'], $storageKey, (string)$mime);
 
-ok(['url' => uploads_url('chat/' . $fname)]);
+ok(['url' => storage_upload_url($storageKey)]);

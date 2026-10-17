@@ -7,7 +7,7 @@ release_session();
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) fail('Не указан пробник', 400);
 
-$sub = db()->prepare("SELECT id, status, score, max_score, comment, expert_id FROM submissions WHERE mock_id = ? AND user_id = ? LIMIT 1");
+$sub = db()->prepare("SELECT id, status, score, max_score, comment, expert_id FROM submissions WHERE mock_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1");
 $sub->execute([$id, $uid]);
 $s = $sub->fetch();
 if (!$s) fail('Сдачи ещё нет', 404);
@@ -34,13 +34,14 @@ $q->execute([$subId]);
 $results = [];
 foreach ($q as $r) {
   $type = $r['type']; $earned = (int)$r['earned']; $pts = (int)$r['points'];
-  if ($type === 'textarea' || $type === 'file') {
+  if (in_array($type, ['textarea', 'file', 'audio'], true)) {
     $status = ($r['mentor_comment'] !== null && $r['mentor_comment'] !== '') || $r['is_correct'] !== null ? 'graded' : 'pending';
   } else {
     $status = $earned >= $pts ? 'correct' : ($earned > 0 ? 'partial' : 'wrong');
   }
   $results[] = [
     'id' => (int)$r['id'], 'type' => $type, 'text' => $r['text'],
+    'images' => [], 'audio' => [], 'videos' => [], 'files' => [],
     'options' => $r['options'] !== null ? json_decode($r['options'], true) : null,
     'points' => $pts, 'optional' => (int)$r['optional'] === 1, 'hard' => (int)$r['hard'] === 1,
     'your_value' => $r['your_value'] !== null ? json_decode($r['your_value'], true) : null,
@@ -48,6 +49,22 @@ foreach ($q as $r) {
     'solution' => $r['solution'], 'earned' => $earned, 'status' => $status,
     'mentor_comment' => $r['mentor_comment'],
   ];
+}
+
+// Вложения вопросов (картинки, аудио, файлы) — как в mock_get.
+if ($results) {
+  $byId = [];
+  foreach ($results as $i => $r) $byId[$r['id']] = $i;
+  $ph = implode(',', array_fill(0, count($byId), '?'));
+  $at = db()->prepare("SELECT question_id, kind, name, size, url FROM question_attachments WHERE question_id IN ($ph) ORDER BY position, id");
+  $at->execute(array_keys($byId));
+  foreach ($at as $a) {
+    $qi = $byId[(int)$a['question_id']];
+    if ($a['kind'] === 'image') $results[$qi]['images'][] = $a['url'];
+    elseif ($a['kind'] === 'audio') $results[$qi]['audio'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+    elseif ($a['kind'] === 'video') $results[$qi]['videos'][] = ['url' => $a['url']];
+    else $results[$qi]['files'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+  }
 }
 
 ok([

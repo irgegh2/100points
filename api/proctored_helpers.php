@@ -58,15 +58,31 @@ function p_public_assignment(array $a): array {
 }
 
 function p_questions(int $mockId): array {
-  $s = db()->prepare("SELECT id, type, text, options, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
+  $s = db()->prepare("SELECT id, type, text, options, hint, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
   $s->execute([$mockId]);
   $out = [];
   foreach ($s as $q) $out[] = [
     'id' => (int)$q['id'], 'type' => $q['type'], 'text' => $q['text'],
     'options' => $q['options'] !== null ? json_decode($q['options'], true) : null,
+    'hint' => trim((string)($q['hint'] ?? '')) !== '' ? $q['hint'] : null,
+    'images' => [], 'audio' => [], 'videos' => [], 'files' => [],
     'points' => (int)$q['points'], 'optional' => (int)$q['optional'] === 1, 'hard' => (int)$q['hard'] === 1,
     'file_limit' => max(1, min(10, (int)$q['file_limit'])),
   ];
+  if ($out) {
+    $byId = [];
+    foreach ($out as $i => $q) $byId[$q['id']] = $i;
+    $ph = implode(',', array_fill(0, count($byId), '?'));
+    $at = db()->prepare("SELECT question_id, kind, name, size, url FROM question_attachments WHERE question_id IN ($ph) ORDER BY position, id");
+    $at->execute(array_keys($byId));
+    foreach ($at as $a) {
+      $qi = $byId[(int)$a['question_id']];
+      if ($a['kind'] === 'image') $out[$qi]['images'][] = $a['url'];
+      elseif ($a['kind'] === 'audio') $out[$qi]['audio'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+      elseif ($a['kind'] === 'video') $out[$qi]['videos'][] = ['url' => $a['url']];
+      else $out[$qi]['files'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+    }
+  }
   return $out;
 }
 

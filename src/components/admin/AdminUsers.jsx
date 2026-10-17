@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, X, MessageSquare, ChevronLeft, Sparkles, Download } from 'lucide-react'
-import { usersList, userCreate, userGet, userUpdate, userDelete, adminAccessGet, adminSubscriptionSet, adminEnroll, adminUserChats, adminChatMessages, adminWalletGrant, adminExportUrl } from '../../api.js'
+import { Plus, Trash2, X, MessageSquare, ChevronLeft, Sparkles, Download, BarChart3, Search } from 'lucide-react'
+import { usersList, userCreate, userGet, userUpdate, userDelete, adminAccessGet, adminSubscriptionSet, adminEnroll, adminUserChats, adminChatMessages, adminWalletGrant, adminExportUrl, adminVkContactReview } from '../../api.js'
 import PhoneInput from '../PhoneInput.jsx'
 import { useDangerConfirm } from './DangerConfirm.jsx'
+import AdminStudentCenter from './AdminStudentCenter.jsx'
+import { readHash, writeHash } from '../../hashNav.js'
 
 const EMPTY = { name: '', email: '', phone: '', password: '' }
 const ROLES = [['student', 'Ученик'], ['mentor', 'Наставник'], ['teacher', 'Преподаватель']]
+const VK_STATUS = {
+  missing: ['Не передана', 'missing'],
+  pending: ['VK на проверке', 'pending'],
+  approved: ['VK подтверждена', 'approved'],
+  rejected: ['VK отклонена', 'rejected'],
+}
 
 export default function AdminUsers() {
   const confirmDelete = useDangerConfirm()
@@ -18,6 +26,8 @@ export default function AdminUsers() {
   const [editBusy, setEditBusy] = useState(false)
   const [chats, setChats] = useState(null)     // { user, list } — чаты ученика
   const [openChat, setOpenChat] = useState(null) // { title, user_name, messages }
+  const [query, setQuery] = useState('')
+  const [centerUserId, setCenterUserId] = useState(() => Number(readHash()[1]) || null)
 
   const load = () => usersList().then((d) => setUsers(d.users || []))
   useEffect(() => { load() }, [])
@@ -123,6 +133,36 @@ export default function AdminUsers() {
     } catch (e) { setEdit((s) => ({ ...s, grantMsg: e.message })) }
   }
 
+  const reviewVk = async (status) => {
+    if (!edit?.vk_contact?.url || edit.vkBusy) return
+    setEdit((s) => ({ ...s, vkBusy: true, vkMsg: '' }))
+    try {
+      const result = await adminVkContactReview({
+        user_id: edit.user.id,
+        status,
+        reason: status === 'rejected' ? (edit.vkRejectReason || '') : '',
+      })
+      setEdit((s) => ({ ...s, vkBusy: false, vkMsg: status === 'approved' ? 'Ссылка подтверждена' : 'Ссылка отклонена — ученик увидит запрос заново', vk_contact: { ...s.vk_contact, ...result } }))
+      await load()
+    } catch (err) {
+      setEdit((s) => ({ ...s, vkBusy: false, vkMsg: err.message }))
+    }
+  }
+
+  const filteredUsers = users.filter((u) => {
+    const needle = query.trim().toLowerCase()
+    return !needle || `${u.name || ''} ${u.email || ''} ${u.phone || ''} ${u.vk_url || ''}`.toLowerCase().includes(needle)
+  })
+  const openCenter = (id) => { setCenterUserId(id); writeHash(['users', id]) }
+  const closeCenter = () => { setCenterUserId(null); writeHash(['users']) }
+  const editFromCenter = async () => {
+    const id = centerUserId
+    closeCenter()
+    await openEdit(id)
+  }
+
+  if (centerUserId) return <AdminStudentCenter userId={centerUserId} onBack={closeCenter} onEdit={editFromCenter} />
+
   return (
     <div className="admin__cols">
       <section className="admin__panel">
@@ -143,15 +183,18 @@ export default function AdminUsers() {
           <h2>Ученики <span className="admin__count">{users.length}</span></h2>
           <a className="btn btn-light btn-sm" href={adminExportUrl('users')}><Download size={15} /> Excel (CSV)</a>
         </div>
+        <label className="admin__search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Найти по имени, почте или телефону" />{query && <button type="button" onClick={() => setQuery('')} aria-label="Очистить"><X size={15} /></button>}</label>
         <div className="admin__list">
-          {users.length === 0 && <div className="admin__empty">Пока нет аккаунтов</div>}
-          {users.map((u) => (
+          {filteredUsers.length === 0 && <div className="admin__empty">{users.length ? 'Ничего не найдено' : 'Пока нет аккаунтов'}</div>}
+          {filteredUsers.map((u) => (
             <div className="admin__user-row" key={u.id}>
               <div>
                 <div className="admin__user-name">{u.name || 'Без имени'} {u.role !== 'student' && <span className="admin__rolebadge">{(ROLES.find((r) => r[0] === u.role) || [, u.role])[1]}</span>}</div>
                 <div className="admin__user-contacts">{u.email || '—'} · {u.phone || '—'}</div>
+                {u.role === 'student' && <span className={`admin__vkbadge admin__vkbadge--${(VK_STATUS[u.vk_status] || VK_STATUS.missing)[1]}`}>{(VK_STATUS[u.vk_status] || VK_STATUS.missing)[0]}</span>}
               </div>
               <div className="admin__user-rowbtns">
+                <button className="admin__edit-btn admin__edit-btn--primary" onClick={() => openCenter(u.id)}><BarChart3 size={15} /> Аналитика</button>
                 <button className="admin__edit-btn" onClick={() => showChats(u)} title="Чаты с ИИ"><MessageSquare size={15} /></button>
                 <button className="admin__edit-btn" onClick={() => openEdit(u.id)}>Редактировать</button>
               </div>
@@ -216,6 +259,32 @@ export default function AdminUsers() {
                 <label>Дата рождения <input type="date" value={edit.profile.birthdate || ''} onChange={ep('birthdate')} /></label>
               </div>
               <label>Аватар <span>(путь/URL)</span><input value={edit.profile.avatar || ''} onChange={ep('avatar')} placeholder="/img/avatars/av-01.svg" /></label>
+
+              {edit.user.role === 'student' && edit.vk_contact && (
+                <div className="admin__access admin__vkcontact">
+                  <div className="admin__vkcontact-head">
+                    <div>
+                      <div className="admin__access-head">Связь с персональным менеджером</div>
+                      <p className="admin__hint">Ученик обязан передать настоящую ссылку VK. Напоминание исчезнет только после подтверждения.</p>
+                    </div>
+                    <span className={`admin__vkbadge admin__vkbadge--${(VK_STATUS[edit.vk_contact.status] || VK_STATUS.missing)[1]}`}>{(VK_STATUS[edit.vk_contact.status] || VK_STATUS.missing)[0]}</span>
+                  </div>
+                  {edit.vk_contact.url ? (
+                    <>
+                      <a className="admin__vklink" href={edit.vk_contact.url} target="_blank" rel="noreferrer">{edit.vk_contact.url}</a>
+                      {edit.vk_contact.rejection_reason && <div className="admin__vkreason">Причина: {edit.vk_contact.rejection_reason}</div>}
+                      <label>Причина отклонения <span>(увидит ученик)</span>
+                        <input value={edit.vkRejectReason || ''} onChange={(e) => setEdit((s) => ({ ...s, vkRejectReason: e.target.value }))} placeholder="Например: ссылка ведёт не на профиль" />
+                      </label>
+                      <div className="admin__vkactions">
+                        {edit.vk_contact.status !== 'approved' && <button type="button" className="btn btn-orange" disabled={edit.vkBusy} onClick={() => reviewVk('approved')}>Подтвердить ссылку</button>}
+                        <button type="button" className="btn admin__delbtn" disabled={edit.vkBusy} onClick={() => reviewVk('rejected')}>{edit.vk_contact.status === 'approved' ? 'Отклонить и запросить заново' : 'Отклонить'}</button>
+                      </div>
+                      {edit.vkMsg && <div className="admin__hint">{edit.vkMsg}</div>}
+                    </>
+                  ) : <div className="admin__empty admin__empty--sm">Ученик ещё не отправил ссылку.</div>}
+                </div>
+              )}
 
               <div className="admin__goals">
                 <div className="admin__goals-head"><b>Цели по предметам</b><button type="button" className="admin__addgoal" onClick={addGoal}><Plus size={14} /> добавить</button></div>

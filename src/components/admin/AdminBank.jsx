@@ -91,7 +91,7 @@ function SubtopicsModal({ topic, onClose }) {
         {items.length === 0 && <div className="admin__empty">Нет подтем</div>}
         <ReorderList entity="subtopics" items={items} onChange={setItems} renderRow={(s) => (
           <div className="admin__drow">
-            <input className="admin__inp" value={s.name} onChange={(e) => patch(s.id, e.target.value)} />
+            <input className="admin__inp" value={s.name} onChange={(e) => patch(s.id, e.target.value)} onBlur={() => save(s)} />
             <button className="admin__iconbtn" title="Сохранить" onClick={() => save(s)}><Save size={15} /></button>
             <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => del(s)}><Trash2 size={15} /></button>
             <button className="admin__open" onClick={() => setQModal(s)}>Вопросы <ChevronRight size={15} /></button>
@@ -172,10 +172,10 @@ export default function AdminBank() {
         {topics.length === 0 && <div className="admin__empty">Нет тем</div>}
         <ReorderList entity="topics" items={topics} onChange={setTopics} renderRow={(t) => (
           <div className="admin__drow">
-            <input className="admin__inp admin__inp--n" type="number" value={t.number ?? ''} onChange={(e) => patchTopic(t.id, 'number', e.target.value)} placeholder="№" />
-            <input className="admin__inp" value={t.name} onChange={(e) => patchTopic(t.id, 'name', e.target.value)} />
-            <select className="admin__inp admin__inp--part" value={t.part || 'first'} onChange={(e) => patchTopic(t.id, 'part', e.target.value)}>{PARTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-            <input className="admin__inp admin__inp--n" type="number" value={t.error_rate ?? ''} onChange={(e) => patchTopic(t.id, 'error_rate', e.target.value)} placeholder="%" />
+            <input className="admin__inp admin__inp--n" type="number" value={t.number ?? ''} onChange={(e) => patchTopic(t.id, 'number', e.target.value)} onBlur={() => saveTopic(t)} placeholder="№" />
+            <input className="admin__inp" value={t.name} onChange={(e) => patchTopic(t.id, 'name', e.target.value)} onBlur={() => saveTopic(t)} />
+            <select className="admin__inp admin__inp--part" value={t.part || 'first'} onChange={(e) => { patchTopic(t.id, 'part', e.target.value); saveTopic({ ...t, part: e.target.value }) }}>{PARTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            <input className="admin__inp admin__inp--n" type="number" value={t.error_rate ?? ''} onChange={(e) => patchTopic(t.id, 'error_rate', e.target.value)} onBlur={() => saveTopic(t)} placeholder="%" />
             <button className="admin__iconbtn" title="Сохранить" onClick={() => saveTopic(t)}><Save size={15} /></button>
             <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => delTopic(t)}><Trash2 size={15} /></button>
             <button className="admin__open" onClick={() => setTModal(t)}>Подтемы <ChevronRight size={15} /></button>
@@ -194,14 +194,14 @@ export default function AdminBank() {
         {sources.map((s) => (
           <div className="admin__month" key={s.id}>
             <div className="admin__month-head">
-              <input className="admin__inp admin__inp--bold" value={s.name} onChange={(e) => patchSource(s.id, e.target.value)} />
+              <input className="admin__inp admin__inp--bold" value={s.name} onChange={(e) => patchSource(s.id, e.target.value)} onBlur={() => saveSource(s)} />
               <button className="admin__iconbtn" title="Сохранить" onClick={() => saveSource(s)}><Save size={15} /></button>
               <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => delSource(s)}><Trash2 size={15} /></button>
               <button className="btn btn-light btn-sm" onClick={() => addVariant(s.id)}><Plus size={14} /> Вариант</button>
             </div>
             {variants.filter((v) => v.source_id === s.id).map((v) => (
               <div className="admin__drow" key={v.id} style={{ margin: '6px 0' }}>
-                <input className="admin__inp" value={v.name} onChange={(e) => patchVariant(v.id, e.target.value)} />
+                <input className="admin__inp" value={v.name} onChange={(e) => patchVariant(v.id, e.target.value)} onBlur={() => saveVariant(v)} />
                 <button className="admin__iconbtn" title="Сохранить" onClick={() => saveVariant(v)}><Save size={15} /></button>
                 <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => delVariant(v)}><Trash2 size={15} /></button>
                 <button className="admin__open" onClick={() => setVModal(v)}>Вопросы <ChevronRight size={15} /></button>

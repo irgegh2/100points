@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" role="img" aria-labelledby="title desc">
+  <title id="title">Решение пятого неравенства на числовой прямой</title>
+  <desc id="desc">Луч до минус 5 включительно и отрезок от минус 1 до 10</desc>
+  <rect width="720" height="150" rx="22" fill="#f7f5ff"/>
+  <path d="M64 76H660" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M660 76l-16-10m16 10-16 10" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M64 76H190M330 76H560" stroke="#6558e8" stroke-width="12" stroke-linecap="round"/>
+  <g fill="#6558e8"><circle cx="190" cy="76" r="9"/><circle cx="330" cy="76" r="9"/><circle cx="440" cy="76" r="9"/><circle cx="560" cy="76" r="9"/></g>
+  <g font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#292638" text-anchor="middle">
+    <text x="190" y="119">−5</text><text x="330" y="119">−1</text><text x="440" y="119">1</text><text x="560" y="119">10</text>
+  </g>
+</svg>

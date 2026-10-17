@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Цилиндр, вписанный в прямоугольный параллелепипед</title>
+  <desc id="desc">Основание цилиндра вписано в квадратное основание параллелепипеда.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M190 342H506L622 261H306L190 342ZM190 342V148H506V342M506 148 622 66V261M190 148 306 66H622M306 66V261" stroke="#9b98bd" stroke-width="5"/>
+    <ellipse cx="406" cy="115" rx="145" ry="43" stroke="#5b5ce2" stroke-width="6"/>
+    <path d="M261 115v180M551 115v180" stroke="#5b5ce2" stroke-width="6"/>
+    <ellipse cx="406" cy="295" rx="145" ry="43" stroke="#5b5ce2" stroke-width="6"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-size="23" font-weight="850">
+    <rect x="604" y="154" width="72" height="48" rx="14" fill="white"/><text x="640" y="186" fill="#403db9" text-anchor="middle">h = 2</text>
+    <rect x="388" y="270" width="72" height="48" rx="14" fill="white"/><text x="424" y="302" fill="#403db9" text-anchor="middle">r = 2</text>
+    <rect x="266" y="371" width="280" height="46" rx="14" fill="#eeedff"/><text x="406" y="402" fill="#403db9" text-anchor="middle">сторона основания = 2r</text>
+  </g>
+</svg>

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Dumbbell, Check, X, Play, Sparkles, ChevronRight, Target, MessageSquare, SkipForward } from 'lucide-react'
 import { trainerMeta, trainerTaskNext, trainerTaskAnswer, trainerQaGenerate, trainerQaCheck, aiChatCreate } from '../api.js'
 import AiChatBox from './AiChatBox.jsx'
+import MarkdownContent from './MarkdownContent.jsx'
+import { useLiveRefresh } from '../liveUpdates.js'
 
 const LEVELS = [
   { n: 1, name: 'База', band: 'на «3» · 40–55 баллов', color: '#34c759' },
@@ -28,6 +30,8 @@ export default function Trainer() {
   const [choice, setChoice] = useState(null)
   const [result, setResult] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [generationSeconds, setGenerationSeconds] = useState(0)
   const [stats, setStats] = useState({ solved: 0, correct: 0 })
   const [chat, setChat] = useState(null)
 
@@ -40,6 +44,20 @@ export default function Trainer() {
   }, [])
   useEffect(() => { refreshMeta() }, [refreshMeta])
   useEffect(() => { if (phase === 'setup') refreshMeta() }, [phase, refreshMeta])
+  useLiveRefresh(() => {
+    if (phase !== 'setup') return
+    trainerMeta().then((d) => {
+      setSubjects(d.subjects || [])
+      if (!subjectId && d.subjects?.length) setSubjectId(d.subjects[0].id)
+    }).catch(() => {})
+    refreshMeta()
+  })
+  useEffect(() => {
+    if (!generating) { setGenerationSeconds(0); return undefined }
+    const startedAt = Date.now()
+    const timer = window.setInterval(() => setGenerationSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000)
+    return () => window.clearInterval(timer)
+  }, [generating])
 
   const subjectName = subjects.find((s) => s.id === subjectId)?.name || ''
   const lvl = LEVELS.find((l) => l.n === level)
@@ -51,13 +69,14 @@ export default function Trainer() {
     setBusy(true); setResult(null); setAnswer(''); setChoice(null)
     try {
       if (mode === 'qa') {
+        setGenerating(true)
         const d = await trainerQaGenerate(subjectId, level)
         setQa(d); setTask(null); setPhase('run')
       } else {
         const d = await trainerTaskNext(subjectId, level)
         if (!d.task) { setTask(null); setPhase('run') } else { setTask(d.task); setQa(null); setPhase('run') }
       }
-    } catch (e) { alert(e.message) } finally { setBusy(false) }
+    } catch (e) { alert(e.message) } finally { setBusy(false); setGenerating(false) }
   }
   const start = () => { setStats({ solved: 0, correct: 0 }); next() }
 
@@ -132,8 +151,9 @@ export default function Trainer() {
         </div>
 
         <button className="btn btn-orange btn-lg tset__start" onClick={start} disabled={busy || !canStart}>
-          <Play size={18} fill="#fff" /> {busy ? 'Загружаем…' : mode === 'qa' ? 'Начать (ИИ сгенерирует вопрос)' : 'Начать тренировку'}
+          <Play size={18} fill="#fff" /> {generating ? `ИИ составляет и проверяет · ${generationSeconds} с` : busy ? 'Загружаем…' : mode === 'qa' ? 'Начать (ИИ сгенерирует вопрос)' : 'Начать тренировку'}
         </button>
+        {generating && <p className="tset__hint" style={{ textAlign: 'center' }}>Запрос работает: сначала создаём вопрос, затем независимо проверяем ответ. Страницу можно не обновлять.</p>}
         {!canStart && <p className="tset__hint" style={{ textAlign: 'center' }}>{mode === 'qa' ? 'По этому предмету нет тем для генерации — админ добавит их.' : 'На этом уровне нет непройденных задач — выбери другой уровень.'}</p>}
       </div>
     )
@@ -159,7 +179,7 @@ export default function Trainer() {
           ) : mode === 'qa' && qa ? (
             <>
               <div className="trun__num"><Sparkles size={13} /> ИИ · {qa.topic} · задание {stats.solved + 1}</div>
-              <div className="test__question">{qa.question.text}</div>
+              <div className="test__question"><MarkdownContent source={qa.question.text} empty="" /></div>
               <div className="test__opts">
                 {qa.question.options.map((o, oi) => {
                   const cls = result ? (oi === result.correct ? 'selected correct' : (oi === choice ? 'selected wrong' : '')) : (choice === oi ? 'selected' : '')
@@ -175,7 +195,7 @@ export default function Trainer() {
               )}
               {!result
                 ? <button className="btn btn-blue test__next" disabled={choice === null || busy} onClick={checkQa}>{busy ? 'Проверяем…' : 'Проверить'}</button>
-                : <button className="btn btn-orange test__next" onClick={next} disabled={busy}>{busy ? 'Генерируем…' : <>Следующий вопрос <ChevronRight size={16} /></>}</button>}
+                : <button className="btn btn-orange test__next" onClick={next} disabled={busy}>{generating ? `Создаём и проверяем · ${generationSeconds} с` : <>Следующий вопрос <ChevronRight size={16} /></>}</button>}
             </>
           ) : task ? (
             <>

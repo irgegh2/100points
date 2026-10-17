@@ -12,10 +12,6 @@ $row = $st->fetch();
 if (!$row) fail('Файл уже отправлен или не найден', 404);
 
 db()->prepare("DELETE FROM answer_uploads WHERE id = ? AND user_id = ? AND submission_id IS NULL")->execute([$id, $uid]);
-$path = (string)(parse_url($row['url'], PHP_URL_PATH) ?: '');
-$prefix = '/uploads/answers/u' . $uid . '/';
-if (str_starts_with($path, $prefix)) {
-  $file = uploads_root() . '/answers/u' . $uid . '/' . basename($path);
-  if (is_file($file)) @unlink($file);
-}
+$key = storage_key_from_url((string)$row['url']);
+if ($key !== null && str_starts_with($key, 'answers/u' . $uid . '/')) storage_delete_url((string)$row['url']);
 ok(['deleted' => true]);

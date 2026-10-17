@@ -13,7 +13,8 @@ $month = trim($_GET['month'] ?? '');
 $today = date('Y-m-d');
 $sql =
   "SELECT m.id, m.month, m.title, COALESCE(m.format,'normal') AS format,
-          COALESCE(m.access_mode,'general') AS access_mode, s.name AS subject, s.icon, s.color,
+          COALESCE(m.access_mode,'general') AS access_mode, c.title AS course_title,
+          s.name AS subject, s.icon, s.color,
           sub.status AS sub_status, sub.score, sub.max_score,
           a.id AS assignment_id, a.starts_at, a.duration, a.status AS assignment_status,
           a.camera_consent_at, a.started_at, a.finished_at
@@ -23,7 +24,9 @@ $sql =
    LEFT JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
         AND (e.expires_at IS NULL OR e.expires_at = '' OR e.expires_at >= ?)
    LEFT JOIN mock_assignments a ON a.mock_id = m.id AND a.user_id = ?
-   LEFT JOIN submissions sub ON sub.mock_id = m.id AND sub.user_id = ?";
+   LEFT JOIN submissions sub ON sub.id = (
+     SELECT sx.id FROM submissions sx WHERE sx.mock_id = m.id AND sx.user_id = ? ORDER BY sx.id DESC LIMIT 1
+   )";
 $args = [$uid, $today, $uid, $uid];
 $where = ["((COALESCE(m.format,'normal') = 'proctored' AND a.id IS NOT NULL) OR (COALESCE(m.format,'normal') <> 'proctored' AND ((COALESCE(m.access_mode,'general') = 'general' AND e.user_id IS NOT NULL) OR (COALESCE(m.access_mode,'general') = 'individual' AND a.id IS NOT NULL))))"];
 if ($subject !== '') { $where[] = 's.name = ?'; $args[] = $subject; }
@@ -42,6 +45,7 @@ foreach ($stmt as $r) {
     'id'        => (int)$r['id'],
     'month'     => $r['month'],
     'title'     => $r['title'],
+    'course'    => $r['course_title'],
     'subject'   => $r['subject'],
     'icon'      => $r['icon'],
     'color'     => $r['color'],

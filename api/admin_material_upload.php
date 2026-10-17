@@ -18,8 +18,6 @@ if (empty($_FILES['file']) || ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !
 }
 $f = $_FILES['file'];
 
-if ($f['size'] > 25 * 1024 * 1024) fail('Слишком большой файл (максимум 25 МБ)', 400);
-
 // Тип по содержимому (не по расширению из браузера). Разрешаем документы/архивы/картинки.
 $finfo = new finfo(FILEINFO_MIME_TYPE);
 $mime = $finfo->file($f['tmp_name']);
@@ -62,10 +60,9 @@ if (!file_exists($hta)) {
 }
 
 $fname = 'm' . $lessonId . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
-$dest = $dir . '/' . $fname;
-if (!move_uploaded_file($f['tmp_name'], $dest)) fail('Не удалось сохранить файл', 500);
-@chmod($dest, 0644);
-$url = uploads_url('materials/' . $fname);
+$storageKey = 'materials/' . $fname;
+storage_save_uploaded_file($f['tmp_name'], $storageKey, (string)$mime);
+$url = storage_upload_url($storageKey);
 
 // Человекочитаемый размер.
 $bytes = (int)$f['size'];

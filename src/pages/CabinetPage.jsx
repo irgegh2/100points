@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Home, BookOpen, CalendarDays, Trophy, Headset, Sparkles, Dumbbell, Library,
   ClipboardCheck, PencilLine, LogOut,
   Bell, Gem, ChevronRight, Check, Plus, Video,
-  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X, Crown, Snowflake,
+  Flag, Flame, Sunrise, FolderOpen, Heart, CreditCard, Menu, X, Crown, Snowflake, Lock,
+  Eye,
+  HardDrive,
+  Leaf,
 } from 'lucide-react'
 import { brand } from '../data/content.js'
 import { setAuthed } from '../auth.js'
-import { me, logout as apiLogout, profileGet, walletGet, themeAccess, achievementsList, dailyGet, todayGet, notifList, notifRead } from '../api.js'
+import { me, logout as apiLogout, profileGet, walletGet, themeAccess, achievementsList, dailyGet, todayGet, notifList, notifRead, liveContentVersion } from '../api.js'
 import { getTheme, setTheme } from '../theme.js'
+import { readHash, writeHash } from '../hashNav.js'
+import { pluralRu } from '../ruPlural.js'
+import { emitLiveContentUpdate, useLiveRefresh } from '../liveUpdates.js'
 import Shop from '../components/Shop.jsx'
 import Achievements from '../components/Achievements.jsx'
 import Courses from '../components/Courses.jsx'
@@ -24,7 +30,10 @@ import Profile from '../components/Profile.jsx'
 import Schedule from '../components/Schedule.jsx'
 import Subscription from '../components/Subscription.jsx'
 import Tour from '../components/Tour.jsx'
+import DriveTour from '../components/DriveTour.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
+import Drive from '../components/Drive.jsx'
+import VkContactGate from '../components/VkContactGate.jsx'
 
 // Меню кабинета. key — какой раздел открыть справа.
 const NAV = [
@@ -39,8 +48,76 @@ const NAV = [
   { key: 'bank', icon: FolderOpen, label: 'Банк заданий' },
   { key: 'mock', icon: ClipboardCheck, label: 'Пробники' },
   { key: 'homework', icon: PencilLine, label: 'Домашние задания' },
+  { key: 'drive', icon: HardDrive, label: 'Стобалльный диск' },
   { key: 'sub', icon: CreditCard, label: 'Подписка' },
 ]
+
+const AUTUMN_RELEASE_AT = Date.parse('2026-09-01T00:00:00+03:00')
+const AUTUMN_LOCKED_SECTIONS = new Set(['trainer', 'library', 'bank', 'mock', 'drive'])
+const isAutumnLocked = (key) => Date.now() < AUTUMN_RELEASE_AT && AUTUMN_LOCKED_SECTIONS.has(key)
+const isAutumnVisualSeason = () => {
+  const date = new Date()
+  const month = date.getMonth()
+  return (month === 7 && date.getDate() >= 20) || (month >= 8 && month <= 10)
+}
+
+function AutumnSprig() {
+  if (!isAutumnVisualSeason()) return null
+  return (
+    <span className="autumn-sprig" aria-hidden="true">
+      <i className="autumn-sprig__stem" />
+      <Leaf className="autumn-sprig__leaf autumn-sprig__leaf--one" size={22} fill="currentColor" />
+      <Leaf className="autumn-sprig__leaf autumn-sprig__leaf--two" size={19} fill="currentColor" />
+      <Leaf className="autumn-sprig__leaf autumn-sprig__leaf--three" size={17} fill="currentColor" />
+    </span>
+  )
+}
+
+function AutumnCountdown() {
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const left = Math.max(0, AUTUMN_RELEASE_AT - now)
+  if (left <= 0) return null
+
+  const days = Math.floor(left / 86_400_000)
+  const hours = Math.floor((left % 86_400_000) / 3_600_000)
+  const minutes = Math.floor((left % 3_600_000) / 60_000)
+  const seconds = Math.floor((left % 60_000) / 1000)
+  const units = [
+    [days, pluralRu(days, 'день', 'дня', 'дней')],
+    [hours, pluralRu(hours, 'час', 'часа', 'часов')],
+    [minutes, pluralRu(minutes, 'минута', 'минуты', 'минут')],
+    [seconds, pluralRu(seconds, 'секунда', 'секунды', 'секунд')],
+  ]
+
+  return (
+    <section className="autumn-countdown" role="timer" aria-label={`До первого сентября: ${days} дней, ${hours} часов, ${minutes} минут, ${seconds} секунд`}>
+      <span className="autumn-countdown__mark" aria-hidden="true"><Leaf size={21} fill="currentColor" /></span>
+      <div className="autumn-countdown__copy">
+        <b>До 1 сентября</b>
+        <span>Осенний сезон уже близко</span>
+      </div>
+      <div className="autumn-countdown__digits" aria-hidden="true">
+        {units.map(([value, label]) => (
+          <span className="autumn-countdown__unit" key={label}>
+            <strong>{String(value).padStart(2, '0')}</strong>
+            <small>{label}</small>
+          </span>
+        ))}
+      </div>
+      <span className="autumn-countdown__foliage" aria-hidden="true">
+        <Leaf className="is-rust" size={38} fill="currentColor" />
+        <Leaf className="is-gold" size={27} fill="currentColor" />
+        <Leaf className="is-wine" size={23} fill="currentColor" />
+      </span>
+    </section>
+  )
+}
 
 // Иконка/стиль для пункта «Обучение сегодня» по типу события.
 const TODAY_KIND = {
@@ -77,11 +154,13 @@ function HomeDash({ onNavigate, crystals }) {
   const [daily, setDaily] = useState({ tasks: [], days: null, week_done: 0 })
   const [today, setToday] = useState([])
 
-  useEffect(() => {
+  const reload = () => {
     achievementsList().then((d) => setAch(d.achievements || [])).catch(() => {})
     dailyGet().then((d) => setDaily(d)).catch(() => {})
     todayGet().then((d) => setToday(d.items || [])).catch(() => {})
-  }, [])
+  }
+  useEffect(() => { reload() }, [])
+  useLiveRefresh(reload)
 
   const doneTasks = daily.tasks.filter((t) => t.done).length
   const preview = ach.slice(0, 5)
@@ -140,7 +219,7 @@ function HomeDash({ onNavigate, crystals }) {
       <div className="dash__side">
         {/* Монеты */}
         <section className="dcoins">
-          <div className="dcoins__top"><Gem size={22} /><b>{crystals}</b><span>кристаллов</span></div>
+          <div className="dcoins__top"><Gem size={22} /><b>{crystals}</b><span>{pluralRu(crystals, 'кристалл', 'кристалла', 'кристаллов')}</span></div>
           <p>Получай их за выполнение заданий и трать в магазине</p>
           <button className="btn btn-light" onClick={() => onNavigate('shop')}>В магазин</button>
         </section>
@@ -191,12 +270,57 @@ export default function CabinetPage() {
   const [nicknameColorAccess, setNicknameColorAccess] = useState(false)
   const [nicknameColor, setNicknameColor] = useState('')
   const [checking, setChecking] = useState(true)
-  const [active, setActive] = useState('home')
+  // Раздел восстанавливаем из URL-хеша, чтобы перезагрузка не сбрасывала на главную.
+  const [active, setActive] = useState(() => {
+    const k = readHash()[0]
+    if (isAutumnLocked(k)) return 'home'
+    return k && (k === 'shop' || k === 'profile' || NAV.some((n) => n.key === k)) ? k : 'home'
+  })
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifs, setNotifs] = useState([])
   const [notifUnread, setNotifUnread] = useState(0)
   const [info, setInfo] = useState(null)   // 'lives' | 'coins' | null — поповер-объяснение
   const [menuOpen, setMenuOpen] = useState(false)
+  const [lockedNotice, setLockedNotice] = useState('')
+  const [impersonation, setImpersonation] = useState(null)
+  const [platformTourActive, setPlatformTourActive] = useState(true)
+  const [vkPromptTick, setVkPromptTick] = useState(0)
+  const liveVersionRef = useRef(null)
+  const pendingAppVersionRef = useRef(false)
+
+  // Лёгкая проверка версии. Одинаковая версия не вызывает больше ни одного
+  // запроса; новые данные рассылаются смонтированным разделам через событие.
+  useEffect(() => {
+    let stopped = false
+    let checkingVersion = false
+    const check = async () => {
+      if (stopped || checkingVersion || document.hidden) return
+      checkingVersion = true
+      try {
+        const data = await liveContentVersion()
+        if (stopped) return
+        if (data.app_version && data.app_version !== __APP_BUILD_ID__) pendingAppVersionRef.current = true
+        if (liveVersionRef.current === null) liveVersionRef.current = data.version
+        else if (data.version !== liveVersionRef.current) {
+          const previous = liveVersionRef.current
+          liveVersionRef.current = data.version
+          emitLiveContentUpdate({ version: data.version, previous })
+        }
+      } catch { /* сеть вернётся — следующая проверка догонит изменения */ }
+      finally { checkingVersion = false }
+    }
+    const onVisible = () => { if (!document.hidden) check() }
+    check()
+    const timer = window.setInterval(check, 15_000)
+    window.addEventListener('focus', check)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+      window.removeEventListener('focus', check)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
 
   const loadNotifs = () => notifList().then((d) => { setNotifs(d.items || []); setNotifUnread(d.unread || 0) }).catch(() => {})
   useEffect(() => {
@@ -207,12 +331,62 @@ export default function CabinetPage() {
   const openNotif = async (n) => {
     setNotifOpen(false)
     if (!n.read) { try { await notifRead(n.id) } catch { /* пусто */ } }
-    if (n.link) setActive(n.link)
+    if (n.link) {
+      if (isAutumnLocked(n.link)) {
+        const label = NAV.find((item) => item.key === n.link)?.label || 'Раздел'
+        setLockedNotice(`${label} откроется 1 сентября`)
+        setActive('home')
+      } else setActive(n.link)
+    }
     loadNotifs()
   }
   const readAll = async () => { try { await notifRead('all') } catch { /* пусто */ } loadNotifs() }
 
-  const go = useCallback((key) => { setActive(key); setMenuOpen(false) }, [])
+  const go = useCallback((key, ...pathParts) => {
+    setMenuOpen(false)
+    setVkPromptTick((tick) => tick + 1)
+    const targetHash = [key, ...pathParts.map((part) => encodeURIComponent(String(part)))]
+    // Код не меняем посреди работы. Если новая сборка уже ждёт, применяем её
+    // только в естественный момент навигации и возвращаем ученика в выбранный раздел.
+    if (pendingAppVersionRef.current) {
+      writeHash(targetHash)
+      window.location.reload()
+      return
+    }
+    if (isAutumnLocked(key)) {
+      const label = NAV.find((n) => n.key === key)?.label || 'Раздел'
+      setLockedNotice(`${label} откроется 1 сентября`)
+      return
+    }
+    if (pathParts.length) writeHash(targetHash)
+    setActive(key)
+  }, [])
+
+  useLiveRefresh(() => {
+    loadNotifs()
+    walletGet().then(setWallet).catch(() => {})
+    profileGet().then((p) => setAvatar(p.profile?.avatar || '')).catch(() => {})
+    me().then((d) => { setUser(d.user); setImpersonation(d.impersonation || null) }).catch(() => {})
+    themeAccess().then((access) => {
+      const themes = Array.isArray(access.themes) ? access.themes : ['light']
+      setThemeAccessList(themes)
+      setHasAvatarFrame(access.avatar_frame === true)
+      setNicknameColorAccess(access.nickname_color_access === true)
+      setNicknameColor(access.nickname_color || '')
+      if (!themes.includes(getTheme())) setTheme('light')
+    }).catch(() => {})
+  })
+  useEffect(() => {
+    if (!lockedNotice) return undefined
+    const timer = setTimeout(() => setLockedNotice(''), 4200)
+    return () => clearTimeout(timer)
+  }, [lockedNotice])
+
+  // Пишем раздел в хеш. Если раздел не менялся — не трогаем (вложенный путь
+  // вида #courses/11 пишет сам раздел «Курсы», затирать его нельзя).
+  useEffect(() => {
+    if (readHash()[0] !== active) writeHash([active])
+  }, [active])
 
   // Проверяем серверную сессию: кто вошёл.
   useEffect(() => {
@@ -221,6 +395,7 @@ export default function CabinetPage() {
       .then(async (d) => {
         if (!alive) return
         setUser(d.user)
+        setImpersonation(d.impersonation || null)
         const access = await themeAccess().catch(() => ({ themes: ['light'] }))
         if (!alive) return
         const themes = Array.isArray(access.themes) ? access.themes : ['light']
@@ -255,6 +430,13 @@ export default function CabinetPage() {
 
   return (
     <div className="lk">
+      {lockedNotice && (
+        <div className="lk__locked-toast" role="status" aria-live="polite">
+          <span className="lk__locked-toast-ico"><Lock size={17} /></span>
+          <div><b>Пока закрыто</b><span>{lockedNotice}</span></div>
+          <button onClick={() => setLockedNotice('')} aria-label="Закрыть уведомление"><X size={16} /></button>
+        </div>
+      )}
       {menuOpen && <div className="lk__overlay" onClick={() => setMenuOpen(false)} />}
       <aside className={`lk__side ${menuOpen ? 'open' : ''}`}>
         <div className="lk__side-top">
@@ -262,24 +444,38 @@ export default function CabinetPage() {
           <button className="lk__side-close" onClick={() => setMenuOpen(false)}><X size={20} /></button>
         </div>
         <nav className="lk__nav">
-          {NAV.map((n) => (
-            <button
-              key={n.key}
-              data-tour={n.key}
-              className={`lk__navitem ${n.key === active ? 'active' : ''}`}
-              onClick={() => go(n.key)}
-            >
-              <n.icon size={19} /> <span>{n.label}</span>
-            </button>
-          ))}
+          {NAV.map((n) => {
+            const locked = isAutumnLocked(n.key)
+            return (
+              <button
+                key={n.key}
+                data-tour={n.key}
+                className={`lk__navitem ${n.key === active ? 'active' : ''} ${locked ? 'is-date-locked' : ''}`}
+                onClick={() => go(n.key)}
+                aria-disabled={locked || undefined}
+                title={locked ? 'Откроется 1 сентября' : undefined}
+              >
+                <n.icon size={19} /> <span>{n.label}</span>
+                {locked && <Lock className="lk__navlock" size={15} />}
+              </button>
+            )
+          })}
         </nav>
         <button className="lk__logout" onClick={logout}><LogOut size={18} /> <span>Выйти</span></button>
       </aside>
 
       <main className="lk__main">
+        {impersonation && (
+          <div className="lk__impersonation" role="status">
+            <span><Eye size={17} /><b>Просмотр от лица ученика</b></span>
+            <p>Режим только для чтения: изменения, ответы и покупки заблокированы.</p>
+            <button onClick={logout}><LogOut size={15} /> Закрыть просмотр</button>
+          </div>
+        )}
+        <AutumnCountdown />
         <header className="lk__top">
           <button className="lk__burger" onClick={() => setMenuOpen(true)} aria-label="Меню"><Menu size={22} /></button>
-          <h1>{current.label}</h1>
+          <div className="lk__heading"><h1>{current.label}</h1><AutumnSprig /></div>
           <div className="lk__top-right">
             <div className="lk__chipwrap">
               <span className="lk__hp" role="button" tabIndex={0} onClick={() => setInfo(info === 'lives' ? null : 'lives')}><Heart size={17} fill="#e0518a" stroke="#e0518a" /> {wallet.lives}</span>
@@ -288,7 +484,7 @@ export default function CabinetPage() {
                 <div className="lk__info">
                   <div className="lk__info-head"><Heart size={18} fill="#e0518a" stroke="#e0518a" /> Жизни <b>{wallet.lives} / {wallet.max_lives}</b></div>
                   <ul className="lk__info-list">
-                    <li><b>Что это.</b> Запас на неделю — {wallet.max_lives} жизней. Каждую неделю снова {wallet.max_lives}.</li>
+                    <li><b>Что это.</b> Запас на неделю — {wallet.max_lives} {pluralRu(wallet.max_lives, 'жизнь', 'жизни', 'жизней')}. Каждую неделю снова {wallet.max_lives}.</li>
                     <li><b>Как теряются.</b> −1 жизнь за каждую домашку, не сданную до дедлайна. Пробники жизни не отнимают.</li>
                     <li><b>Зачем беречь.</b> В конце недели каждая сохранённая жизнь превращается в <b>25 кристаллов</b> 💎. Чем больше сберёг — тем больше награда.</li>
                     <li><b>Серия.</b> Заходи каждый день — сейчас серия {wallet.streak ?? 0} дн.</li>
@@ -336,7 +532,7 @@ export default function CabinetPage() {
                 </>
               )}
             </div>
-            <button className={`lk__user ${active === 'profile' ? 'active' : ''}`} onClick={() => setActive('profile')}>
+            <button className={`lk__user ${active === 'profile' ? 'active' : ''}`} onClick={() => go('profile')}>
               <span className={`lk__ava ${hasAvatarFrame ? 'avatar--framed' : ''}`} style={avatar ? { backgroundImage: `url(${avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
               <span className="lk__username" style={nicknameColorAccess ? { color: nicknameColor || '#7b5cff' } : undefined}>{user?.name || 'Ученик'}</span>
               {wallet.vip && <span className="lk__vip-badge"><Crown size={11} /> VIP</span>}
@@ -348,7 +544,7 @@ export default function CabinetPage() {
           <Profile user={user} avatarFrame={hasAvatarFrame} nicknameColorAccess={nicknameColorAccess} initialNicknameColor={nicknameColor}
             onBack={() => setActive('home')} onSaved={(u) => { setUser(u); if (u.avatar !== undefined) setAvatar(u.avatar); if (u.nickname_color !== undefined) setNicknameColor(u.nickname_color) }} />
         ) : active === 'home' ? (
-          <HomeDash onNavigate={setActive} crystals={wallet.crystals} />
+          <HomeDash onNavigate={go} crystals={wallet.crystals} />
         ) : active === 'shop' ? (
           <Shop balance={wallet.crystals} onBack={() => setActive('home')} onBalance={(c) => setWallet((w) => ({ ...w, crystals: c }))}
             onWalletUpdate={(data) => setWallet((w) => ({ ...w, crystals: data.balance ?? w.crystals, lives: data.lives ?? w.lives, max_lives: data.max_lives ?? w.max_lives, vip: data.vip ?? w.vip, streak_freezes: data.streak_freezes ?? w.streak_freezes }))}
@@ -372,17 +568,19 @@ export default function CabinetPage() {
         ) : active === 'achievements' ? (
           <Achievements />
         ) : active === 'courses' ? (
-          <Courses />
+          <Courses onNavigate={go} />
         ) : active === 'homework' ? (
           <Homework />
         ) : active === 'mock' ? (
           <Mock />
+        ) : active === 'drive' ? (
+          <Drive onShop={() => setActive('shop')} />
         ) : active === 'library' ? (
           <LibraryView />
         ) : active === 'bank' ? (
           <BankView />
         ) : active === 'schedule' ? (
-          <Schedule onNavigate={setActive} />
+          <Schedule onNavigate={go} />
         ) : active === 'sub' ? (
           <Subscription />
         ) : active === 'mentor' ? (
@@ -400,7 +598,13 @@ export default function CabinetPage() {
         )}
       </main>
 
-      <Tour onNavigate={go} onReward={(balance) => setWallet((w) => ({ ...w, crystals: balance }))} />
+      <VkContactGate
+        navigationKey={active}
+        navigationTick={vkPromptTick}
+        disabled={Boolean(impersonation) || user?.role !== 'student'}
+      />
+      {!impersonation && <Tour onNavigate={go} onReward={(balance) => setWallet((w) => ({ ...w, crystals: balance }))} onActiveChange={setPlatformTourActive} />}
+      {!impersonation && <DriveTour onNavigate={go} blocked={platformTourActive || isAutumnLocked('drive')} />}
     </div>
   )
 }

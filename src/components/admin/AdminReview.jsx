@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { Clock, Check, ChevronLeft, GraduationCap, Download, ExternalLink, FileText } from 'lucide-react'
 import { reviewQueue, reviewGet, reviewGrade, adminExportUrl } from '../../api.js'
 import RichReviewEditor from './RichReviewEditor.jsx'
+import AudioMessage from '../AudioMessage.jsx'
+import KinescopeVideo from '../KinescopeVideo.jsx'
 
 function ansText(a) {
   const v = a.your_value
   if (a.type === 'single') return v != null ? a.options[v] : '—'
   if (a.type === 'multi') return Array.isArray(v) && v.length ? v.map((i) => a.options[i]).join(', ') : '—'
   if (a.type === 'file') return v?.note || '— нет подписи'
+  if (a.type === 'audio') return v?.files?.length ? 'Аудиоответ ученика' : '— нет аудиоответа'
   return v && String(v).trim() ? v : '— нет ответа'
 }
 
@@ -26,7 +29,7 @@ export default function AdminReview() {
       const d = await reviewGet(id)
       setOpen(d)
       const g = {}
-      d.answers.filter((a) => ['textarea', 'file'].includes(a.type)).forEach((a) => { g[a.id] = { points: a.earned || 0, comment: a.mentor_comment || '' } })
+      d.answers.filter((a) => ['textarea', 'file', 'audio'].includes(a.type)).forEach((a) => { g[a.id] = { points: a.earned || 0, comment: a.mentor_comment || '' } })
       setGrades(g)
     } catch (e) { alert(e.message) }
   }
@@ -44,8 +47,8 @@ export default function AdminReview() {
 
   // Экран проверки одной работы.
   if (open) {
-    const open_qs = open.answers.filter((a) => ['textarea', 'file'].includes(a.type))
-    const auto = open.answers.filter((a) => !['textarea', 'file'].includes(a.type))
+    const open_qs = open.answers.filter((a) => ['textarea', 'file', 'audio'].includes(a.type))
+    const auto = open.answers.filter((a) => !['textarea', 'file', 'audio'].includes(a.type))
     return (
       <div className="admin-wrap">
         <button className="lesson__back" onClick={() => setOpen(null)}><ChevronLeft size={17} /> К очереди</button>
@@ -56,9 +59,14 @@ export default function AdminReview() {
           {open_qs.map((a) => (
             <div className="admin__reviewq" key={a.id}>
               <div className="admin__reviewq-text">{a.text} <span className="admin__reviewq-pts">макс {a.points} б.</span></div>
+              {a.audio?.length > 0 && <div className="test__audio">{a.audio.map((item, index) => <AudioMessage key={`${item.url}-${index}`} src={item.url} name={item.name} />)}</div>}
+              {a.videos?.length > 0 && <div className="test__videos">{a.videos.map((item, index) => <KinescopeVideo key={`${item.url}-${index}`} url={item.url} />)}</div>}
               {a.type === 'file' ? <div className="admin__review-answer">
                 <div className="admin__reviewq-ans"><b>Подпись ученика</b><p>{ansText(a)}</p></div>
                 <div className="admin__review-files">{(a.your_value?.files || []).map((file) => <a href={file.url} target="_blank" rel="noreferrer" key={file.id}><FileText size={18} /><span><b>{file.name}</b><small>{Math.max(1, Math.round((file.size || 0) / 1024))} КБ</small></span><ExternalLink size={15} /></a>)}</div>
+              </div> : a.type === 'audio' ? <div className="admin__review-answer">
+                <div className="admin__reviewq-ans"><b>Устный ответ ученика</b></div>
+                <div className="admin__review-audio">{(a.your_value?.files || []).map((file) => <AudioMessage key={file.id || file.url} src={file.url} name={file.name || 'Устный ответ'} />)}</div>
               </div> : <div className="admin__reviewq-ans">{ansText(a)}</div>}
               {a.solution && <div className="admin__reviewq-sol"><b>Эталон:</b> {a.solution}</div>}
               <label className="admin__review-points">Баллы за ответ (0–{a.points}) <input className="admin__inp" type="number" min={0} max={a.points} value={grades[a.id]?.points ?? 0} onChange={(e) => setG(a.id, 'points', e.target.value)} /></label>
@@ -72,6 +80,8 @@ export default function AdminReview() {
               <summary>Автопроверенные ответы ({auto.length})</summary>
               {auto.map((a) => (
                 <div className="admin__reviewq-ans" key={a.id} style={{ marginTop: 6 }}>
+                  {a.audio?.length > 0 && <div className="test__audio">{a.audio.map((item, index) => <AudioMessage key={`${item.url}-${index}`} src={item.url} name={item.name} />)}</div>}
+                  {a.videos?.length > 0 && <div className="test__videos">{a.videos.map((item, index) => <KinescopeVideo key={`${item.url}-${index}`} url={item.url} />)}</div>}
                   <span className={a.is_correct ? 'admin__ok' : 'admin__bad'}>{a.is_correct ? '✓' : '✗'}</span> {a.text} — <b>{ansText(a)}</b> ({a.earned}/{a.points})
                 </div>
               ))}
@@ -92,7 +102,7 @@ export default function AdminReview() {
           <h2><Clock size={18} /> Очередь проверки <span className="admin__count">{queue.length}</span></h2>
           <a className="btn btn-light btn-sm" href={adminExportUrl('results')}><Download size={15} /> Все результаты (CSV)</a>
         </div>
-        <p className="admin__hint">Работы с развёрнутыми и файловыми ответами, ожидающие ручной проверки.</p>
+        <p className="admin__hint">Работы с развёрнутыми, файловыми и устными ответами, ожидающие ручной проверки.</p>
         {loading && <div className="admin__empty">Загрузка…</div>}
         {!loading && queue.length === 0 && <div className="admin__empty"><Check size={18} /> Очередь пуста — все работы проверены.</div>}
         <div className="admin__list">
@@ -100,7 +110,7 @@ export default function AdminReview() {
             <button className="admin__crow" key={q.id} onClick={() => openSub(q.id)}>
               <span className="admin__qbadge">{q.open_count}</span>
               <div className="admin__crow-main">
-                <div className="admin__crow-title">{q.user_name} · {q.homework_title}{q.level === 'hard' && ' · повышенный'}</div>
+                <div className="admin__crow-title">{q.user_name} · {q.homework_title}{q.level === 'hard' ? ' · продвинутый' : q.level === 'medium' ? ' · средний' : ''}</div>
                 <div className="admin__crow-sub">{q.subject} · авто {q.score}/{q.max_score} б. · {q.created_at}</div>
               </div>
               <span className="admin__open">Проверить →</span>

@@ -5,6 +5,8 @@ import { setAuthed, isLkHost } from '../auth.js'
 import { login as apiLogin, me } from '../api.js'
 import PhoneInput from '../components/PhoneInput.jsx'
 
+const OFFICIAL_PASSWORD_RECOVERY_URL = 'https://lk.100points.ru/login/log/remind'
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const [checkingSession, setCheckingSession] = useState(true)
@@ -46,6 +48,10 @@ export default function LoginPage() {
       setAuthed(true)
       navigate(isLkHost() ? '/' : '/cabinet')
     } catch (err) {
+      if (err?.status === 401) {
+        window.location.replace(OFFICIAL_PASSWORD_RECOVERY_URL)
+        return
+      }
       setError(err.message || 'Не удалось войти')
     } finally {
       setBusy(false)
@@ -85,6 +91,9 @@ export default function LoginPage() {
               <PhoneInput className="login__input" value={login} onChange={setLogin} required />
             )}
             <button className="btn btn-orange btn-lg btn-block" type="submit">Далее</button>
+            <p className="login__note">
+              <a className="login__link" href={OFFICIAL_PASSWORD_RECOVERY_URL}>Не помню данные для входа</a>
+            </p>
             <p className="login__note">Нажимая кнопку, ты соглашаешься с <a className="login__link" href="/privacy">политикой конфиденциальности</a></p>
           </form>
         ) : (
@@ -101,7 +110,7 @@ export default function LoginPage() {
               {busy ? 'Входим…' : 'Войти'}
             </button>
             <p className="login__note">
-              Забыли пароль? Доступ восстановит куратор — напишите в <a className="login__link" href="mailto:irgudemy@gmail.com">поддержку</a>.
+              <a className="login__link" href={OFFICIAL_PASSWORD_RECOVERY_URL}>Забыли пароль?</a>
             </p>
           </form>
         )}

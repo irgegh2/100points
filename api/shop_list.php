@@ -17,7 +17,7 @@ $eligibleDeadlineCount = count(g_eligible_homeworks_for_extension($uid));
 $streakFreezes = g_available_streak_freezes($uid);
 $out = [];
 foreach ($items as $it) {
-  $instantItems = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Рамка для аватара', 'Цвет ника', 'Заморозка стрика', 'Продление дедлайна +24ч', '+1 жизнь', 'Бустер ×2 кристалла', 'VIP-статус навсегда'];
+  $instantItems = ['Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Рамка для аватара', 'Цвет ника', 'Заморозка стрика', 'Продление дедлайна +24ч', '+1 жизнь', 'Бустер ×2 кристалла', 'VIP-статус навсегда', 'Стобалльный диск +1 ГБ'];
   $instant = in_array($it['name'], $instantItems, true);
   $comingSoon = in_array($it['name'], ['Секретный конспект', 'Запись закрытого вебинара'], true);
   $out[] = [
@@ -36,6 +36,8 @@ foreach ($items as $it) {
     'owned'       => (int)$it['once_only'] === 1 && in_array((int)$it['id'], $owned, true),
   ];
 }
+$driveBonus = db()->prepare("SELECT bonus_bytes FROM drive_quotas WHERE user_id = ? LIMIT 1");
+$driveBonus->execute([$uid]);
 ok([
   'items' => $out,
   'balance' => (int)$w['crystals'],
@@ -44,4 +46,5 @@ ok([
   'booster_until' => (string)($w['booster_until'] ?? ''),
   'vip' => g_is_vip($uid),
   'streak_freezes' => $streakFreezes,
+  'drive_bonus_bytes' => (int)($driveBonus->fetchColumn() ?: 0),
 ]);

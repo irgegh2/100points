@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" role="img" aria-labelledby="title desc">
+  <title id="title">Прямоугольный параллелепипед ABCDA₁B₁C₁D₁</title>
+  <desc id="desc">Прямоугольный параллелепипед с отмеченной пунктиром диагональю BD₁.</desc>
+  <defs>
+    <pattern id="smallGrid" width="34" height="34" patternUnits="userSpaceOnUse">
+      <path d="M34 0H0V34" fill="none" stroke="#b9b9b9" stroke-width="1.5"/>
+    </pattern>
+    <pattern id="grid" width="170" height="170" patternUnits="userSpaceOnUse">
+      <rect width="170" height="170" fill="url(#smallGrid)"/>
+      <path d="M170 0H0V170" fill="none" stroke="#8f8f8f" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1100" height="720" fill="#fff"/>
+  <rect width="1100" height="720" fill="url(#grid)"/>
+
+  <g fill="none" stroke="#5554dd" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M145 620H790L975 455V90H330L145 250V620Z"/>
+    <path d="M145 250H790V620M790 250 975 90M330 90 145 250M330 90H975"/>
+  </g>
+  <g fill="none" stroke="#7775d8" stroke-width="5" stroke-linecap="round" stroke-dasharray="15 15">
+    <path d="M330 90V455H975M330 455 145 620M330 90 790 620"/>
+  </g>
+
+  <g fill="#191925" font-family="Georgia, 'Times New Roman', serif" font-size="48" font-style="italic">
+    <text x="104" y="682">A</text>
+    <text x="800" y="682">B</text>
+    <text x="990" y="476">C</text>
+    <text x="272" y="478">D</text>
+    <text x="90" y="270">A₁</text>
+    <text x="802" y="270">B₁</text>
+    <text x="986" y="90">C₁</text>
+    <text x="270" y="82">D₁</text>
+  </g>
+</svg>

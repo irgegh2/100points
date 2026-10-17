@@ -7,10 +7,12 @@ release_session();
 
 // Этот эндпоинт сам фиксирует вход перед чтением состояния. Так параллельный
 // wallet_get не может проиграть гонку и вернуть на главной вчерашний день.
-try {
-  g_sync($uid);
-  g_touch_streak($uid);
-} catch (Throwable $e) { error_log('[gamify daily] ' . $e->getMessage()); }
+if (!is_readonly_impersonation()) {
+  try {
+    g_sync($uid);
+    g_touch_streak($uid);
+  } catch (Throwable $e) { error_log('[gamify daily] ' . $e->getMessage()); }
+}
 
 $today = date('Y-m-d');
 $w = g_wallet($uid);

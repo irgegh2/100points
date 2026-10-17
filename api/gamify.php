@@ -124,6 +124,10 @@ function g_log(int $uid, string $kind, int $amount, string $reason, ?string $ref
 
 function g_add_crystals(int $uid, int $amount, string $reason, ?string $refType = null, ?int $refId = null): void {
   if ($amount === 0) return;
+  // Награда может прийти первым действием нового/старого аккаунта (например,
+  // при восстановлении достижения). Без созданного кошелька UPDATE не менял
+  // ни одной строки, хотя запись о награде уже появлялась в журнале.
+  g_wallet($uid);
   if ($amount > 0 && g_reward_multiplier($uid, $refType) === 2) {
     $amount *= 2;
     $reason .= ' · бустер ×2';
@@ -190,8 +194,10 @@ function g_ach_apply(int $uid, array $a, int $prog): void {
   $target = max(1, (int)$a['target']);
   if ($prog >= $target) {
     // Сначала помечаем открытым (чтобы награда-кристаллы не зациклила crystals_500), потом награда.
-    db()->prepare("UPDATE user_achievements SET progress = ?, unlocked_at = ? WHERE user_id = ? AND achievement_id = ?")
+    $unlock = db()->prepare("UPDATE user_achievements SET progress = ?, unlocked_at = ? WHERE user_id = ? AND achievement_id = ? AND unlocked_at IS NULL");
+    $unlock
         ->execute([$target, date('Y-m-d H:i:s'), $uid, (int)$a['id']]);
+    if ($unlock->rowCount() < 1) return; // параллельный запрос уже выдал достижение и награду
     if ((int)$a['reward'] > 0) g_add_crystals($uid, (int)$a['reward'], 'Достижение: ' . $a['title'], 'achievement', (int)$a['id']);
     if (function_exists('notify')) notify($uid, 'achievement', "Достижение «{$a['title']}» открыто! +{$a['reward']} кристаллов", 'achievements');
   } else {
@@ -216,6 +222,44 @@ function g_ach_set(int $uid, string $code, int $value): void {
   g_ach_apply($uid, $a, max($value, (int)$ua['progress']));
 }
 
+// Восстанавливает прогресс из фактических данных. Это не просто ремонт старых
+// аккаунтов: если какой-либо запрос прервался после сохранения работы, раздел
+// достижений сам догонит пропущенное событие и больше не покажет ложный ноль.
+function g_sync_achievements(int $uid): void {
+  $scalar = function (string $sql, array $args = []) use ($uid): int {
+    $st = db()->prepare($sql); $st->execute(array_merge([$uid], $args));
+    return (int)($st->fetchColumn() ?: 0);
+  };
+  $homeworks = $scalar('SELECT COUNT(DISTINCT homework_id) FROM submissions WHERE user_id=? AND homework_id IS NOT NULL');
+  $perfect = $scalar("SELECT COUNT(DISTINCT homework_id) FROM submissions WHERE user_id=? AND homework_id IS NOT NULL AND status='graded' AND max_score>0 AND score>=max_score");
+  $mocks = $scalar('SELECT COUNT(DISTINCT mock_id) FROM submissions WHERE user_id=? AND mock_id IS NOT NULL');
+  $lessons = $scalar('SELECT COUNT(DISTINCT lesson_id) FROM lesson_progress WHERE user_id=?');
+  $earned = $scalar("SELECT COALESCE(SUM(amount),0) FROM coin_log WHERE user_id=? AND kind='crystals' AND amount>0");
+  $wallet = db()->prepare('SELECT streak_best FROM wallets WHERE user_id=? LIMIT 1');
+  $wallet->execute([$uid]); $streak = (int)($wallet->fetchColumn() ?: 0);
+
+  $early = 0;
+  $st = db()->prepare("SELECT s.homework_id, MIN(s.created_at) AS submitted_at, h.deadline
+                       FROM submissions s JOIN homeworks h ON h.id=s.homework_id
+                       WHERE s.user_id=? AND s.homework_id IS NOT NULL AND h.deadline IS NOT NULL AND h.deadline<>''
+                       GROUP BY s.homework_id,h.deadline");
+  $st->execute([$uid]);
+  foreach ($st->fetchAll() as $row) {
+    $deadline = g_effective_deadline($uid, (string)$row['deadline'], (int)$row['homework_id']);
+    $deadlineTs = strtotime(strlen($deadline) > 10 ? $deadline : $deadline . ' 23:59:59');
+    $submittedTs = strtotime((string)$row['submitted_at']);
+    if ($deadlineTs && $submittedTs && $submittedTs <= $deadlineTs) $early++;
+  }
+
+  foreach (['first_homework'=>min(1,$homeworks),'homeworks_3'=>$homeworks,'homeworks_10'=>$homeworks,'homeworks_25'=>$homeworks,'homeworks_50'=>$homeworks] as $code=>$value) g_ach_set($uid,$code,$value);
+  foreach (['perfect_test'=>$perfect,'perfect_5'=>$perfect,'perfect_10'=>$perfect] as $code=>$value) g_ach_set($uid,$code,$value);
+  foreach (['mock_done'=>min(1,$mocks),'mocks_3'=>$mocks,'mocks_5'=>$mocks,'mocks_10'=>$mocks] as $code=>$value) g_ach_set($uid,$code,$value);
+  foreach (['lessons_5'=>$lessons,'lessons_15'=>$lessons,'lessons_30'=>$lessons] as $code=>$value) g_ach_set($uid,$code,$value);
+  foreach (['streak_3'=>$streak,'streak_7'=>$streak,'streak_14'=>$streak,'streak_30'=>$streak] as $code=>$value) g_ach_set($uid,$code,$value);
+  foreach (['crystals_500'=>$earned,'crystals_2000'=>$earned] as $code=>$value) g_ach_set($uid,$code,$value);
+  g_ach_set($uid,'early_homeworks_5',$early);
+}
+
 // ── Начисления за сдачу работ (честно: только при результате ≥50%, один раз на работу) ──
 
 // Уже начисляли кристаллы за эту работу? (защита от повтора при пересдаче/перепроверке)
@@ -231,11 +275,8 @@ function g_award_homework(int $uid, int $hwId, int $autoScore, int $autoMax, int
   if ($autoCount > 0 && ($autoMax <= 0 || $autoScore / $autoMax < 0.5)) return;
   if (g_already_awarded($uid, 'homework', $hwId)) return;
   g_add_crystals($uid, G_HW, 'Сдано домашнее задание', 'homework', $hwId);
-  g_ach_progress($uid, 'first_homework', 1);
-  g_ach_progress($uid, 'homeworks_10', 1);
   if ($autoCount > 0 && $autoMax > 0 && $autoScore >= $autoMax) {
     g_add_crystals($uid, G_HW_PERFECT, 'Тест на 100%', 'homework', $hwId);
-    g_ach_progress($uid, 'perfect_test', 1);
   }
 }
 
@@ -244,8 +285,6 @@ function g_award_mock(int $uid, int $mockId, int $autoScore, int $autoMax, int $
   if ($autoCount > 0 && ($autoMax <= 0 || $autoScore / $autoMax < 0.5)) return;
   if (g_already_awarded($uid, 'mock', $mockId)) return;
   g_add_crystals($uid, G_MOCK, 'Пройден пробник', 'mock', $mockId);
-  g_ach_progress($uid, 'mock_done', 1);
-  g_ach_progress($uid, 'mocks_5', 1);
 }
 
 // ── Ленивая синхронизация: штрафы за дедлайн + недельный сброс жизней ──

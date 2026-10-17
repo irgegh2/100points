@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, Check, X, ChevronDown, RefreshCw, Printer } from 'lucide-react'
 import { bankCheck } from '../api.js'
+import { canonicalTextAnswer } from '../answerDisplay.js'
 
 const isAnswered = (type, v) => type === 'single' ? v != null : type === 'multi' ? (Array.isArray(v) && v.length > 0) : (typeof v === 'string' && v.trim() !== '')
 const ansText = (r) => {
@@ -12,7 +13,7 @@ const ansText = (r) => {
 const correctText = (r) => {
   if (r.type === 'single') return r.options[r.correct]
   if (r.type === 'multi') return (r.correct || []).map((i) => r.options[i]).join(', ')
-  return (r.correct || []).join(' / ')
+  return canonicalTextAnswer(r.correct)
 }
 
 export default function BankTrainer({ questions, title, onExit, onPrint }) {

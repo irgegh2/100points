@@ -28,6 +28,13 @@ foreach ($gstmt as $g) {
   ];
 }
 
+$vkstmt = db()->prepare(
+  "SELECT vk_url, status, rejection_reason, submitted_at, reviewed_at
+   FROM user_vk_contacts WHERE user_id = ? LIMIT 1"
+);
+$vkstmt->execute([$id]);
+$vk = $vkstmt->fetch();
+
 ok([
   'user' => [
     'id'         => (int)$user['id'],
@@ -41,5 +48,12 @@ ok([
     'avatar'    => $p['avatar']    ?? '',
     'birthdate' => $p['birthdate'] ?? '',
     'goals'     => $goals,
+  ],
+  'vk_contact' => [
+    'url' => $vk['vk_url'] ?? '',
+    'status' => $vk['status'] ?? 'missing',
+    'rejection_reason' => $vk['rejection_reason'] ?? '',
+    'submitted_at' => $vk['submitted_at'] ?? null,
+    'reviewed_at' => $vk['reviewed_at'] ?? null,
   ],
 ]);

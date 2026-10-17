@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, Crown, LockKeyhole, Moon, Orbit, Sparkles, Sun } from 'lucide-react'
+import { Check, ChevronDown, Crown, Dumbbell, Flower2, LockKeyhole, Moon, Orbit, Sparkles, Sun } from 'lucide-react'
 import { getTheme, setTheme } from '../theme.js'
 
 const THEMES = [
@@ -8,7 +8,13 @@ const THEMES = [
   { id: 'neon', label: 'Неоновая', note: 'Циан и ультрафиолет', icon: Sparkles, swatch: 'theme-swatch--neon' },
   { id: 'space', label: 'Космос', note: 'Звёздная ночь', icon: Orbit, swatch: 'theme-swatch--space' },
   { id: 'vip', label: 'VIP', note: 'Чёрное золото', icon: Crown, swatch: 'theme-swatch--vip' },
+  // Сюрприз из магазина: цвета нарочно перепутаны местами.
+  { id: 'boys', label: 'Мужская', note: 'Сила — в нежности', icon: Dumbbell, swatch: 'theme-swatch--boys' },
+  { id: 'girls', label: 'Женская', note: 'Стальной характер', icon: Flower2, swatch: 'theme-swatch--girls' },
 ]
+
+// Темы-сюрпризы: до покупки их вообще не видно в списке — ни цветов, ни подписей.
+const SURPRISE = ['boys', 'girls']
 
 // Выпадающий выбор оформления. У ученика доступны только купленные темы;
 // в админке access не передаётся, поэтому доступны все — для проверки дизайна.
@@ -48,7 +54,7 @@ export default function ThemeToggle({ access, onLocked }) {
       {open && (
         <div className="theme-menu" role="menu">
           <div className="theme-menu__head">Оформление</div>
-          {THEMES.map((item) => {
+          {THEMES.filter((item) => !SURPRISE.includes(item.id) || allowed.includes(item.id)).map((item) => {
             const Icon = item.icon
             const isAllowed = allowed.includes(item.id)
             const active = item.id === theme

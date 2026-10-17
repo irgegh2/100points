@@ -14,6 +14,9 @@ date_default_timezone_set('Europe/Moscow');
 // Для выбора БД спуфинг Host безвреден: атакующий лишь уведёт СВОЙ запрос на
 // пустой локальный SQLite, к данным MySQL это доступа не даёт.
 function is_prod() {
+  // Локальный прогон миграций может явно выбрать SQLite, даже если рядом лежит
+  // копия production-конфига. На веб-сервере переменная не задаётся.
+  if (getenv('POINTS_FORCE_SQLITE') === '1') return false;
   // secrets.prod.php есть только на сервере (в git его нет) — достаточный признак прода.
   // Прежняя проверка по домену ломала MySQL, если хостинг не на 100-points.ru.
   return file_exists(__DIR__ . '/secrets.prod.php');
@@ -72,9 +75,11 @@ function db() {
     // с datetime('now') в SQLite (иначе created_at разъедется dev↔prod).
     $pdo->exec("SET time_zone = '+00:00'");
   } else {
-    $dir = __DIR__ . '/data';
+    $override = trim((string)getenv('POINTS_SQLITE_PATH'));
+    $sqlitePath = $override !== '' ? $override : (__DIR__ . '/data/app.sqlite');
+    $dir = dirname($sqlitePath);
     if (!is_dir($dir)) mkdir($dir, 0775, true);
-    $pdo = new PDO('sqlite:' . $dir . '/app.sqlite', null, null, $opts);
+    $pdo = new PDO('sqlite:' . $sqlitePath, null, null, $opts);
   }
   return $pdo;
 }

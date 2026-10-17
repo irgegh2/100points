@@ -7,7 +7,7 @@ require_admin();
 release_session();
 
 if (!ai_enabled()) ok(['ok' => false, 'reason' => 'нет ключа в secrets']);
-$r = ai_complete('deepseek/deepseek-v4-flash', [
+$r = ai_complete('', [
   ['role' => 'user', 'content' => 'Ответь одним словом: 2+2=?'],
 ]);
 ok(['curl' => function_exists('curl_init'), 'result' => $r]);

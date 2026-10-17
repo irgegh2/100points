@@ -6,7 +6,7 @@ $uid = require_user();
 $id = (int)($_GET['assignment_id'] ?? 0);
 $a = p_assignment_for_user($uid, $id);
 if (!$a || $a['format'] !== 'proctored') fail('Сессия не назначена', 403);
-$sub = db()->prepare("SELECT status, score, max_score FROM submissions WHERE mock_id = ? AND user_id = ? LIMIT 1");
+$sub = db()->prepare("SELECT status, score, max_score FROM submissions WHERE mock_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1");
 $sub->execute([(int)$a['mock_id'], $uid]);
 $submission = $sub->fetch();
 $presence = p_presence($id);

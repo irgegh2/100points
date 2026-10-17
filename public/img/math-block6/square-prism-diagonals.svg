@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Диагонали BD1 и AC1 в правильной четырёхугольной призме</title>
+  <desc id="desc">В призме выделены две пространственные диагонали, угол между которыми требуется найти.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M205 338H495L620 243H330L205 338ZM205 338V141H495V338M495 141 620 57V243M205 141 330 57H620M330 57V243" stroke="#9b98bd" stroke-width="5"/>
+    <path d="M495 338 330 57" stroke="#ef5f86" stroke-width="8"/>
+    <path d="M205 338 620 57" stroke="#5b5ce2" stroke-width="8"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" fill="#242238" font-size="22" font-weight="850">
+    <text x="180" y="366">A</text><text x="500" y="368">B</text><text x="630" y="256">C</text><text x="309" y="266">D</text>
+    <text x="174" y="137">A₁</text><text x="505" y="136">B₁</text><text x="630" y="58">C₁</text><text x="304" y="52">D₁</text>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-size="20" font-weight="800">
+    <rect x="550" y="318" width="164" height="48" rx="14" fill="#eeedff"/><text x="632" y="349" fill="#403db9" text-anchor="middle">AC₁ и BD₁</text>
+  </g>
+</svg>

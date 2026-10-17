@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" role="img" aria-labelledby="title desc">
+  <title id="title">Решение третьего неравенства на числовой прямой</title>
+  <desc id="desc">Открытые интервалы от минус 1 до 2 и от 2 до 3</desc>
+  <rect width="720" height="150" rx="22" fill="#f7f5ff"/>
+  <path d="M64 76H660" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M660 76l-16-10m16 10-16 10" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M190 76H390M390 76H540" stroke="#6558e8" stroke-width="12"/>
+  <g fill="#f7f5ff" stroke="#6558e8" stroke-width="5"><circle cx="190" cy="76" r="9"/><circle cx="390" cy="76" r="9"/><circle cx="540" cy="76" r="9"/></g>
+  <g font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#292638" text-anchor="middle">
+    <text x="190" y="119">−1</text><text x="390" y="119">2</text><text x="540" y="119">3</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="22" font-weight="800" fill="#6558e8" text-anchor="middle">
+    <text x="290" y="45">+</text><text x="465" y="45">+</text>
+  </g>
+</svg>

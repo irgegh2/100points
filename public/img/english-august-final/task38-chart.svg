@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" role="img" aria-labelledby="title description">
+  <title id="title">What topics do you discuss at school most often?</title>
+  <desc id="description">Pie chart: popular games and songs 33%, school tasks and grades 26%, fashion and gadgets 19%, relationships with parents and siblings 14%, plans for the future 8%.</desc>
+  <rect width="1200" height="850" rx="30" fill="#fff"/>
+  <text x="600" y="62" fill="#17131f" font-family="Montserrat, Arial, sans-serif" font-size="30" font-weight="800" text-anchor="middle">THE SURVEY QUESTION:</text>
+  <text x="600" y="108" fill="#17131f" font-family="Montserrat, Arial, sans-serif" font-size="34" font-weight="800" text-anchor="middle">What topics do you discuss at school most often?</text>
+
+  <g stroke="#fff" stroke-width="8" stroke-linejoin="round">
+    <path d="M630 405 L469.3 213.5 A250 250 0 0 1 831.3 256.8 Z" fill="#c56af4"/>
+    <path d="M630 405 L831.3 256.8 A250 250 0 0 1 841.9 537.5 Z" fill="#a93de7"/>
+    <path d="M630 405 L841.9 537.5 A250 250 0 0 1 662.9 652.8 Z" fill="#8f2bd0"/>
+    <path d="M630 405 L662.9 652.8 A250 250 0 0 1 468.8 596.2 Z" fill="#d67af7"/>
+    <path d="M630 405 L468.8 596.2 A250 250 0 0 1 469.3 213.5 Z" fill="#b451e9"/>
+  </g>
+
+  <g fill="#fff" font-family="Montserrat, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="middle">
+    <text x="658" y="273">26%</text>
+    <text x="770" y="407">19%</text>
+    <text x="717" y="548">14%</text>
+    <text x="592" y="590">8%</text>
+    <text x="482" y="430">33%</text>
+  </g>
+
+  <g fill="none" stroke="#b44ce7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M658 158 L785 126 H1018"/>
+    <path d="M875 385 L964 332 H1145"/>
+    <path d="M795 600 L900 680 H1140"/>
+    <path d="M565 650 L492 724 H190"/>
+    <path d="M392 390 L306 345 H75"/>
+  </g>
+
+  <g fill="#a736df" font-family="Montserrat, Arial, sans-serif" font-size="27" font-weight="800">
+    <text x="820" y="172" text-anchor="middle">
+      <tspan x="900" dy="0">School tasks</tspan><tspan x="900" dy="32">and grades</tspan>
+    </text>
+    <text x="1150" y="306" text-anchor="end">
+      <tspan x="1150" dy="0">Fashion and gadgets</tspan>
+    </text>
+    <text x="1138" y="622" text-anchor="end">
+      <tspan x="1138" dy="0">Relationships with</tspan><tspan x="1138" dy="32">parents and siblings</tspan>
+    </text>
+    <text x="190" y="684" text-anchor="start">
+      <tspan x="190" dy="0">Plans for the future</tspan>
+    </text>
+    <text x="78" y="281" text-anchor="start">
+      <tspan x="78" dy="0">Popular games</tspan><tspan x="78" dy="32">and songs</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(215 782)">
+    <rect width="770" height="48" rx="24" fill="#f8effd"/>
+    <text x="385" y="32" fill="#76448e" font-family="Montserrat, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">33% · 26% · 19% · 14% · 8% = 100%</text>
+  </g>
+</svg>

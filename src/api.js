@@ -3,27 +3,64 @@
 // на проде — на том же домене, путь /api.
 const BASE = import.meta.env.DEV ? 'http://localhost:8000' : '/api'
 
+// Разделы кабинета размонтируются при переходе по меню. Короткий кэш не даёт
+// повторно ждать тот же PHP/MySQL-запрос при возврате на уже открытую страницу.
+// Любая запись и любое live-обновление сбрасывают кэш немедленно.
+const READ_CACHE_TTL = 30_000
+const readCache = new Map()
+const cacheableRead = (path) => /^\/(?:courses_list|course_get|lesson_get|homeworks_list|homework_get|mock_list|mock_get|library_get|bank_meta|subscription_get|shop_list|achievements_list|daily_get|today_get|profile_get|theme_access|wallet_get)\.php(?:[?]|$)/.test(path)
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('stobalnik:live-content-update', () => readCache.clear())
+}
+
 async function call(path, { method = 'GET', body } = {}) {
-  const res = await fetch(BASE + path, {
-    method,
-    credentials: 'include', // чтобы ходила сессионная кука
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  let payload = {}
-  try { payload = await res.json() } catch { /* пусто */ }
-  // Единый формат ответа: { ok:true, data } | { ok:false, error }.
-  if (!res.ok || payload.ok === false) {
-    throw new Error(payload.error || 'Ошибка запроса')
+  const useCache = method === 'GET' && cacheableRead(path)
+  const now = Date.now()
+  if (useCache) {
+    const cached = readCache.get(path)
+    if (cached && cached.expiresAt > now) return cached.promise
+    if (cached) readCache.delete(path)
+  } else if (method !== 'GET') {
+    readCache.clear()
   }
-  // Возвращаем полезную нагрузку. ?? payload — на случай неперенесённого эндпоинта.
-  return payload.data ?? payload
+
+  const request = (async () => {
+    const res = await fetch(BASE + path, {
+      method,
+      credentials: 'include', // чтобы ходила сессионная кука
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    let payload = {}
+    try { payload = await res.json() } catch { /* пусто */ }
+    // Единый формат ответа: { ok:true, data } | { ok:false, error }.
+    if (!res.ok || payload.ok === false) {
+      const error = new Error(payload.error || 'Ошибка запроса')
+      // Статус нужен интерфейсу, чтобы отличать неверные данные входа
+      // от временной ошибки сети или сервера.
+      error.status = res.status
+      throw error
+    }
+    // Возвращаем полезную нагрузку. ?? payload — на случай неперенесённого эндпоинта.
+    return payload.data ?? payload
+  })()
+
+  if (useCache) readCache.set(path, { promise: request, expiresAt: now + READ_CACHE_TTL })
+  try { return await request }
+  catch (error) {
+    if (useCache) readCache.delete(path)
+    throw error
+  }
 }
 
 // ── Ученик ───────────────────────────────────────────────
 export const login = (login, password) => call('/login.php', { method: 'POST', body: { login, password } })
 export const me = () => call('/me.php')
 export const logout = () => call('/logout.php', { method: 'POST' })
+export const liveContentVersion = () => call(`/live_content_version.php?_=${Date.now()}`)
+export const vkContactStatus = () => call(`/vk_contact_status.php?_=${Date.now()}`)
+export const vkContactSubmit = (url) => call('/vk_contact_submit.php', { method: 'POST', body: { url } })
 
 // ── Профиль ученика ──────────────────────────────────────
 export const profileGet = () => call('/profile_get.php')
@@ -67,6 +104,9 @@ export const coursesList = ({ type, subject } = {}) => {
 }
 export const courseGet = (id) => call(`/course_get.php?id=${id}`)
 export const lessonGet = (id) => call(`/lesson_get.php?id=${id}`)
+export const videoPlay = (id) => call(`/video_play.php?id=${id}`)
+export const videoProgress = (payload) => call('/video_progress.php', { method: 'POST', body: payload })
+export const adminVideoPlay = (id) => call(`/admin_video_play.php?id=${id}`)
 // Отметка «урок пройден» (для фильтра «Скрыть пройденное» в программе курса).
 export const lessonProgressSet = (lessonId, done) => call('/lesson_progress_set.php', { method: 'POST', body: { lesson_id: lessonId, done } })
 export const subscriptionGet = () => call('/subscription_get.php')
@@ -168,10 +208,69 @@ export const dailyGet = () => call('/daily_get.php')
 export const tourStatus = () => call('/tour_status.php')
 export const tourProgress = (step) => call('/tour_progress.php', { method: 'POST', body: { step } })
 export const tourComplete = () => call('/tour_complete.php', { method: 'POST' })
+export const driveTourStatus = () => call('/drive_tour_status.php')
+export const driveTourUpdate = (data) => call('/drive_tour_update.php', { method: 'POST', body: data })
 
 // ── Магазин (Этап 10) ─────────────────────────────────────
 export const shopList = () => call('/shop_list.php')
 export const shopBuy = (itemId, homeworkId = null) => call('/shop_buy.php', { method: 'POST', body: { item_id: itemId, ...(homeworkId ? { homework_id: homeworkId } : {}) } })
+
+// ── Стобалльный диск ───────────────────────────────────────
+export const driveList = ({ parentId = 0, q = '' } = {}) => {
+  const p = new URLSearchParams()
+  if (parentId) p.set('parent_id', parentId)
+  if (q) p.set('q', q)
+  return call('/drive_list.php' + (p.toString() ? `?${p}` : ''))
+}
+export const driveCreateFolder = (name, parentId = 0) => call('/drive_folder_create.php', { method: 'POST', body: { name, parent_id: parentId } })
+export const driveRename = (id, name) => call('/drive_rename.php', { method: 'POST', body: { id, name } })
+export const driveDelete = (id) => call('/drive_delete.php', { method: 'POST', body: { id } })
+const driveProxyUpload = (file, parentId = 0, onProgress) => new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest()
+  xhr.open('POST', BASE + '/drive_upload.php')
+  xhr.withCredentials = true
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+  }
+  xhr.onload = () => {
+    let payload = {}
+    try { payload = JSON.parse(xhr.responseText || '{}') } catch { /* пусто */ }
+    if (xhr.status < 200 || xhr.status >= 300 || payload.ok === false) reject(new Error(payload.error || 'Не удалось загрузить файл'))
+    else resolve(payload.data ?? payload)
+  }
+  xhr.onerror = () => reject(new Error('Соединение прервалось во время загрузки'))
+  const form = new FormData()
+  form.append('file', file)
+  form.append('parent_id', String(parentId || 0))
+  xhr.send(form)
+})
+export const driveUpload = async (file, parentId = 0, onProgress) => {
+  const start = await call('/drive_upload_start.php', {
+    method: 'POST',
+    body: { name: file.name, size: file.size, mime: file.type || 'application/octet-stream', parent_id: parentId },
+  })
+  if (start.mode === 'proxy') return driveProxyUpload(file, parentId, onProgress)
+  const uploadId = start.upload_id
+  try {
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', start.upload_url)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve()
+        else reject(new Error(`Облачное хранилище отклонило загрузку (${xhr.status || 'нет ответа'})`))
+      }
+      xhr.onerror = () => reject(new Error('Соединение с облачным хранилищем прервалось'))
+      xhr.send(file)
+    })
+    return await call('/drive_upload_finish.php', { method: 'POST', body: { id: uploadId } })
+  } catch (error) {
+    try { await call('/drive_upload_abort.php', { method: 'POST', body: { id: uploadId } }) } catch { /* резерв очистится автоматически */ }
+    throw error
+  }
+}
 export const deadlineExtensionOptions = () => call('/deadline_extension_options.php')
 export const purchasesList = () => call('/purchases_list.php')
 export const adminPurchases = (status) => call('/admin_purchases.php' + (status ? `?status=${status}` : ''))
@@ -256,6 +355,14 @@ export const userGet = (id) => call(`/users_get.php?id=${id}`)
 export const userCreate = (payload) => call('/users_create.php', { method: 'POST', body: payload })
 export const userUpdate = (payload) => call('/users_update.php', { method: 'POST', body: payload })
 export const userDelete = (id) => call('/users_delete.php', { method: 'POST', body: { id } })
+export const adminVkContactReview = (payload) => call('/admin_vk_contact_review.php', { method: 'POST', body: payload })
+export const adminStudentAnalytics = (userId, { days = 90, course_id = 0 } = {}) => {
+  const p = new URLSearchParams({ user_id: userId, days })
+  if (course_id) p.set('course_id', course_id)
+  return call(`/admin_student_analytics.php?${p.toString()}`)
+}
+export const adminStudentReportSave = (payload) => call('/admin_student_report_save.php', { method: 'POST', body: payload })
+export const adminImpersonateStart = (userId) => call('/admin_impersonate_start.php', { method: 'POST', body: { user_id: userId } })
 export const adminMockAssignments = (mockId) => call(`/admin_mock_assignments.php?mock_id=${mockId}`)
 export const adminMockAssign = (payload) => call('/admin_mock_assign.php', { method: 'POST', body: payload })
 export const adminMockUnassign = (assignmentId) => call('/admin_mock_unassign.php', { method: 'POST', body: { assignment_id: assignmentId } })
@@ -274,6 +381,39 @@ export const catCreate = (entity, data) => adminCatalog(entity, 'create', data)
 export const catUpdate = (entity, data) => adminCatalog(entity, 'update', data)
 export const catDelete = (entity, id) => adminCatalog(entity, 'delete', { id })
 export const catReorder = (entity, ids) => adminCatalog(entity, 'reorder', { ids })
+// Все уроки курса одним списком — для выбора уроков-условий в «Блокировке» урока.
+export const adminCourseLessons = (courseId) => call(`/admin_course_lessons.php?course_id=${courseId}`)
+export const adminVideos = (filters = {}) => {
+  const q = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => { if (value !== '' && value != null && value !== 0) q.set(key, value) })
+  return call('/admin_videos.php' + (q.size ? `?${q}` : ''))
+}
+export const adminVideoRuntime = () => call('/admin_video_runtime.php')
+export const adminVideoUploadStart = (payload) => call('/admin_video_upload_start.php', { method: 'POST', body: payload })
+export const adminVideoUploadFinish = (videoId) => call('/admin_video_upload_finish.php', { method: 'POST', body: { video_id: videoId } })
+export const adminVideoUpdate = (payload) => call('/admin_video_update.php', { method: 'POST', body: payload })
+export const adminVideoDelete = (videoId) => call('/admin_video_delete.php', { method: 'POST', body: { video_id: videoId } })
+export async function adminVideoPosterUpload(videoId, file) {
+  const fd = new FormData(); fd.append('video_id', videoId); fd.append('poster', file)
+  const res = await fetch(BASE + '/admin_video_poster_upload.php', { method: 'POST', credentials: 'include', body: fd })
+  let payload = {}; try { payload = await res.json() } catch { /* пусто */ }
+  if (!res.ok || payload.ok === false) throw new Error(payload.error || 'Не удалось загрузить обложку')
+  return payload.data ?? payload
+}
+export function directPutWithProgress(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', url, true)
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(Math.round(e.loaded / e.total * 100), e.loaded, e.total) }
+    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 отклонил загрузку (${xhr.status})`))
+    xhr.onerror = () => reject(new Error('Соединение с S3 прервалось'))
+    xhr.onabort = () => reject(new Error('Загрузка отменена'))
+    xhr.send(file)
+  })
+}
+// Дублирование/перемещение уроков и выборочное копирование их данных.
+export const adminLessonToolsCatalog = () => call('/admin_lesson_tools.php')
+export const adminLessonToolRun = (payload) => call('/admin_lesson_tools.php', { method: 'POST', body: payload })
 // Вопросы банка предмета + состав варианта (для модалки «Вопросы варианта»).
 export const adminBankQuestions = (subjectId, variantId) =>
   call(`/admin_bank_questions.php?subject_id=${subjectId}${variantId ? `&variant_id=${variantId}` : ''}`)
@@ -300,6 +440,31 @@ export async function adminReviewImageUpload(file) {
 export const adminAccessGet = (userId) => call(`/admin_access_get.php?user_id=${userId}`)
 export const adminSubscriptionSet = (payload) => call('/admin_subscription_set.php', { method: 'POST', body: payload })
 export const adminEnroll = (payload) => call('/admin_enroll.php', { method: 'POST', body: payload })
+
+// Загрузка фото в галерею-расписание месяца (multipart). Возвращает строку month_photos.
+export async function monthPhotoUpload(monthId, file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('month_id', monthId)
+  const res = await fetch(BASE + '/admin_month_photo_upload.php', { method: 'POST', credentials: 'include', body: fd })
+  let payload = {}
+  try { payload = await res.json() } catch { /* пусто */ }
+  if (!res.ok || payload.ok === false) throw new Error(payload.error || 'Не удалось загрузить фото')
+  return payload.data ?? payload
+}
+
+// Загрузка вложения к вопросу ДЗ/пробника (multipart). kind: 'image' | 'audio' | 'file'.
+export async function questionAttachmentUpload(questionId, kind, file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('question_id', questionId)
+  fd.append('kind', kind)
+  const res = await fetch(BASE + '/admin_question_attachment_upload.php', { method: 'POST', credentials: 'include', body: fd })
+  let payload = {}
+  try { payload = await res.json() } catch { /* пусто */ }
+  if (!res.ok || payload.ok === false) throw new Error(payload.error || 'Не удалось загрузить файл')
+  return payload.data ?? payload
+}
 
 // Загрузка файла-материала к уроку (multipart). Возвращает созданную строку materials.
 export async function materialUpload(lessonId, file, name) {

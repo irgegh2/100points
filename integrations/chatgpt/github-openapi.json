@@ -1,0 +1,250 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "100points — GitHub",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.github.com"
+    }
+  ],
+  "security": [
+    {
+      "githubToken": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "githubToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "paths": {
+    "/repos/irgegh2/100points/git/ref/heads/main": {
+      "get": {
+        "operationId": "getMainRef",
+        "summary": "Получить свежий SHA main перед созданием рабочей ветки",
+        "responses": {
+          "200": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/irgegh2/100points/git/refs": {
+      "post": {
+        "operationId": "createWorkBranch",
+        "summary": "Создать ветку codex/... от свежего SHA main",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ref",
+                  "sha"
+                ],
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "description": "refs/heads/codex/описание-задачи"
+                  },
+                  "sha": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    },
+    "/repos/irgegh2/100points/contents/{path}": {
+      "get": {
+        "operationId": "readRepoFile",
+        "summary": "Прочитать актуальный файл репозитория и его sha",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Путь внутри репозитория. Сначала прочитай текущий файл и его sha."
+          },
+          {
+            "name": "ref",
+            "in": "query",
+            "required": false,
+            "description": "Ветка или SHA, по умолчанию main",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "commitRepoFile",
+        "summary": "Создать или обновить файл в рабочей ветке",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Путь внутри репозитория. Сначала прочитай текущий файл и его sha."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message",
+                  "content",
+                  "branch"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Полное содержимое файла в base64 UTF-8."
+                  },
+                  "sha": {
+                    "type": "string",
+                    "description": "Текущий sha из GET, обязателен для изменения существующего файла."
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "Рабочая ветка codex/..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    },
+    "/repos/irgegh2/100points/pulls": {
+      "post": {
+        "operationId": "openPullRequest",
+        "summary": "Создать pull request рабочей ветки в main",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "head",
+                  "base",
+                  "body"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "head": {
+                    "type": "string"
+                  },
+                  "base": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "GitHub result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": true
+      }
+    }
+  }
+}

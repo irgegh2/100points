@@ -1,0 +1,536 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "100points — каталог и домашние задания",
+    "version": "1.0.0",
+    "description": "Личный административный GPT: актуальный учебный каталог, уроки, задания, ответы и решения. Создание новых ДЗ и заполнение пустых. Без пользовательских данных и произвольного SQL/shell."
+  },
+  "servers": [
+    {
+      "url": "https://100-points.ru/api"
+    }
+  ],
+  "security": [
+    {
+      "integrationKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "integrationKey": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "paths": {
+    "/gpt_catalog.php": {
+      "get": {
+        "operationId": "findLessons",
+        "summary": "Читать каталог и искать уроки по предмету, дню и датам",
+        "description": "Возвращает справочники предметов, курсов, периодов, разделов и страницу уроков. Для полного каталога перебирай next_after_id до null. today и timezone задают текущую дату. Не считай первую страницу полной базой.",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": false,
+            "description": "Предмет из subjects.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "course_id",
+            "in": "query",
+            "required": false,
+            "description": "Конкретный курс из courses.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "period_id",
+            "in": "query",
+            "required": false,
+            "description": "Период курса из periods.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "description": "Дата эфира от YYYY-MM-DD включительно.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "description": "Дата эфира до YYYY-MM-DD включительно.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "description": "День месяца 1–31: найти все занятия 13 числа, даже если месяц пока неизвестен.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Часть названия урока, курса или предмета.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "description": "Следующая страница: значение next_after_id предыдущего ответа. Сохраняй остальные фильтры.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Число уроков 1–100; по умолчанию 50.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Результат запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный ключ интеграции"
+          },
+          "409": {
+            "description": "Конфликт: перечитай данные или создай отдельную домашку"
+          }
+        }
+      }
+    },
+    "/gpt_lesson.php": {
+      "get": {
+        "operationId": "getLesson",
+        "summary": "Прочитать урок, его материалы и список домашних",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "ID урока из findLessons.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Результат запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный ключ интеграции"
+          },
+          "409": {
+            "description": "Конфликт: перечитай данные или создай отдельную домашку"
+          }
+        }
+      }
+    },
+    "/gpt_homework.php": {
+      "get": {
+        "operationId": "getHomework",
+        "summary": "Прочитать все задания, правильные ответы, решения и revision домашки",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "ID домашки из getLesson.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Результат запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный ключ интеграции"
+          },
+          "409": {
+            "description": "Конфликт: перечитай данные или создай отдельную домашку"
+          }
+        }
+      },
+      "post": {
+        "operationId": "saveHomework",
+        "summary": "Создать домашку с решениями или заполнить существующую пустую",
+        "description": "Вызывай по просьбе пользователя создать/загрузить ДЗ. Сначала найди точный урок и прочитай его ДЗ. Существующие непустые ДЗ не переписываются. Повтор одинакового запроса не создаёт дубликат. Для изменения пустой ДЗ передай homework_id и свежую expected_revision.",
+        "x-openai-isConsequential": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "lesson_id",
+                  "title",
+                  "level",
+                  "questions"
+                ],
+                "properties": {
+                  "lesson_id": {
+                    "type": "integer",
+                    "description": "Реальный ID, полученный из каталога."
+                  },
+                  "homework_id": {
+                    "type": "integer",
+                    "description": "Только для заполнения существующей пустой домашки."
+                  },
+                  "expected_revision": {
+                    "type": "string",
+                    "description": "Свежая revision из getHomework. Обязательна для изменения существующей пустой домашки."
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "normal",
+                      "medium",
+                      "hard"
+                    ]
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "description": "Пусто либо YYYY-MM-DD HH:MM:SS по Москве."
+                  },
+                  "dry_run": {
+                    "type": "boolean",
+                    "description": "true возвращает предпросмотр без сохранения."
+                  },
+                  "questions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "text",
+                        "solution",
+                        "points"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "single",
+                            "multi",
+                            "text",
+                            "textarea",
+                            "file",
+                            "audio"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Условие. Markdown и LaTeX поддерживаются."
+                        },
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Для single/multi — варианты; для остальных опусти."
+                        },
+                        "correct": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "description": "single/multi: индексы с нуля; text: допустимые строки. Для ручной проверки опусти."
+                        },
+                        "solution": {
+                          "type": "string",
+                          "description": "Полное решение/критерии из предоставленного пользователем материала."
+                        },
+                        "hint": {
+                          "type": "string"
+                        },
+                        "points": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "optional": {
+                          "type": "boolean"
+                        },
+                        "hard": {
+                          "type": "boolean"
+                        },
+                        "case_sensitive": {
+                          "type": "boolean"
+                        },
+                        "grade_mode": {
+                          "type": "string",
+                          "enum": [
+                            "full",
+                            "partial"
+                          ]
+                        },
+                        "file_limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "attachments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "kind",
+                              "name",
+                              "url"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "image",
+                                  "audio",
+                                  "file",
+                                  "video"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string",
+                                "description": "Уже загруженный файл /img/, /uploads/ или /api/file.php?path=questions/... на 100-points.ru, либо https://kinescope.io/embed/ID. Новые файлы этим действием не загружаются."
+                              },
+                              "size": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "maxItems": 30
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Результат запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный ключ интеграции"
+          },
+          "409": {
+            "description": "Конфликт: перечитай данные или создай отдельную домашку"
+          },
+          "201": {
+            "description": "Домашка создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gpt_content.php": {
+      "get": {
+        "operationId": "readLearningContent",
+        "summary": "Прочитать все учебные сущности, включая банк заданий, ответы и решения",
+        "description": "Без entity вернёт белый список сущностей и полей. С entity читай страницы до next_after_id=null. Данные учеников и серверные настройки недоступны.",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Имя из списка entities; сначала можно опустить."
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Курсор next_after_id предыдущей страницы."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Размер страницы 1–100, по умолчанию 25. Для длинных решений используй 5–10."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Результат запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный ключ интеграции"
+          },
+          "409": {
+            "description": "Конфликт: перечитай данные или создай отдельную домашку"
+          }
+        }
+      }
+    }
+  }
+}

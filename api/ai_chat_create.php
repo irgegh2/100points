@@ -14,7 +14,7 @@ $kind = in_array($in['kind'] ?? '', ['free', 'subject', 'platform', 'task'], tru
 $taskId = (int)($in['task_id'] ?? 0);
 $subject = trim((string)($in['subject'] ?? ''));
 
-$model = AI_DEFAULT_MODEL;
+$model = ai_active_model();
 
 // Общая «легенда» (кто ты + не раскрывать модель) — добавляется ко всем типам.
 $persona = 'Ты — дружелюбный ИИ-помощник образовательной платформы «100балльный репетитор». Пиши по-русски, '
@@ -26,13 +26,12 @@ $persona = 'Ты — дружелюбный ИИ-помощник образов
 
 if ($kind === 'task') {
   if ($taskId <= 0) fail('Не указана задача', 400);
-  $st = db()->prepare("SELECT t.subject_id, t.text, t.answer, t.solution, t.model FROM trainer_tasks t WHERE t.id = ? LIMIT 1");
+  $st = db()->prepare("SELECT t.subject_id, t.text, t.answer, t.solution FROM trainer_tasks t WHERE t.id = ? LIMIT 1");
   $st->execute([$taskId]);
   $task = $st->fetch();
   if (!$task) fail('Задача не найдена', 404);
   $allowed = array_column(user_accessible_subjects($uid), 'id');
   if (!in_array((int)$task['subject_id'], $allowed, true)) fail('Нет доступа', 403);
-  if ($task['model']) $model = $task['model'];
   $title = 'Разбор задачи';
   $greeting = 'Давай разберём эту задачу вместе! Что именно вызывает затруднение — с чего начать или где застрял?';
   $system = $persona . "\n\nЭтот чат — для разбора КОНКРЕТНОЙ задачи. Вот она:\nЗАДАЧА: {$task['text']}\nПРАВИЛЬНЫЙ ОТВЕТ: {$task['answer']}"

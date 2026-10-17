@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Minus, Plus, Star, Lock, Sparkles } from 'lucide-react'
 import { profileGet, profileSave, avatarUpload, avatarPreset, AVATAR_PRESETS } from '../api.js'
+import { pluralRu } from '../ruPlural.js'
 
 // рекомендуемое число часов в неделю под желаемый балл (40→3ч … 100→12ч)
 const recHours = (score) => Math.round(3 + ((score - 40) / 60) * 9)
@@ -215,7 +216,7 @@ export default function Profile({ user, onBack, onSaved, avatarFrame = false, ni
                 <div className="profile__slider">
                   <div className="profile__slider-fill" style={{ width: `${((cur.score - 40) / 60) * 100}%`, background: `${active.color}33` }} />
                   <div className="profile__slider-thumb" style={{ left: `${((cur.score - 40) / 60) * 100}%`, background: active.color }} />
-                  <span className="profile__slider-val">{cur.score} <small>баллов</small></span>
+                  <span className="profile__slider-val">{cur.score} <small>{pluralRu(cur.score, 'балл', 'балла', 'баллов')}</small></span>
                   <input type="range" min="40" max="100" value={cur.score} onChange={(e) => changeScore(+e.target.value)} />
                 </div>
               </div>

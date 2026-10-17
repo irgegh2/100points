@@ -24,7 +24,7 @@ if ($mock['format'] === 'proctored') {
   ok(['locked' => 'proctored', 'assignment_id' => (int)$assignment['id'], 'homework' => ['id' => (int)$mock['id'], 'level' => 'normal', 'title' => $mock['title'], 'deadline' => $mock['month'], 'subject' => $mock['subject']]]);
 }
 
-$qs = db()->prepare("SELECT id, type, text, options, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
+$qs = db()->prepare("SELECT id, type, text, options, hint, points, optional, hard, COALESCE(file_limit,1) AS file_limit FROM questions WHERE mock_id = ? ORDER BY position, id");
 $qs->execute([$id]);
 $questions = [];
 foreach ($qs as $q) {
@@ -33,6 +33,11 @@ foreach ($qs as $q) {
     'type'     => $q['type'],
     'text'     => $q['text'],
     'options'  => $q['options'] !== null ? json_decode($q['options'], true) : null,
+    'hint'     => trim((string)($q['hint'] ?? '')) !== '' ? $q['hint'] : null,
+    'images'   => [],
+    'audio'    => [],
+    'videos'   => [],
+    'files'    => [],
     'points'   => (int)$q['points'],
     'optional' => (int)$q['optional'] === 1,
     'hard'     => (int)$q['hard'] === 1,
@@ -40,7 +45,24 @@ foreach ($qs as $q) {
   ];
 }
 
-$sub = db()->prepare("SELECT status, score, max_score FROM submissions WHERE mock_id = ? AND user_id = ? LIMIT 1");
+
+// Вложения вопросов: картинки (над текстом), аудио (плеер) и файлы (под текстом).
+if ($questions) {
+  $byId = [];
+  foreach ($questions as $i => $q) $byId[$q['id']] = $i;
+  $ph = implode(',', array_fill(0, count($byId), '?'));
+  $at = db()->prepare("SELECT question_id, kind, name, size, url FROM question_attachments WHERE question_id IN ($ph) ORDER BY position, id");
+  $at->execute(array_keys($byId));
+  foreach ($at as $a) {
+    $qi = $byId[(int)$a['question_id']];
+    if ($a['kind'] === 'image') $questions[$qi]['images'][] = $a['url'];
+    elseif ($a['kind'] === 'audio') $questions[$qi]['audio'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+    elseif ($a['kind'] === 'video') $questions[$qi]['videos'][] = ['url' => $a['url']];
+    else $questions[$qi]['files'][] = ['name' => $a['name'], 'size' => $a['size'], 'url' => $a['url']];
+  }
+}
+
+$sub = db()->prepare("SELECT status, score, max_score FROM submissions WHERE mock_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1");
 $sub->execute([$id, $uid]);
 $s = $sub->fetch();
 

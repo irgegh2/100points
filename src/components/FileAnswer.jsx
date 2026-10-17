@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, Paperclip, Trash2, UploadCloud } from 'lucide-react'
 import { answerFileDelete, answerFilePending, answerFileUpload } from '../api.js'
+import { countRu } from '../ruPlural.js'
 
 const sizeText = (bytes = 0) => bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`
 
@@ -26,7 +27,7 @@ export default function FileAnswer({ questionId, limit = 1, value, onChange, ass
     event.target.value = ''
     if (!selected.length) return
     const remaining = exact - files.length
-    if (selected.length > remaining) return setError(`Можно добавить ещё ${remaining} файл(а)`)
+    if (selected.length > remaining) return setError(`Можно добавить ещё ${countRu(remaining, 'файл', 'файла', 'файлов')}`)
     setBusy(true); setError('')
     let next = files
     try {
@@ -50,8 +51,8 @@ export default function FileAnswer({ questionId, limit = 1, value, onChange, ass
   return (
     <div className="file-answer">
       <div className="file-answer__intro">
-        <div><Paperclip size={17} /><b>Приложи ровно {exact} файл(а)</b></div>
-        <span>{files.length}/{exact} · каждый до 20 МБ</span>
+        <div><Paperclip size={17} /><b>Приложи ровно {countRu(exact, 'файл', 'файла', 'файлов')}</b></div>
+        <span>{files.length}/{exact} · каждый до 500 МБ</span>
       </div>
       {files.length > 0 && <div className="file-answer__list">{files.map((file) => (
         <div className="file-answer__file" key={file.id}>

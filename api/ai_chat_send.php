@@ -11,7 +11,7 @@ $content = trim((string)($in['content'] ?? ''));
 if ($chatId <= 0) fail('Не указан чат', 400);
 if ($content === '') fail('Пустое сообщение', 400);
 
-$c = db()->prepare("SELECT id, user_id, model FROM ai_chats WHERE id = ? LIMIT 1");
+$c = db()->prepare("SELECT id, user_id FROM ai_chats WHERE id = ? LIMIT 1");
 $c->execute([$chatId]);
 $chat = $c->fetch();
 if (!$chat || (int)$chat['user_id'] !== $uid) fail('Чат не найден', 404);
@@ -31,7 +31,7 @@ foreach ($all as $m) {
 $dialog = array_slice($dialog, -40);
 $messages = $system !== null ? array_merge([['role' => 'system', 'content' => $system]], $dialog) : $dialog;
 
-$ai = ai_complete((string)$chat['model'], $messages, ['temperature' => 0.6]);
+$ai = ai_complete('', $messages, ['temperature' => 0.6]);
 if (!$ai['ok']) fail('ИИ не ответил: ' . ($ai['error'] ?? ''), 502);
 
 $reply = $ai['content'];

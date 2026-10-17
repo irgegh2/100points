@@ -3,6 +3,8 @@
 require __DIR__ . '/bootstrap.php';
 $uid = require_user();
 release_session();
+require_once __DIR__ . '/gamify.php';
+g_sync_achievements($uid);
 
 $rows = db()->query("SELECT id, code, title, description, icon, reward, target, position FROM achievements ORDER BY position, id")->fetchAll();
 $up = db()->prepare("SELECT achievement_id, progress, unlocked_at FROM user_achievements WHERE user_id = ?");

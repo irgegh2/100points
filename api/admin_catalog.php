@@ -15,14 +15,20 @@ release_session(); // ни одно действие каталога не пи�
 $SCHEMA = [
   'subjects'  => ['fields' => ['name','slug','color','icon','show_features','position'],
                   'parent' => null,         'children' => [['courses','subject_id']]],
-  'courses'   => ['fields' => ['subject_id','title','type','color','cover','price','position'],
+  'courses'   => ['fields' => ['subject_id','title','type','color','cover','price','teacher_channel_url','position'],
                   'parent' => 'subject_id', 'children' => [['months','course_id']]],
-  'months'    => ['fields' => ['course_id','name','position'],
-                  'parent' => 'course_id',  'children' => [['blocks','month_id']]],
+  'months'    => ['fields' => ['course_id','name','kind','starts_on','ends_on','gallery_label','position'],
+                  'parent' => 'course_id',  'children' => [['blocks','month_id'],['month_photos','month_id']]],
+  // Фото-расписание месяца (создание — через admin_month_photo_upload.php).
+  'month_photos' => ['fields' => ['month_id','url','position'],
+                  'parent' => 'month_id',   'children' => []],
   'blocks'    => ['fields' => ['course_id','month_id','n','title','position'],
                   'parent' => 'month_id',   'children' => [['lessons','block_id']]],
-  'lessons'   => ['fields' => ['block_id','type','title','meta','kinescope_id','air','air_at','duration','locked_hint','position'],
-                  'parent' => 'block_id',   'children' => [['materials','lesson_id'],['timecodes','lesson_id']]],
+  'lessons'   => ['fields' => ['block_id','parent_lesson_id','type','title','meta','kinescope_id','video_source','video_id','video_url','air','air_at','duration','locked_hint','description','opens_at','restream_url','restream_duration','position'],
+                  'parent' => 'block_id',   'children' => [['lessons','parent_lesson_id'],['materials','lesson_id'],['timecodes','lesson_id'],['lesson_prereqs','lesson_id'],['lesson_prereqs','required_lesson_id']]],
+  // Блокировка урока: какие уроки нужно пройти, чтобы он открылся.
+  'lesson_prereqs' => ['fields' => ['lesson_id','required_lesson_id','position'],
+                  'parent' => 'lesson_id',  'children' => []],
   'materials' => ['fields' => ['lesson_id','name','size','url','kind','position'],
                   'parent' => 'lesson_id',  'children' => []],
   'timecodes' => ['fields' => ['lesson_id','t','label','position'],
@@ -33,8 +39,12 @@ $SCHEMA = [
   // ДЗ и вопросы (Этап 4). options/correct — JSON-строки (фронт кодирует).
   'homeworks' => ['fields' => ['lesson_id','level','title','deadline','position'],
                   'parent' => 'lesson_id',  'children' => [['questions','homework_id']]],
-  'questions' => ['fields' => ['homework_id','mock_id','subtopic_id','difficulty','type','text','options','correct','solution','points','optional','hard','case_sensitive','grade_mode','file_limit','position'],
-                  'parent' => 'homework_id','children' => []],
+  'questions' => ['fields' => ['homework_id','mock_id','subtopic_id','difficulty','type','text','options','correct','solution','hint','points','optional','hard','case_sensitive','grade_mode','file_limit','position'],
+                  'parent' => 'homework_id','children' => [['question_attachments','question_id']]],
+  // Вложения вопроса: image | audio | video (Kinescope) | file.
+  // Файлы создаются через upload-эндпоинт, Kinescope-видео — здесь по ссылке.
+  'question_attachments' => ['fields' => ['question_id','kind','name','size','url','position'],
+                  'parent' => 'question_id','children' => []],
   // Пробники (Этап 6). Привязаны к курсу. month — метка месяца («Март», «Март 2», «Март Про»).
   'mock_exams'=> ['fields' => ['course_id','month','title','format','access_mode','position'],
                   'parent' => 'course_id','children' => [['questions','mock_id'],['mock_assignments','mock_id']]],
@@ -56,11 +66,11 @@ $SCHEMA = [
   // Состав варианта-пробника: связи вариант↔вопрос банка (с порядком).
   'variant_questions' => ['fields' => ['variant_id','question_id','position'],
                   'parent' => 'variant_id','children' => []],
-  // Задачи ИИ-тренажёра (Этап 8). level — сложность, answer — эталон, model — какая модель разбирает.
-  'trainer_tasks' => ['fields' => ['subject_id','level','text','answer','solution','model','position'],
+  // Задачи ИИ-тренажёра. Модель единая для всей платформы и меняется в настройках.
+  'trainer_tasks' => ['fields' => ['subject_id','level','text','answer','solution','position'],
                   'parent' => 'subject_id','children' => []],
   // Темы-пулы для режима «Вопрос-ответ» (ИИ генерирует вопросы по теме).
-  'trainer_qa_topics' => ['fields' => ['subject_id','level','name','examples','model','position'],
+  'trainer_qa_topics' => ['fields' => ['subject_id','level','name','examples','position'],
                   'parent' => 'subject_id','children' => []],
   // База знаний техподдержки (для ИИ-чата «Помощь по платформе»).
   'help_categories' => ['fields' => ['name','position'],
@@ -82,7 +92,9 @@ $SCHEMA = [
 ];
 
 // Целочисленные поля — приводим к int (или null), чтобы в БД не падал мусор.
-$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','homework_id','mock_id','assignment_id','user_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','duration','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','file_limit','level','show_features','once_only','active','reward','target'];
+// ВАЖНО: 'level' здесь быть НЕ должно — у homeworks это строка ('normal'|'medium'|'hard'),
+// int-каст превращал её в 0 при любом сохранении ДЗ (числовой level тренажёра БД приведёт сама).
+$INT_FIELDS = ['subject_id','course_id','month_id','block_id','lesson_id','parent_lesson_id','video_id','homework_id','mock_id','assignment_id','user_id','subtopic_id','topic_id','source_id','variant_id','question_id','category_id','price','position','duration','restream_duration','n','number','error_rate','difficulty','points','optional','hard','hard_access','case_sensitive','file_limit','show_features','once_only','active','reward','target'];
 
 $in = body();
 $entity = (string)($in['entity'] ?? '');
@@ -103,6 +115,67 @@ function pick_fields(array $data, array $allowed, array $intFields): array {
     $cols[] = $f; $vals[] = $v;
   }
   return [$cols, $vals];
+}
+
+// Поле kinescope_id принимает и ссылку, и embed-код целиком — храним только чистый id ролика.
+if ($entity === 'lessons' && isset($data['kinescope_id']) && is_string($data['kinescope_id'])
+    && preg_match('~kinescope\.io/(?:embed/)?([\w-]+)~', $data['kinescope_id'], $m)) {
+  $data['kinescope_id'] = $m[1];
+}
+
+// Вложенные занятия допускаются только на один уровень и наследуют блок родителя.
+// Проверка на сервере обязательна: интерфейс не должен быть единственным ограничителем.
+if ($entity === 'lessons' && in_array($action, ['create', 'update'], true)
+    && array_key_exists('parent_lesson_id', $data) && (int)($data['parent_lesson_id'] ?? 0) > 0) {
+  $parentId = (int)$data['parent_lesson_id'];
+  $parentSt = db()->prepare('SELECT id,block_id,parent_lesson_id FROM lessons WHERE id=? LIMIT 1');
+  $parentSt->execute([$parentId]);
+  $parent = $parentSt->fetch();
+  if (!$parent || !empty($parent['parent_lesson_id'])) fail('Нельзя вкладывать занятие глубже одного уровня', 400);
+  if ($action === 'update' && (int)($data['id'] ?? 0) === $parentId) fail('Урок не может быть вложен сам в себя', 400);
+  $data['block_id'] = (int)$parent['block_id'];
+  if ($action === 'create') {
+    $countSt = db()->prepare('SELECT COUNT(*) FROM lessons WHERE parent_lesson_id=?');
+    $countSt->execute([$parentId]);
+    if ((int)$countSt->fetchColumn() >= 10) fail('В одном уроке может быть не больше 10 занятий', 400);
+  }
+}
+
+// Внешние ссылки из админки выводятся ученику как href. Разрешаем только
+// обычные http(s)-адреса, чтобы javascript:/data: не попали в интерфейс.
+foreach (['teacher_channel_url', 'restream_url', 'video_url'] as $urlField) {
+  if (!array_key_exists($urlField, $data)) continue;
+  $url = trim((string)$data[$urlField]);
+  if ($url !== '' && (!filter_var($url, FILTER_VALIDATE_URL) || !in_array(strtolower((string)parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true))) {
+    fail('Нужна полная ссылка, начинающаяся с http:// или https://', 400);
+  }
+  $data[$urlField] = $url;
+}
+if (array_key_exists('restream_duration', $data)) {
+  $minutes = (int)$data['restream_duration'];
+  if ($minutes < 1 || $minutes > 1440) fail('Длительность Restream должна быть от 1 до 1440 минут', 400);
+  $data['restream_duration'] = $minutes;
+}
+
+// Видеовложение принимает только Kinescope. Не позволяем админской форме
+// превратить его в произвольный iframe или внешний трекер.
+if ($entity === 'question_attachments' && in_array($action, ['create', 'update'], true)) {
+  $kind = trim((string)($data['kind'] ?? ''));
+  if ($action === 'create' && $kind !== 'video') {
+    fail('Картинки, аудио и файлы добавляются через загрузку файла', 400);
+  }
+  if ($kind === 'video' || ($action === 'update' && array_key_exists('url', $data))) {
+    $source = trim((string)($data['url'] ?? ''));
+    if (!preg_match('~(?:player\.)?kinescope\.io/(?:embed/)?([\w-]+)~i', $source, $m)
+        && !preg_match('/^[\w-]{8,}$/', $source, $m)) {
+      fail('Нужна ссылка на видео Kinescope', 400);
+    }
+    $id = isset($m[1]) ? $m[1] : $m[0];
+    $data['kind'] = 'video';
+    $data['url'] = 'https://kinescope.io/embed/' . $id;
+    $data['name'] = 'Видео к заданию';
+    $data['size'] = 'Kinescope';
+  }
 }
 
 if ($action === 'list') {

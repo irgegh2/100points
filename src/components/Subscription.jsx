@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, Crown } from 'lucide-react'
 import { subscriptionGet } from '../api.js'
+import { useLiveRefresh } from '../liveUpdates.js'
 
 const fmt = (n) => (n ?? 0).toLocaleString('ru-RU')
 // YYYY-MM-DD → ДД.ММ.ГГГГ (по-русски). Если формат иной — отдаём как есть.
@@ -20,13 +21,15 @@ export default function Subscription() {
     setNotice(`Онлайн-оплата тарифа «${p.name}» временно недоступна. Попробуйте позже.`)
   }
 
-  useEffect(() => {
+  const reload = () => {
     let alive = true
     subscriptionGet()
       .then((d) => { if (alive) { setPlans(d.plans || []); setCurrent(d.current || null); setLoading(false) } })
       .catch((e) => { if (alive) { setError(e.message); setLoading(false) } })
     return () => { alive = false }
-  }, [])
+  }
+  useEffect(() => reload(), [])
+  useLiveRefresh(reload)
 
   if (loading) return <div className="subs"><div className="courses-lk__empty">Загружаем тарифы…</div></div>
   if (error) return <div className="subs"><div className="courses-lk__empty">Не удалось загрузить: {error}</div></div>

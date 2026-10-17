@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 330" role="img" aria-labelledby="title desc">
+  <title id="title">Разбиение исходов по количеству пассажиров</title>
+  <desc id="desc">Три прямоугольных сегмента: меньше 7 пассажиров, от 7 до 12 и не меньше 13.</desc>
+  <defs>
+    <linearGradient id="focus" x1="0" x2="1">
+      <stop offset="0" stop-color="#6764e8"/>
+      <stop offset="1" stop-color="#4f66dd"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="916" height="326" rx="24" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <text x="54" y="54" fill="#242238" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="800">Разобьём все исходы на три части</text>
+
+  <path d="M72 100V83H692V100" fill="none" stroke="#5653ce" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="382" y="75" fill="#4d4ac4" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="800" text-anchor="middle">P(X &lt; 13) = 0,97</text>
+
+  <g font-family="Inter,Arial,sans-serif">
+    <path d="M72 116H386V224H72Q58 224 58 210V130Q58 116 72 116Z" fill="#e8e8f1"/>
+    <rect x="386" y="116" width="306" height="108" fill="url(#focus)"/>
+    <path d="M692 116H848Q862 116 862 130V210Q862 224 848 224H692Z" fill="#e8e8f1"/>
+
+    <text x="222" y="158" fill="#44445b" font-size="22" font-weight="700" text-anchor="middle">меньше 7</text>
+    <text x="222" y="197" fill="#242238" font-size="28" font-weight="900" text-anchor="middle">0,95</text>
+
+    <text x="539" y="156" fill="white" font-size="22" font-weight="800" text-anchor="middle">от 7 до 12</text>
+    <text x="539" y="195" fill="white" font-size="29" font-weight="900" text-anchor="middle">0,02</text>
+
+    <text x="777" y="158" fill="#44445b" font-size="22" font-weight="700" text-anchor="middle">13 и больше</text>
+    <text x="777" y="197" fill="#242238" font-size="28" font-weight="900" text-anchor="middle">0,03</text>
+  </g>
+
+  <rect x="251" y="250" width="418" height="52" rx="16" fill="#eeedff"/>
+  <text x="460" y="284" fill="#403db9" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="850" text-anchor="middle">0,97 − 0,95 = 0,02</text>
+  <text x="850" y="306" fill="#85859a" font-family="Inter,Arial,sans-serif" font-size="15" text-anchor="end">схема не в масштабе</text>
+</svg>

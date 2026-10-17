@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronRight } from 'lucide-react'
 import { catList, catCreate, catDelete } from '../../api.js'
 import AdminCourseEditor from './AdminCourseEditor.jsx'
 import { useDangerConfirm } from './DangerConfirm.jsx'
+import { readHash, writeHash } from '../../hashNav.js'
 
 export const COURSE_TYPES = ['Вводные', 'Основные', 'Летняя школа', 'Профориентация']
 
@@ -13,7 +14,12 @@ export default function AdminCourses() {
   const [form, setForm] = useState({ subject_id: '', title: '', type: 'Вводные', color: '#3f9bff' })
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [openId, setOpenId] = useState(null)
+  // Открытый в редакторе курс живёт в хеше (#courses/11) — F5 возвращает в редактор.
+  const [openId, setOpenId] = useState(() => {
+    const [sec, id] = readHash()
+    return sec === 'courses' && Number(id) ? Number(id) : null
+  })
+  useEffect(() => { writeHash(openId ? ['courses', openId] : ['courses']) }, [openId])
 
   const load = async () => {
     const [s, c] = await Promise.all([catList('subjects'), catList('courses')])
@@ -41,7 +47,7 @@ export default function AdminCourses() {
   }
 
   const remove = async (c) => {
-    if (!await confirmDelete({ title: 'Удалить курс?', target: `Курс «${c.title}»`, consequence: 'Будут удалены месяцы, блоки, уроки, ДЗ, вопросы, пробники, сдачи и доступы учеников к этому курсу.' })) return
+    if (!await confirmDelete({ title: 'Удалить курс?', target: `Курс «${c.title}»`, consequence: 'Будут удалены периоды, разделы, уроки, ДЗ, вопросы, пробники, сдачи и доступы учеников к этому курсу.' })) return
     try { await catDelete('courses', c.id); await load() }
     catch (err) { alert(err.message) }
   }

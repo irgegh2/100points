@@ -7,7 +7,7 @@ if ($qid <= 0) fail('Не указан вопрос', 400);
 $st = db()->prepare(
   "SELECT au.id, au.url, au.original_name, au.size, au.mime
    FROM answer_uploads au JOIN questions q ON q.id = au.question_id
-   WHERE au.user_id = ? AND au.question_id = ? AND au.submission_id IS NULL AND q.type = 'file'
+   WHERE au.user_id = ? AND au.question_id = ? AND au.submission_id IS NULL AND q.type IN ('file','audio')
    ORDER BY au.id"
 );
 $st->execute([$uid, $qid]);

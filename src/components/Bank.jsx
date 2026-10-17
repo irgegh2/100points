@@ -3,6 +3,8 @@ import { ChevronDown, ChevronRight, Minus, Plus, Printer, Check, X, ListChecks }
 import { bankMeta, bankSession, bankSolved } from '../api.js'
 import { printQuestions } from '../printQuestions.js'
 import BankTrainer from './BankTrainer.jsx'
+import { canonicalTextAnswer } from '../answerDisplay.js'
+import { useLiveRefresh } from '../liveUpdates.js'
 
 const COUNTS = [5, 10, 20, 30, 40, 50]
 
@@ -46,6 +48,17 @@ export default function Bank() {
       setCustom({}); setLoading(false)
     }).catch((e) => { setError(e.message); setLoading(false) })
   }, [subjectId])
+
+  useLiveRefresh(() => {
+    if (session) return
+    bankMeta().then((fresh) => {
+      setSubjects(fresh.subjects || [])
+      if (!subjectId && fresh.subjects?.length) setSubjectId(fresh.subjects[0].id)
+    }).catch(() => {})
+    if (subjectId) bankMeta(subjectId).then((fresh) => {
+      setData({ topics: fresh.topics || [], sources: fresh.sources || [] })
+    }).catch(() => {})
+  })
 
   if (session) return <BankTrainer questions={session.questions} title={session.title}
     onExit={() => { setSession(null); bankMeta(subjectId).then((d) => setData({ topics: d.topics || [], sources: d.sources || [] })) }}
@@ -249,7 +262,7 @@ export default function Bank() {
                 </div>
                 <div className="rescard__answer" style={{ background: 'transparent', padding: 0 }}>{q.text}</div>
                 <div className="rescard__solution">
-                  <div className="rescard__correct">Ответ: <b>{q.type === 'single' ? q.options[q.correct] : q.type === 'multi' ? (q.correct || []).map((j) => q.options[j]).join(', ') : (q.correct || []).join(' / ')}</b></div>
+                  <div className="rescard__correct">Ответ: <b>{q.type === 'single' ? q.options[q.correct] : q.type === 'multi' ? (q.correct || []).map((j) => q.options[j]).join(', ') : canonicalTextAnswer(q.correct)}</b></div>
                   {q.solution && <p>{q.solution}</p>}
                 </div>
               </div>

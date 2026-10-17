@@ -9,7 +9,7 @@ const STEPS = [
   },
   {
     section: 'courses', target: 'courses', kicker: 'Учебный маршрут', title: 'Курсы и уроки',
-    text: 'В курсах лежат открытые тебе программы. Заходи в курс, выбирай урок и двигайся по блокам.',
+    text: 'В курсах лежат открытые тебе программы. Заходи в курс, выбирай урок и двигайся по разделам.',
   },
   {
     section: 'schedule', target: 'schedule', kicker: 'Не пропусти', title: 'Расписание',
@@ -33,7 +33,7 @@ const STEPS = [
   },
 ]
 
-export default function Tour({ onNavigate, onReward }) {
+export default function Tour({ onNavigate, onReward, onActiveChange }) {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
@@ -56,6 +56,12 @@ export default function Tour({ onNavigate, onReward }) {
       .catch(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [])
+
+  useEffect(() => {
+    onActiveChange?.(loading || open || celebrate)
+  }, [loading, open, celebrate, onActiveChange])
+
+  useEffect(() => () => onActiveChange?.(false), [onActiveChange])
 
   useEffect(() => {
     if (!open) return undefined

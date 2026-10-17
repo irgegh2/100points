@@ -8,13 +8,15 @@ $st = db()->prepare("SELECT DISTINCT i.name
   JOIN shop_items i ON i.id = p.item_id
   WHERE p.user_id = ? AND p.status = 'done'
     AND i.category = 'theme'
-    AND i.name IN ('Тёмная тема', 'Неоновая тема', 'Тема «Космос»')");
+    AND i.name IN ('Тёмная тема', 'Неоновая тема', 'Тема «Космос»', 'Мужская тема', 'Женская тема')");
 $st->execute([$uid]);
 
 $codes = [
   'Тёмная тема' => 'dark',
   'Неоновая тема' => 'neon',
   'Тема «Космос»' => 'space',
+  'Мужская тема' => 'boys',
+  'Женская тема' => 'girls',
 ];
 $themes = ['light'];
 foreach ($st->fetchAll() as $row) {

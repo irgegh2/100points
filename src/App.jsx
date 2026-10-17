@@ -6,15 +6,9 @@ import CabinetPage from './pages/CabinetPage.jsx'
 import AdminLoginPage from './pages/AdminLoginPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import LegalPage from './pages/LegalPage.jsx'
-import { isLkHost, isAdminHost, isLocalHost, lkUrl, adminUrl } from './auth.js'
+import { isLkHost, isAdminHost, isLocalHost } from './auth.js'
 import { maintenanceGet } from './api.js'
 import { brand } from './data/content.js'
-
-// Полноценный (между поддоменами) редирект на другой хост.
-function ExternalRedirect({ to }) {
-  useEffect(() => { window.location.replace(to) }, [to])
-  return null
-}
 
 // Экран «технические работы» (Этап 16). Показывается всем, кроме админ-поддомена.
 function Maintenance({ text }) {
@@ -30,10 +24,32 @@ function Maintenance({ text }) {
   )
 }
 
+// Основной домен намеренно не содержит лендинга и не показывает ссылки на
+// личный кабинет или админку. Поддомены продолжают работать по прямым адресам.
+function PublicClosedPage() {
+  useEffect(() => {
+    const previous = document.title
+    document.title = 'Идут технические работы'
+    return () => { document.title = previous }
+  }, [])
+
+  return (
+    <main className="public-closed">
+      <h1>Идут технические работы</h1>
+    </main>
+  )
+}
+
 export default function App() {
   const admin = isAdminHost()
+  const lk = isLkHost()
+  const local = isLocalHost()
+  const publicSite = !admin && !lk && !local
   const [maint, setMaint] = useState(null)
-  useEffect(() => { if (!admin) maintenanceGet().then(setMaint).catch(() => setMaint({ on: false })) }, [admin])
+  useEffect(() => {
+    if (admin || publicSite) return
+    maintenanceGet().then(setMaint).catch(() => setMaint({ on: false }))
+  }, [admin, publicSite])
 
   // admin.100-points.ru: «/» — админка, «/login» — вход админа. (Тех.работы админку НЕ закрывают.)
   if (admin) {
@@ -46,12 +62,16 @@ export default function App() {
     )
   }
 
-  // Тех.работы: для всех, кроме админ-поддомена. Ждём короткую проверку, потом — экран или сайт.
+  // 100-points.ru: на любом пути показываем только нейтральную заглушку.
+  // Никаких ссылок или автоматических редиректов на закрытые поддомены.
+  if (publicSite) return <PublicClosedPage />
+
+  // Управляемые из админки техработы остаются отдельным режимом для ЛК и локальной разработки.
   if (maint === null) return null
   if (maint.on) return <Maintenance text={maint.text} />
 
   // lk.100-points.ru: «/» — личный кабинет, «/login» — вход ученика.
-  if (isLkHost()) {
+  if (lk) {
     return (
       <Routes>
         <Route path="/" element={<CabinetPage />} />
@@ -64,7 +84,7 @@ export default function App() {
   }
 
   // Локальная разработка (один origin) — все страницы доступны по путям.
-  if (isLocalHost()) {
+  if (local) {
     return (
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -78,19 +98,5 @@ export default function App() {
     )
   }
 
-  // Прод, основной домен 100-points.ru: «/» — главная.
-  // Кабинет и вход доступны ТОЛЬКО на поддоменах lk./admin. — на основном домене
-  // эти пути уводят на нужный поддомен (попасть на логин/кабинет без префикса нельзя).
-  return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
-      <Route path="/offer" element={<LegalPage kind="offer" />} />
-      <Route path="/login" element={<ExternalRedirect to={lkUrl('/login')} />} />
-      <Route path="/cabinet" element={<ExternalRedirect to={lkUrl('/')} />} />
-      <Route path="/admin" element={<ExternalRedirect to={adminUrl('/')} />} />
-      <Route path="/admin/login" element={<ExternalRedirect to={adminUrl('/login')} />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
+  return <PublicClosedPage />
 }

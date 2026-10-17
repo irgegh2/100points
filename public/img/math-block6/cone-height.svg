@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Осевое сечение конуса</title>
+  <desc id="desc">Образующая длиной 13, радиус основания 5 и неизвестная высота образуют прямоугольный треугольник.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <ellipse cx="400" cy="337" rx="205" ry="56" fill="#eeedff" stroke="#9b98bd" stroke-width="5"/>
+  <path d="M400 62 195 337M400 62 605 337" fill="none" stroke="#5b5ce2" stroke-width="7" stroke-linecap="round"/>
+  <path d="M400 62v275M400 337h205" fill="none" stroke="#403db9" stroke-width="5" stroke-linecap="round"/>
+  <path d="M400 315h22v22" fill="none" stroke="#ef6f91" stroke-width="4"/>
+  <g font-family="Inter,Arial,sans-serif" font-size="25" font-weight="850">
+    <rect x="249" y="161" width="66" height="48" rx="14" fill="white"/><text x="282" y="194" fill="#403db9" text-anchor="middle">13</text>
+    <rect x="473" y="301" width="56" height="48" rx="14" fill="white"/><text x="501" y="334" fill="#403db9" text-anchor="middle">5</text>
+    <rect x="418" y="178" width="58" height="48" rx="14" fill="#eeedff"/><text x="447" y="211" fill="#ef517d" text-anchor="middle">h</text>
+  </g>
+</svg>

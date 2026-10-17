@@ -10,8 +10,10 @@ ini_set('log_errors', '1');
 ini_set('display_errors', in_array(php_sapi_name(), ['cli', 'cli-server'], true) ? '1' : '0');
 
 require __DIR__ . '/config.php';
+require __DIR__ . '/storage.php';
 require __DIR__ . '/helpers.php';
 
 install_error_handlers();
 cors();          // на OPTIONS-preflight здесь же выходит 204
 start_session();
+register_admin_live_content_touch();

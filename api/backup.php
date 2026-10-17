@@ -8,6 +8,7 @@
 // Хранит последние 14 копий (старые удаляет). Для MySQL — чистый PHP-дамп .sql.gz, для SQLite — копия файла.
 require __DIR__ . '/config.php';
 require __DIR__ . '/helpers.php';
+require __DIR__ . '/storage.php';
 
 $isCli = (php_sapi_name() === 'cli');
 $isLocalWeb = (php_sapi_name() === 'cli-server');
@@ -59,6 +60,19 @@ if ($driver === 'sqlite') {
   file_put_contents($dest, gzencode($sql, 6));
 }
 
+// Вторая копия вне обычного хостинга. В S3 имена содержат timestamp, поэтому
+// история не перезаписывается; включённое версионирование дополнительно защищает от удаления.
+if (storage_enabled()) {
+  try {
+    storage_put_file($dest, 'database-backups/' . basename($dest), 'application/gzip');
+    bout('Копия в S3: database-backups/' . basename($dest));
+  } catch (Throwable $e) {
+    // Локальный бэкап уже готов — не считаем весь запуск проваленным, но оставляем заметный лог.
+    error_log('[backup s3] ' . $e->getMessage());
+    bout('ВНИМАНИЕ: локальный бэкап готов, но копия в S3 не создана');
+  }
+}
+
 // Ротация: оставляем последние 14 (имя содержит timestamp → сортировка по имени = по времени).
 $KEEP = 14;
 $files = glob("$dir/backup-*");
@@ -68,3 +82,14 @@ while (count($files) > $KEEP) { @unlink(array_shift($files)); $removed++; }
 
 bout('Бэкап готов: ' . basename($dest) . ' (' . number_format(filesize($dest) / 1024, 1) . ' КБ)');
 bout("Храню последние $KEEP копий; удалено старых: $removed; всего сейчас: " . count(glob("$dir/backup-*")));
+
+// Существующий ежедневный cron одновременно служит диспетчером недельных отчётов.
+// Каждый ученик отправляется только в выбранный день недели и не чаще одного раза за ISO-неделю.
+try {
+  require_once __DIR__ . '/weekly_report_runner.php';
+  $reports = run_due_weekly_reports($pdo);
+  bout("Недельные отчёты: отправлено {$reports['sent']}, ошибок {$reports['failed']}, уже обработано {$reports['skipped']}");
+} catch (Throwable $e) {
+  error_log('[weekly reports cron] ' . $e->getMessage());
+  bout('ВНИМАНИЕ: бэкап готов, но диспетчер недельных отчётов завершился с ошибкой');
+}

@@ -73,14 +73,14 @@ export default function AdminSubjects() {
           {items.map((it) => (
             <div className="admin__rowedit" key={it.id}>
               <span className="admin__swatch" style={{ background: it.color }} />
-              <input className="admin__inp" value={it.name} onChange={(e) => patch(it.id, 'name', e.target.value)} />
-              <input className="admin__inp admin__inp--sm" value={it.slug || ''} onChange={(e) => patch(it.id, 'slug', e.target.value)} placeholder="slug" />
-              <select className="admin__inp admin__inp--sm" value={it.icon || 'pi'} onChange={(e) => patch(it.id, 'icon', e.target.value)}>
+              <input className="admin__inp" value={it.name} onChange={(e) => patch(it.id, 'name', e.target.value)} onBlur={() => saveRow(it)} />
+              <input className="admin__inp admin__inp--sm" value={it.slug || ''} onChange={(e) => patch(it.id, 'slug', e.target.value)} onBlur={() => saveRow(it)} placeholder="slug" />
+              <select className="admin__inp admin__inp--sm" value={it.icon || 'pi'} onChange={(e) => { patch(it.id, 'icon', e.target.value); saveRow({ ...it, icon: e.target.value }) }}>
                 {ICON_OPTS.map((i) => <option key={i} value={i}>{i}</option>)}
               </select>
-              <input type="color" className="admin__color" value={it.color || '#3f9bff'} onChange={(e) => patch(it.id, 'color', e.target.value)} />
+              <input type="color" className="admin__color" value={it.color || '#3f9bff'} onChange={(e) => patch(it.id, 'color', e.target.value)} onBlur={() => saveRow(it)} />
               <label className="admin__chk" title="Показывать предмет в разделах: цели в профиле, ИИ-тренажёр, банк заданий, библиотека">
-                <input type="checkbox" checked={isShown(it.show_features)} onChange={(e) => patch(it.id, 'show_features', e.target.checked ? 1 : 0)} /> разделы
+                <input type="checkbox" checked={isShown(it.show_features)} onChange={(e) => { const v = e.target.checked ? 1 : 0; patch(it.id, 'show_features', v); saveRow({ ...it, show_features: v }) }} /> разделы
               </label>
               <button className="admin__iconbtn" title="Сохранить" onClick={() => saveRow(it)}><Save size={16} /></button>
               <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => removeRow(it)}><Trash2 size={16} /></button>

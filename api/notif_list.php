@@ -4,14 +4,13 @@
 require __DIR__ . '/bootstrap.php';
 $uid = require_user();
 
-// 1) Чистка прочитанных старше 7 дней.
-try {
+// В режиме просмотра администратором GET-запрос не должен незаметно менять аккаунт.
+if (!is_readonly_impersonation()) try {
+  // 1) Чистка прочитанных старше 7 дней.
   db()->prepare("DELETE FROM notifications WHERE user_id = ? AND is_read = 1 AND read_at IS NOT NULL AND read_at < ?")
       ->execute([$uid, date('Y-m-d H:i:s', strtotime('-7 days'))]);
-} catch (Throwable $e) { /* пусто */ }
 
-// 2) Ленивое уведомление о вебинарах в ближайшие 90 минут (по доступным курсам), без дублей.
-try {
+  // 2) Ленивое уведомление о вебинарах в ближайшие 90 минут, без дублей.
   $now = date('Y-m-d H:i');
   $soon = date('Y-m-d H:i', strtotime('+90 minutes'));
   $ev = db()->prepare(

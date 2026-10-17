@@ -22,6 +22,8 @@ $themeCodes = [
   'Тёмная тема' => 'dark',
   'Неоновая тема' => 'neon',
   'Тема «Космос»' => 'space',
+  'Мужская тема' => 'boys',
+  'Женская тема' => 'girls',
 ];
 $themeCode = $item['category'] === 'theme' ? ($themeCodes[$item['name']] ?? null) : null;
 $cosmeticCodes = [
@@ -35,6 +37,7 @@ $effectCodes = [
   '+1 жизнь' => 'extra_life',
   'Бустер ×2 кристалла' => 'crystal_booster',
   'VIP-статус навсегда' => 'vip',
+  'Стобалльный диск +1 ГБ' => 'drive_space',
 ];
 $effectCode = $effectCodes[$item['name']] ?? null;
 $instant = $themeCode !== null || $cosmeticCode !== null || $effectCode !== null;
@@ -96,6 +99,7 @@ try {
   $purchaseNote = $instant ? 'Доступ активирован автоматически' : null;
   if ($effectCode === 'deadline_extension') $purchaseNote = 'Продлено ДЗ: ' . $selectedHomework['title'];
   if ($effectCode === 'streak_freeze') $purchaseNote = 'Заморозка добавлена и сработает автоматически';
+  if ($effectCode === 'drive_space') $purchaseNote = 'Стобалльный диск: добавлен 1 ГБ навсегда';
   $pdo->prepare("INSERT INTO purchases (user_id, item_id, item_name, price, status, note, updated_at) VALUES (?,?,?,?, ?, ?, ?)")
       ->execute([$uid, $itemId, $item['name'], $price, $status, $purchaseNote, date('Y-m-d H:i:s')]);
   $pid = (int)$pdo->lastInsertId();
@@ -118,6 +122,16 @@ try {
     $delta = $newLives - (int)$lockedWallet['lives'];
     $pdo->prepare("UPDATE wallets SET lives = ? WHERE user_id = ?")->execute([$newLives, $uid]);
     if ($delta > 0) g_log($uid, 'lives', $delta, 'VIP: запас жизней увеличен', 'purchase', $pid);
+  } elseif ($effectCode === 'drive_space') {
+    $quota = $pdo->prepare("SELECT bonus_bytes FROM drive_quotas WHERE user_id = ? LIMIT 1");
+    $quota->execute([$uid]);
+    if ($quota->fetchColumn() === false) {
+      $pdo->prepare("INSERT INTO drive_quotas (user_id, bonus_bytes) VALUES (?, ?)")
+          ->execute([$uid, 1073741824]);
+    } else {
+      $pdo->prepare("UPDATE drive_quotas SET bonus_bytes = bonus_bytes + ?, updated_at = ? WHERE user_id = ?")
+          ->execute([1073741824, date('Y-m-d H:i:s'), $uid]);
+    }
   }
   $pdo->commit();
 } catch (Throwable $e) {
@@ -132,7 +146,14 @@ try {
 $message = $instant
   ? "Покупка «{$item['name']}» активирована сразу."
   : "Покупка «{$item['name']}» оформлена. Заявка принята — скоро выдадим.";
-notify($uid, 'shop', $message, 'shop');
+notify($uid, 'shop', $message, $effectCode === 'drive_space' ? 'drive' : 'shop');
+
+$driveBonusBytes = 0;
+if ($effectCode === 'drive_space') {
+  $driveBonus = db()->prepare("SELECT bonus_bytes FROM drive_quotas WHERE user_id = ? LIMIT 1");
+  $driveBonus->execute([$uid]);
+  $driveBonusBytes = (int)($driveBonus->fetchColumn() ?: 0);
+}
 
 $w = g_wallet($uid);
 ok([
@@ -150,6 +171,7 @@ ok([
   'booster_until' => (string)($w['booster_until'] ?? ''),
   'vip' => g_is_vip($uid),
   'streak_freezes' => g_available_streak_freezes($uid),
+  'drive_bonus_bytes' => $driveBonusBytes,
   'extended_homework' => $effectCode === 'deadline_extension' ? [
     'id' => $homeworkId,
     'title' => $selectedHomework['title'],

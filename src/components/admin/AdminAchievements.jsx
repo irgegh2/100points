@@ -32,14 +32,14 @@ export default function AdminAchievements() {
             <div className="admin__qcard" key={it.id}>
               <div className="admin__qcard-head">
                 <span className="admin__ach-ico"><Ico size={18} /></span>
-                <input className="admin__inp" style={{ flex: 1 }} value={it.title} onChange={(e) => patch(it.id, 'title', e.target.value)} placeholder="название" />
-                <select className="admin__inp admin__inp--sm" value={it.icon || 'flag'} onChange={(e) => patch(it.id, 'icon', e.target.value)}>{ICON_OPTS.map((i) => <option key={i} value={i}>{i}</option>)}</select>
-                <label className="admin__field">💎 <input className="admin__inp admin__inp--n" type="number" value={it.reward ?? 0} onChange={(e) => patch(it.id, 'reward', e.target.value)} /></label>
-                <label className="admin__field">цель <input className="admin__inp admin__inp--n" type="number" value={it.target ?? 1} onChange={(e) => patch(it.id, 'target', e.target.value)} /></label>
+                <input className="admin__inp" style={{ flex: 1 }} value={it.title} onChange={(e) => patch(it.id, 'title', e.target.value)} onBlur={() => save(it)} placeholder="название" />
+                <select className="admin__inp admin__inp--sm" value={it.icon || 'flag'} onChange={(e) => { patch(it.id, 'icon', e.target.value); save({ ...it, icon: e.target.value }) }}>{ICON_OPTS.map((i) => <option key={i} value={i}>{i}</option>)}</select>
+                <label className="admin__field">💎 <input className="admin__inp admin__inp--n" type="number" value={it.reward ?? 0} onChange={(e) => patch(it.id, 'reward', e.target.value)} onBlur={() => save(it)} /></label>
+                <label className="admin__field">цель <input className="admin__inp admin__inp--n" type="number" value={it.target ?? 1} onChange={(e) => patch(it.id, 'target', e.target.value)} onBlur={() => save(it)} /></label>
                 <button className="admin__iconbtn" title="Сохранить" onClick={() => save(it)}><Save size={15} /></button>
                 <button className="admin__iconbtn admin__iconbtn--danger" title="Удалить" onClick={() => del(it)}><Trash2 size={15} /></button>
               </div>
-              <input className="admin__inp" value={it.description || ''} onChange={(e) => patch(it.id, 'description', e.target.value)} placeholder="описание" />
+              <input className="admin__inp" value={it.description || ''} onChange={(e) => patch(it.id, 'description', e.target.value)} onBlur={() => save(it)} placeholder="описание" />
             </div>
           )
         })}

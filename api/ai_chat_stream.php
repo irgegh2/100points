@@ -12,7 +12,7 @@ $content = trim((string)($in['content'] ?? ''));
 if ($chatId <= 0) fail('Не указан чат', 400);
 if ($content === '') fail('Пустое сообщение', 400);
 
-$c = db()->prepare("SELECT id, user_id, model FROM ai_chats WHERE id = ? LIMIT 1");
+$c = db()->prepare("SELECT id, user_id FROM ai_chats WHERE id = ? LIMIT 1");
 $c->execute([$chatId]);
 $chat = $c->fetch();
 if (!$chat || (int)$chat['user_id'] !== $uid) fail('Чат не найден', 404);
@@ -41,7 +41,7 @@ header('X-Accel-Buffering: no'); // отключить буферизацию ng
 while (ob_get_level() > 0) ob_end_flush();
 ob_implicit_flush(true);
 
-$r = ai_stream((string)$chat['model'], $messages, function ($delta) {
+$r = ai_stream('', $messages, function ($delta) {
   echo $delta;
   flush();
 }, ['temperature' => 0.6]);

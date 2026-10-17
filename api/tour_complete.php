@@ -25,8 +25,9 @@ try {
 
   if ($awarded) {
     g_add_crystals($uid, $reward, 'Пройден тур по платформе', 'platform_tour', 1);
-    g_log($uid, 'tour', 0, 'Тур по платформе завершён', 'platform_tour_progress', 6);
   }
+  // Прогресс фиксируем и при повторном прохождении. Награда при этом остаётся одноразовой.
+  g_log($uid, 'tour', 0, 'Тур по платформе завершён', 'platform_tour_progress', 6);
 
   $wallet = g_wallet($uid);
   $pdo->commit();

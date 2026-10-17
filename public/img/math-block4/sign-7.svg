@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 170" role="img" aria-labelledby="title desc">
+  <title id="title">Решение седьмого неравенства на числовой прямой</title>
+  <desc id="desc">Несколько промежутков с исключёнными точками минус 10, минус 1, 1 и 5</desc>
+  <rect width="900" height="170" rx="22" fill="#f7f5ff"/>
+  <path d="M42 88H848" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M848 88l-16-10m16 10-16 10" stroke="#aaa5ba" stroke-width="4" stroke-linecap="round"/>
+  <path d="M42 88H130M235 88H325M435 88H610M610 88H848" stroke="#6558e8" stroke-width="12"/>
+  <g fill="#f7f5ff" stroke="#6558e8" stroke-width="5"><circle cx="130" cy="88" r="9"/><circle cx="325" cy="88" r="9"/><circle cx="435" cy="88" r="9"/><circle cx="610" cy="88" r="9"/></g>
+  <g fill="#6558e8"><circle cx="235" cy="88" r="9"/><circle cx="545" cy="88" r="9"/><circle cx="790" cy="88" r="9"/></g>
+  <g font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#292638" text-anchor="middle">
+    <text x="130" y="132">−10</text><text x="235" y="132">−8</text><text x="325" y="132">−1</text><text x="435" y="132">1</text><text x="545" y="132">4</text><text x="610" y="132">5</text><text x="790" y="132">52</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#6558e8" text-anchor="middle">
+    <text x="82" y="53">+</text><text x="280" y="53">+</text><text x="520" y="53">+</text><text x="748" y="53">+</text>
+  </g>
+</svg>

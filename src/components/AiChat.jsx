@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Bot, Plus, Mic, ArrowUp, Sparkles, Home, BookOpen, X, MoreHorizontal, Pencil, Trash2, Check } from 'lucide-react'
 import { aiChatList, aiChatCreate, aiChatGet, aiChatStream, aiChatRename, aiChatDelete, aiPlatformAsk } from '../api.js'
 import { useDictation } from '../dictation.js'
+import MarkdownContent from './MarkdownContent.jsx'
 
 const SUBJECTS = ['Математика', 'Русский язык', 'Биология', 'История', 'Химия', 'Обществознание', 'Английский язык']
 
@@ -107,7 +108,7 @@ export default function AiChat() {
                   ? (thinking
                       ? <div className="bubble them"><div className="bubble__text bubble__thinking"><Sparkles size={13} /> {thinking}</div></div>
                       : <div className="bubble them typing"><span /><span /><span /></div>)
-                  : <div className="bubble them"><div className="bubble__text">{m.text}</div></div>}
+                  : <div className="bubble them"><div className="bubble__text bubble__text--markdown"><MarkdownContent source={m.text} empty="" /></div></div>}
               </div>
             ) : (
               <div className="bubble me" key={i}><div className="bubble__text">{m.text}</div></div>

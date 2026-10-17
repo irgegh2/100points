@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Camera, Check, Clock3, Eye, MessageSquare, Send, ShieldCheck, VideoOff } from 'lucide-react'
+import { ArrowLeft, Camera, Check, Clock3, Download, Eye, FileText, Lightbulb, MessageSquare, Send, ShieldCheck, VideoOff } from 'lucide-react'
 import TestResult from './TestResult.jsx'
 import FileAnswer from './FileAnswer.jsx'
+import AudioAnswer from './AudioAnswer.jsx'
+import AudioMessage from './AudioMessage.jsx'
+import KinescopeVideo from './KinescopeVideo.jsx'
 import { isAnswered } from './HomeworkTest.jsx'
 import { mockSubmit, proctoredChatSend, proctoredSessionGet, proctoredSignalList, proctoredSignalSend, proctoredStudentStart, proctoredStudentSync } from '../api.js'
+import { preloadOpeningQuestionImages } from '../preloadImages.js'
+import { pluralRu } from '../ruPlural.js'
 
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
 const ts = (value) => new Date(String(value || '').replace(' ', 'T')).getTime()
@@ -28,21 +33,31 @@ export default function ProctoredMock({ assignmentId, onBack }) {
   const [now, setNow] = useState(Date.now())
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [hintOpen, setHintOpen] = useState(false)
   const videoRef = useRef(null); const streamRef = useRef(null); const pcRef = useRef(null)
   const signalAfter = useRef(0); const epochRef = useRef(''); const iceQueue = useRef([])
   const pointerRef = useRef({ x: 0, y: 0, w: 0, h: 0 }); const finishRef = useRef(false)
   const questionsLoadRef = useRef(false)
 
   useEffect(() => {
-    proctoredSessionGet(assignmentId).then((d) => { setData(d); setAnswers(d.answers || {}); setMessages(d.messages || []); if (d.submission) setSubmitted(true) }).catch((e) => setPermissionError(e.message))
-    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); pcRef.current?.close() }
+    let alive = true
+    proctoredSessionGet(assignmentId).then(async (d) => {
+      await preloadOpeningQuestionImages(d.questions || [])
+      if (!alive) return
+      setData(d); setAnswers(d.answers || {}); setMessages(d.messages || []); if (d.submission) setSubmitted(true)
+    }).catch((e) => { if (alive) setPermissionError(e.message) })
+    return () => { alive = false; streamRef.current?.getTracks().forEach((t) => t.stop()); pcRef.current?.close() }
   }, [assignmentId])
+  useEffect(() => { setHintOpen(false) }, [cur])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
   useEffect(() => { if (active && videoRef.current && streamRef.current) videoRef.current.srcObject = streamRef.current }, [active, now < ts(data?.assignment?.starts_at)])
   useEffect(() => {
     if (!active || !data || now < ts(data.assignment.starts_at) || data.questions?.length || questionsLoadRef.current) return
     questionsLoadRef.current = true
-    proctoredSessionGet(assignmentId).then((d) => { setData(d); setAnswers(d.answers || {}); setMessages(d.messages || []) }).catch(() => { questionsLoadRef.current = false })
+    proctoredSessionGet(assignmentId).then(async (d) => {
+      await preloadOpeningQuestionImages(d.questions || [])
+      setData(d); setAnswers(d.answers || {}); setMessages(d.messages || [])
+    }).catch(() => { questionsLoadRef.current = false })
   }, [active, data, now, assignmentId])
   useEffect(() => {
     const vis = () => setVisibility(document.visibilityState === 'hidden' ? 'hidden' : 'visible')
@@ -140,7 +155,7 @@ export default function ProctoredMock({ assignmentId, onBack }) {
 
   if (!active) return <div className="proctor-gate">
     <button className="lesson__back" onClick={onBack}><ArrowLeft size={16} /> К пробникам</button>
-    <div className="proctor-gate__card"><div className="proctor-gate__mark"><ShieldCheck size={30} /></div><span className="proctor-gate__eyebrow">Пробник с наставником</span><h2>{a.title}</h2><p className="proctor-gate__date"><Clock3 size={17} /> {formatDate(a.starts_at)} · {a.duration} минут</p>
+    <div className="proctor-gate__card"><div className="proctor-gate__mark"><ShieldCheck size={30} /></div><span className="proctor-gate__eyebrow">Пробник с наставником</span><h2>{a.title}</h2><p className="proctor-gate__date"><Clock3 size={17} /> {formatDate(a.starts_at)} · {a.duration} {pluralRu(a.duration, 'минута', 'минуты', 'минут')}</p>
       <div className="proctor-gate__rules"><h3>Перед подключением</h3><p><Camera size={18} /> Камера обязательна и будет видна только администратору-наблюдателю.</p><p><VideoOff size={18} /> Микрофон не запрашивается. Видео не записывается и не сохраняется на сервере.</p><p><Eye size={18} /> Во время работы фиксируются ответы, курсор внутри страницы и уход со вкладки или из окна.</p></div>
       {a.time_state === 'scheduled' && <div className="proctor-gate__wait">Подключение откроется за 15 минут до начала.</div>}
       {permissionError && <div className="proctor-gate__error">{permissionError}</div>}
@@ -152,17 +167,24 @@ export default function ProctoredMock({ assignmentId, onBack }) {
   if (!startedByClock) return <div className="proctor-lobby"><video ref={videoRef} autoPlay playsInline muted /><ShieldCheck size={34} /><h2>Камера подключена</h2><p>Наставник уже может подключиться. Задания откроются точно в назначенное время.</p><b>{formatLeft(startAt - now)}</b><button className="lesson__back" onClick={onBack}><ArrowLeft size={16} /> Выйти из ожидания</button></div>
   if (!q) return <div className="proctor-session">
     <header className="proctor-session__head"><div><span>Пробник под наблюдением</span><h2>{a.title}</h2></div><div className="proctor-session__timer"><Clock3 size={17} /> {formatLeft(timeLeft)}</div><div className={`proctor-session__camera is-${cameraState}`}><CircleDot /> Камера {cameraState === 'on' ? 'включена' : 'отключена'}</div></header>
-    <div className="proctor-session__layout"><main className="proctor-session__work proctor-session__work--empty"><ShieldCheck size={34} /><h3>Задания пока не добавлены</h3><p>Чат с наставником уже работает — можешь написать ему справа.</p></main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div>{chatPanel}</aside></div>
+    <div className="proctor-session__layout"><main className="proctor-session__work proctor-session__work--empty"><ShieldCheck size={34} /><h3>{questionsLoadRef.current ? 'Загрузка первого вопроса…' : 'Задания пока не добавлены'}</h3><p>{questionsLoadRef.current ? 'Он откроется сразу вместе с иллюстрациями.' : 'Чат с наставником уже работает — можешь написать ему справа.'}</p></main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div>{chatPanel}</aside></div>
   </div>
   return <div className="proctor-session">
     <header className="proctor-session__head"><div><span>Пробник под наблюдением</span><h2>{a.title}</h2></div><div className="proctor-session__timer"><Clock3 size={17} /> {formatLeft(timeLeft)}</div><div className={`proctor-session__camera is-${cameraState}`}><CircleDot /> Камера {cameraState === 'on' ? 'включена' : 'отключена'}</div></header>
     <div className="proctor-session__layout"><main className="proctor-session__work" onPointerMove={trackPointer}>
-      <div className="test__num">№ {cur + 1}{q.optional && <span className="test__opt-tag"> · необязательный</span>}</div><div className="test__question">{q.text}</div>
+      <div className="test__num">№ {cur + 1}{q.optional && <span className="test__opt-tag"> · необязательный</span>}</div>
+      {q.images?.length > 0 && <div className="test__imgs">{q.images.map((src, i) => <a key={i} href={src} target="_blank" rel="noreferrer" title="Открыть в полном размере"><img src={src} alt={`Иллюстрация ${i + 1} к вопросу`} loading="eager" /></a>)}</div>}
+      <div className="test__question">{q.text}</div>
+      {q.audio?.length > 0 && <div className="test__audio">{q.audio.map((item, i) => <AudioMessage key={`${item.url}-${i}`} src={item.url} name={item.name} />)}</div>}
+      {q.videos?.length > 0 && <div className="test__videos">{q.videos.map((item, i) => <KinescopeVideo key={`${item.url}-${i}`} url={item.url} />)}</div>}
+      {q.files?.length > 0 && <div className="test__files">{q.files.map((file, i) => <a className="lfile" key={i} href={file.url} target="_blank" rel="noreferrer"><span className="lfile__ico"><FileText size={18} /></span><div className="lfile__info"><b>{file.name}</b><span>{file.size}</span></div><span className="lfile__dl"><Download size={14} /> Скачать</span></a>)}</div>}
+      {q.hint && <div className="test__hintwrap"><button className={`test__hintbtn ${hintOpen ? 'is-open' : ''}`} onClick={() => setHintOpen((value) => !value)}><Lightbulb size={14} /> Подсказка</button>{hintOpen && <div className="test__hintbox">{q.hint}</div>}</div>}
       {q.type === 'single' && <div className="test__opts">{q.options.map((o, i) => <button key={i} className={`test__opt ${value === i ? 'selected' : ''}`} onClick={() => setChoice(i)}><span className="test__check test__check--round">{value === i && <span className="test__dot" />}</span><span>{o}</span></button>)}</div>}
       {q.type === 'multi' && <div className="test__opts">{q.options.map((o, i) => { const on = Array.isArray(value) && value.includes(i); return <button key={i} className={`test__opt ${on ? 'selected' : ''}`} onClick={() => toggleMulti(i)}><span className="test__check">{on && <Check size={14} />}</span><span>{o}</span></button> })}</div>}
       {q.type === 'text' && <input className="test__input" value={value || ''} onChange={(e) => setChoice(e.target.value)} placeholder="Введите ответ" />}
       {q.type === 'textarea' && <textarea className="test__textarea" rows={7} value={value || ''} onChange={(e) => setChoice(e.target.value)} placeholder="Напиши развёрнутый ответ…" />}
       {q.type === 'file' && <FileAnswer questionId={q.id} limit={q.file_limit} value={value} onChange={(v) => setChoice({ ...v, limit: q.file_limit })} assignmentId={assignmentId} />}
+      {q.type === 'audio' && <AudioAnswer questionId={q.id} value={value} onChange={setChoice} assignmentId={assignmentId} />}
       <div className="proctor-session__nav"><button className="btn btn-light" disabled={cur === 0} onClick={() => setCur((i) => i - 1)}>Назад</button>{cur < questions.length - 1 ? <button className="btn btn-blue" onClick={() => setCur((i) => i + 1)}>Следующее</button> : <button className="btn btn-orange" disabled={!requiredDone || busy} onClick={finish}>{busy ? 'Завершаем…' : 'Завершить пробник'}</button>}</div>
     </main><aside className="proctor-session__rail"><div className="proctor-session__self"><video ref={videoRef} autoPlay playsInline muted /><span><Camera size={14} /> Ты в кадре</span></div><div className="test__progress"><div className="test__progress-top"><b>Прогресс</b><span>{answeredCount}/{questions.length}</span></div><div className="test__progress-bar"><span style={{ width: `${questions.length ? Math.round(answeredCount / questions.length * 100) : 0}%` }} /></div></div><div className="test__sidesteps">{questions.map((item, i) => <button key={item.id} className={`test__step ${i === cur ? 'active' : ''} ${isAnswered(item.type, answers[item.id]) ? 'done' : ''}`} onClick={() => setCur(i)}>{i + 1}</button>)}</div>
       {chatPanel}

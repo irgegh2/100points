@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-labelledby="title desc">
+  <title id="title">Шестиугольная призма и пирамида AA1B1F1</title>
+  <desc id="desc">Внутри правильной шестиугольной призмы выделена треугольная пирамида с основанием A1B1F1.</desc>
+  <rect x="2" y="2" width="796" height="476" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <path d="M399 348 235 228 399 104 557 228Z" fill="#6b67e8" opacity=".16"/>
+  <path d="M399 348 235 228 557 228Z" fill="#ef6f91" opacity=".16"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M399 348 548 316 633 224 558 164 399 196 244 164 166 224 247 316 399 348ZM399 196 399 61M244 164 244 36M558 164 558 36M166 224 166 96M633 224 633 96M247 316 247 188M548 316 548 188M399 61 244 36 166 96 247 188 399 196 548 188 633 96 558 36 399 61Z" stroke="#9b98bd" stroke-width="5"/>
+    <path d="M399 348 244 36 558 36 399 348" stroke="#5b5ce2" stroke-width="8"/>
+    <path d="M244 36H558" stroke="#ef5f86" stroke-width="8"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" fill="#242238" font-size="20" font-weight="850">
+    <text x="386" y="377">A</text><text x="552" y="340">B</text><text x="642" y="231">C</text><text x="554" y="157">D</text><text x="223" y="157">F</text>
+    <text x="386" y="57">A₁</text><text x="566" y="33">B₁</text><text x="220" y="33">F₁</text>
+  </g>
+  <rect x="258" y="407" width="284" height="48" rx="14" fill="#eeedff"/>
+  <text x="400" y="439" fill="#403db9" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="850" text-anchor="middle">пирамида AA₁B₁F₁</text>
+</svg>

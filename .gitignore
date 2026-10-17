@@ -22,3 +22,16 @@ deploy_www.py
 deploy_ftp.py
 deploy_subdomains.py
 upload_htaccess.py
+
+# Рабочие выгрузки, ответы учеников и локальные артефакты.
+tmp/
+output/
+model-audit/
+uploads/
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.sql.zip

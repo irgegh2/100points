@@ -49,10 +49,9 @@ if (!file_exists($hta)) {
 }
 
 $fname = 'u' . $uid . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
-$dest = $dir . '/' . $fname;
-if (!move_uploaded_file($f['tmp_name'], $dest)) fail('Не удалось сохранить файл', 500);
-@chmod($dest, 0644);
-$url = uploads_url('avatars/' . $fname);
+$storageKey = 'avatars/' . $fname;
+storage_save_uploaded_file($f['tmp_name'], $storageKey, (string)$mime);
+$url = storage_upload_url($storageKey);
 
 // Подчистим прежний аватар этого ученика (чтобы не копить мусор).
 $old = db()->prepare("SELECT avatar FROM profiles WHERE user_id = ? LIMIT 1");
@@ -61,12 +60,8 @@ $oldrow = $old->fetch();
 $oldpath = $oldrow['avatar'] ?? '';
 $oldUrlPath = parse_url($oldpath, PHP_URL_PATH) ?: $oldpath;
 $ownerPrefix = 'u' . $uid . '_'; // защита: удаляем ТОЛЬКО собственный файл этого ученика
-if ($oldUrlPath
-    && strpos($oldUrlPath, '/uploads/avatars/') === 0
-    && strpos(basename($oldUrlPath), $ownerPrefix) === 0) {
-  $oldfile = realpath($dir . '/' . basename($oldUrlPath));
-  // И физически файл должен быть внутри каталога аватаров (анти-traversal).
-  if ($oldfile && strpos($oldfile, realpath($dir)) === 0 && is_file($oldfile)) @unlink($oldfile);
+if ($oldUrlPath && strpos(basename($oldUrlPath), $ownerPrefix) === 0) {
+  storage_delete_url($oldpath);
 }
 
 // upsert avatar

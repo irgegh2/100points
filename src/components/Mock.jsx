@@ -1,13 +1,31 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, Check, Camera, Clock3, UserRound } from 'lucide-react'
+import { ChevronDown, Check, Camera, Clock3, UserRound, Search, X, Landmark, Feather, Leaf, GraduationCap, Users, Languages, BookOpen } from 'lucide-react'
 import HomeworkTest from './HomeworkTest.jsx'
 import { mockList } from '../api.js'
 import ProctoredMock from './ProctoredMock.jsx'
+import { useLiveRefresh } from '../liveUpdates.js'
+import { readHash } from '../hashNav.js'
 
 const STATUS = {
   todo:   { label: 'К выполнению', cls: 'todo' },
   review: { label: 'На проверке', cls: 'review' },
   done:   { label: 'Выполнено', cls: 'done' },
+}
+
+const SUBJECT_ICONS = {
+  landmark: Landmark,
+  feather: Feather,
+  leaf: Leaf,
+  cap: GraduationCap,
+  social: Users,
+  english: Languages,
+  book: BookOpen,
+}
+
+function MockSubjectIcon({ name }) {
+  if (name === 'pi') return <span className="hwcard__pi" aria-hidden="true">π</span>
+  const Icon = SUBJECT_ICONS[name] || BookOpen
+  return <Icon size={22} strokeWidth={2.35} aria-hidden="true" />
 }
 
 const formatCountdown = (ms) => {
@@ -40,7 +58,15 @@ export default function Mock() {
   const [open, setOpen] = useState(null)
   const [clockOffset, setClockOffset] = useState(0)
   const [now, setNow] = useState(Date.now())
-  const [sel, setSel] = useState({ subject: 'Все предметы', month: 'Все месяцы', status: 'Все' })
+  const [query, setQuery] = useState('')
+  const [sel, setSel] = useState(() => {
+    const [section, encodedSubject] = readHash()
+    let subject = 'Все предметы'
+    if (section === 'mock' && encodedSubject) {
+      try { subject = decodeURIComponent(encodedSubject) } catch { subject = encodedSubject }
+    }
+    return { subject, month: 'Все месяцы', status: 'Все', format: 'Все форматы' }
+  })
 
   const load = () => mockList()
     .then((d) => {
@@ -50,6 +76,7 @@ export default function Mock() {
     })
     .catch((e) => { setError(e.message); setLoading(false) })
   useEffect(() => { load() }, [])
+  useLiveRefresh(() => { if (!opened) load() })
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now() + clockOffset), 1000)
     return () => clearInterval(timer)
@@ -63,22 +90,31 @@ export default function Mock() {
     { key: 'subject', label: 'Предмет', options: subjects },
     { key: 'month', label: 'Месяц', options: ['Все месяцы', ...months] },
     { key: 'status', label: 'Статус', options: ['Все', 'К выполнению', 'На проверке', 'Выполнено'] },
+    { key: 'format', label: 'Формат', options: ['Все форматы', 'Обычный', 'С наставником'] },
   ]
   const pick = (key, val) => { setSel((s) => ({ ...s, [key]: val })); setOpen(null) }
-  const btnLabel = (f) => { const v = sel[f.key]; return (v === 'Все предметы' || v === 'Все' || v === 'Все месяцы') ? f.label : v }
+  const btnLabel = (f) => { const v = sel[f.key]; return (v === 'Все предметы' || v === 'Все' || v === 'Все месяцы' || v === 'Все форматы') ? f.label : v }
+  const needle = query.trim().toLocaleLowerCase('ru-RU')
 
   const list = items.filter((m) =>
     (sel.subject === 'Все предметы' || m.subject === sel.subject) &&
     (sel.month === 'Все месяцы' || m.month === sel.month) &&
-    (sel.status === 'Все' || STATUS[m.status].label === sel.status)
+    (sel.status === 'Все' || STATUS[m.status].label === sel.status) &&
+    (sel.format === 'Все форматы' || (sel.format === 'С наставником' ? m.format === 'proctored' : m.format !== 'proctored')) &&
+    (!needle || [m.title, m.subject, m.month, m.course, m.format === 'proctored' ? 'с наставником' : 'обычный'].some((v) => String(v || '').toLocaleLowerCase('ru-RU').includes(needle)))
   )
 
   return (
     <div className="hw">
       <div className="hw__filters">
         {open !== null && <div className="hw__backdrop" onClick={() => setOpen(null)} />}
+        <label className="hw__search">
+          <Search size={17} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Найти пробник" aria-label="Поиск пробников" />
+          {query && <button type="button" onClick={() => setQuery('')} aria-label="Очистить поиск"><X size={15} /></button>}
+        </label>
         {FILTERS.map((f, i) => {
-          const chosen = sel[f.key] !== 'Все предметы' && sel[f.key] !== 'Все' && sel[f.key] !== 'Все месяцы'
+          const chosen = sel[f.key] !== 'Все предметы' && sel[f.key] !== 'Все' && sel[f.key] !== 'Все месяцы' && sel[f.key] !== 'Все форматы'
           return (
             <div className="hw__fwrap" key={f.key}>
               <button className={`hw__filter ${open === i ? 'open' : ''} ${chosen ? 'has' : ''}`} onClick={() => setOpen(open === i ? null : i)}>
@@ -108,7 +144,9 @@ export default function Mock() {
           const timer = m.format === 'proctored' ? proctoredTimer(m, now) : null
           return (
             <button className={`hwcard ${m.format === 'proctored' ? 'hwcard--proctored' : ''}`} key={m.id} onClick={() => setOpened({ format: m.format || 'normal', assignmentId: m.assignment_id, mockId: m.id })}>
-              <span className="hwcard__ico" style={{ background: m.color }}>{(m.subject || '?')[0]}</span>
+              <span className="hwcard__ico" style={{ '--subject-color': m.color || '#3f75c9' }} aria-hidden="true">
+                <MockSubjectIcon name={m.icon} />
+              </span>
               <span className="hwcard__main">
                 <span className="hwcard__statusrow">
                   <span className={`hwcard__status ${st.cls}`}>{st.label}</span>

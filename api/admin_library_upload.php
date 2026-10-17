@@ -10,8 +10,6 @@ $title = trim((string)($_POST['title'] ?? ''));
 
 if (empty($_FILES['file']) || ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) fail('Файл не получен', 400);
 $f = $_FILES['file'];
-if ($f['size'] > 50 * 1024 * 1024) fail('Слишком большой файл (максимум 50 МБ)', 400);
-
 $finfo = new finfo(FILEINFO_MIME_TYPE);
 $mime = $finfo->file($f['tmp_name']);
 $allowed = [
@@ -40,9 +38,9 @@ if (!file_exists($hta)) {
 }
 
 $fname = 'lib_' . bin2hex(random_bytes(8)) . '.' . $ext;
-if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $fname)) fail('Не удалось сохранить файл', 500);
-@chmod($dir . '/' . $fname, 0644);
-$url = uploads_url('library/' . $fname);
+$storageKey = 'library/' . $fname;
+storage_save_uploaded_file($f['tmp_name'], $storageKey, (string)$mime);
+$url = storage_upload_url($storageKey);
 
 $bytes = (int)$f['size'];
 $sizeStr = $bytes >= 1024 * 1024 ? round($bytes / (1024 * 1024), 1) . ' МБ' : max(1, round($bytes / 1024)) . ' КБ';

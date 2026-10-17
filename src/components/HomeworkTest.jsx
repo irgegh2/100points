@@ -1,19 +1,26 @@
 import { useEffect, useState, useRef } from 'react'
-import { ChevronLeft, Check, Lock, Printer } from 'lucide-react'
+import { ChevronLeft, Check, Lock, Printer, Lightbulb, FileText, Download } from 'lucide-react'
 import TestResult from './TestResult.jsx'
 import FileAnswer from './FileAnswer.jsx'
 import { homeworkGet, homeworkSubmit, mockGet, mockSubmit, draftSave } from '../api.js'
 import { printQuestions } from '../printQuestions.js'
+import { preloadOpeningQuestionImages } from '../preloadImages.js'
+import MarkdownContent from './MarkdownContent.jsx'
+import AudioMessage from './AudioMessage.jsx'
+import AudioAnswer from './AudioAnswer.jsx'
+import KinescopeVideo from './KinescopeVideo.jsx'
 
 export function isAnswered(type, v) {
   if (type === 'single') return v != null
   if (type === 'multi') return Array.isArray(v) && v.length > 0
   if (type === 'file') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length === Math.max(1, Number(v.limit || v.file_limit || 1)) && typeof v.note === 'string' && v.note.trim() !== ''
+  if (type === 'audio') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length === 1
   return typeof v === 'string' && v.trim() !== ''
 }
 
 // kind: 'homework' (по умолчанию) | 'mock'. Формат ответа эндпоинтов одинаковый.
-export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) {
+// onSubmitted — вызывается после успешной отправки (автозачёт урока в программе курса).
+export default function HomeworkTest({ homeworkId, kind = 'homework', onBack, onSubmitted }) {
   const apiGet = kind === 'mock' ? mockGet : homeworkGet
   const apiSubmit = kind === 'mock' ? mockSubmit : homeworkSubmit
   const [data, setData] = useState(null)       // { locked, homework, questions, submission }
@@ -22,11 +29,16 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
   const [answers, setAnswers] = useState({})   // { [questionId]: value }
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [hintOpen, setHintOpen] = useState(false)  // раскрыта ли подсказка текущего вопроса
+  useEffect(() => { setHintOpen(false) }, [cur])   // при переходе к другому вопросу прячем
 
   useEffect(() => {
     let alive = true
+    setData(null); setError('')
     apiGet(homeworkId)
-      .then((d) => {
+      .then(async (d) => {
+        if (!alive) return
+        await preloadOpeningQuestionImages(d.questions || [])
         if (!alive) return
         setData(d)
         if (d.submission) setSubmitted(true)
@@ -35,7 +47,7 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
       })
       .catch((e) => { if (alive) setError(e.message) })
     return () => { alive = false }
-  }, [homeworkId])
+  }, [homeworkId, kind])
 
   // Автосохранение черновика (дебаунс ~700мс) — пока не отправлено.
   const dirty = useRef(false)
@@ -55,7 +67,7 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
       <div className="test__locked">
         <Lock size={40} />
         <h3>{data.locked === 'subscription' ? 'Повышенный уровень доступен по подписке «Стандарт»' : 'Нет доступа к курсу'}</h3>
-        <p>{data.locked === 'subscription' ? 'Оформи тариф «Стандарт» или выше — повышенные задания откроются.' : 'Доступ к курсу выдаёт администратор.'}</p>
+        <p>{data.locked === 'subscription' ? 'Оформи тариф «Стандарт» или выше — продвинутые задания откроются.' : 'Доступ к курсу выдаёт администратор.'}</p>
       </div>
     </div>
   )
@@ -84,6 +96,7 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
         .filter((qq) => isAnswered(qq.type, answers[qq.id]))
         .map((qq) => ({ question_id: qq.id, value: answers[qq.id] }))
       await apiSubmit(homeworkId, payload)
+      onSubmitted?.()
       setSubmitted(true)
     } catch (e) { alert(e.message) }
     finally { setBusy(false) }
@@ -96,7 +109,7 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
         <button className="test__back" onClick={onBack}><ChevronLeft size={20} /></button>
         <div className="test__head-info">
           <h2>{data.homework.title}</h2>
-          <span>Отвечено {answeredCount} из {total}{data.homework.level === 'hard' && ' · повышенный'}</span>
+          <span>Отвечено {answeredCount} из {total}{data.homework.level === 'hard' ? ' · продвинутый' : data.homework.level === 'medium' ? ' · средний' : ''}</span>
         </div>
         <button className="btn btn-light btn-sm" style={{ marginLeft: 'auto' }} onClick={() => printQuestions(data.homework.title, questions)}><Printer size={14} /> Печать</button>
       </div>
@@ -104,7 +117,47 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
       <div className="test__grid">
         <div className="test__q">
           <div className="test__num">№ {cur + 1}{q.optional && <span className="test__opt-tag"> · необязательный</span>}</div>
-          <div className="test__question">{q.text}</div>
+
+          {q.images?.length > 0 && (
+            <div className="test__imgs">
+              {q.images.map((src, i) => (
+                <a key={i} href={src} target="_blank" rel="noreferrer" title="Открыть в полном размере">
+                  <img src={src} alt={`Иллюстрация ${i + 1} к вопросу`} loading="eager" />
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div className="test__question"><MarkdownContent source={q.text} empty="" /></div>
+
+          {q.audio?.length > 0 && (
+            <div className="test__audio">{q.audio.map((item, i) => <AudioMessage key={`${item.url}-${i}`} src={item.url} name={item.name} />)}</div>
+          )}
+
+          {q.videos?.length > 0 && (
+            <div className="test__videos">{q.videos.map((item, i) => <KinescopeVideo key={`${item.url}-${i}`} url={item.url} />)}</div>
+          )}
+
+          {q.files?.length > 0 && (
+            <div className="test__files">
+              {q.files.map((f, i) => (
+                <a className="lfile" key={i} href={f.url} target="_blank" rel="noreferrer">
+                  <span className="lfile__ico"><FileText size={18} /></span>
+                  <div className="lfile__info"><b>{f.name}</b><span>{f.size}</span></div>
+                  <span className="lfile__dl"><Download size={14} /> Скачать</span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {q.hint && (
+            <div className="test__hintwrap">
+              <button className={`test__hintbtn ${hintOpen ? 'is-open' : ''}`} onClick={() => setHintOpen((v) => !v)}>
+                <Lightbulb size={14} /> Подсказка
+              </button>
+              {hintOpen && <div className="test__hintbox"><MarkdownContent source={q.hint} empty="" /></div>}
+            </div>
+          )}
 
           {q.type === 'single' && (
             <div className="test__opts">
@@ -144,6 +197,10 @@ export default function HomeworkTest({ homeworkId, kind = 'homework', onBack }) 
 
           {q.type === 'file' && (
             <FileAnswer questionId={q.id} limit={q.file_limit} value={value} onChange={(v) => setChoice({ ...v, limit: q.file_limit })} />
+          )}
+
+          {q.type === 'audio' && (
+            <AudioAnswer questionId={q.id} value={value} onChange={setChoice} />
           )}
 
           <button className="btn btn-blue test__next" disabled={!canNext} onClick={next}>

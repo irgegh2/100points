@@ -4,7 +4,17 @@
 // Все вызовы ИИ идут с бэка — ключ клиенту НИКОГДА не отдаём.
 
 const AI_BASE = 'https://routerai.ru/api/v1';
-const AI_DEFAULT_MODEL = 'deepseek/deepseek-v4-flash';
+const AI_DEFAULT_MODEL = 'openai/gpt-5.4-mini';
+
+// На всей платформе используется одна модель. Значение хранится в app_settings
+// и меняется в одном месте — в настройках админки. Аргумент $model у публичных
+// функций оставлен для обратной совместимости со старым кодом и строками БД.
+function ai_active_model(): string {
+  $model = trim((string)setting_get('ai_model', AI_DEFAULT_MODEL));
+  return preg_match('/^[A-Za-z0-9_.~:-]+\/[A-Za-z0-9_.~:-]+$/', $model)
+    ? $model
+    : AI_DEFAULT_MODEL;
+}
 
 function ai_key(): string {
   $k = prod_secrets()['routerai_key'] ?? '';
@@ -19,7 +29,7 @@ function ai_enabled(): bool { return ai_key() !== ''; }
 function ai_complete(string $model, array $messages, array $opts = []): array {
   $key = ai_key();
   if ($key === '') return ['ok' => false, 'error' => 'ИИ не настроен'];
-  if ($model === '') $model = AI_DEFAULT_MODEL;
+  $model = ai_active_model();
 
   $payload = array_merge(['model' => $model, 'messages' => $messages], $opts);
   $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
@@ -65,7 +75,7 @@ function ai_complete(string $model, array $messages, array $opts = []): array {
 function ai_stream(string $model, array $messages, callable $onDelta, array $opts = []): array {
   $key = ai_key();
   if ($key === '') return ['ok' => false, 'error' => 'ИИ не настроен'];
-  if ($model === '') $model = AI_DEFAULT_MODEL;
+  $model = ai_active_model();
   if (!function_exists('curl_init')) return ['ok' => false, 'error' => 'curl недоступен'];
 
   $payload = array_merge(['model' => $model, 'messages' => $messages, 'stream' => true], $opts);

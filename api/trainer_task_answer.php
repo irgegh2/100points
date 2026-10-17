@@ -1,6 +1,6 @@
 <?php
 // POST /trainer_task_answer.php  { task_id, answer }
-// Ученик отвечает на задачу. ИИ (модель из задачи) сверяет с эталонным ответом и объясняет,
+// Ученик отвечает на задачу. Глобальная модель ИИ сверяет с эталонным ответом и объясняет,
 // верно ли и в чём ошибка. Записываем попытку (повторно задача не выдаётся). Этап 8.
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/ai.php';
@@ -11,7 +11,7 @@ $taskId = (int)($in['task_id'] ?? 0);
 $answer = trim((string)($in['answer'] ?? ''));
 if ($taskId <= 0) fail('Не указана задача', 400);
 
-$st = db()->prepare("SELECT t.id, t.subject_id, t.text, t.answer, t.solution, t.model FROM trainer_tasks t WHERE t.id = ? LIMIT 1");
+$st = db()->prepare("SELECT t.id, t.subject_id, t.text, t.answer, t.solution FROM trainer_tasks t WHERE t.id = ? LIMIT 1");
 $st->execute([$taskId]);
 $task = $st->fetch();
 if (!$task) fail('Задача не найдена', 404);
@@ -27,7 +27,7 @@ $user = "Задача:\n{$task['text']}\n\nЭталонный (правильн�
       . ($task['solution'] ? "Краткое решение: {$task['solution']}\n" : '')
       . "\nОтвет ученика: " . ($answer !== '' ? $answer : '(пусто)');
 
-$ai = ai_complete((string)$task['model'], [
+$ai = ai_complete('', [
   ['role' => 'system', 'content' => $sys],
   ['role' => 'user', 'content' => $user],
 ], ['temperature' => 0.2]);

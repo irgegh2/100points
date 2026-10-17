@@ -36,6 +36,7 @@ $isAnswered = function ($type, $v) {
   if ($type === 'single') return $v !== null && $v !== '';
   if ($type === 'multi') return is_array($v) && count($v) > 0;
   if ($type === 'file') return is_array($v) && trim((string)($v['note'] ?? '')) !== '' && count($v['files'] ?? []) > 0;
+  if ($type === 'audio') return is_array($v) && count($v['files'] ?? []) === 1;
   return is_string($v) && trim($v) !== '';
 };
 
@@ -46,9 +47,10 @@ foreach ($rows as $q) {
   $val = array_key_exists($qid, $given) ? $given[$qid] : null;
   if ((int)$q['optional'] === 1 && !$isAnswered($type, $val)) continue;
   if ($type === 'file') $val = canonical_file_answer($uid, $qid, $val, (int)$q['file_limit']);
+  if ($type === 'audio') $val = canonical_audio_answer($uid, $qid, $val);
   $correct = $q['correct'] !== null ? json_decode($q['correct'], true) : null;
   [$ok, $earned] = grade_question($type, $correct, $val, (int)$q['points'], (int)$q['case_sensitive'] === 1, $q['grade_mode'] ?? 'full');
-  if ($type === 'textarea' || $type === 'file') $hasPendingTextarea = true;
+  if (in_array($type, ['textarea', 'file', 'audio'], true)) $hasPendingTextarea = true;
   else { $autoScore += $earned; $autoMax += (int)$q['points']; $autoCount++; }
   $score += $earned; $maxScore += (int)$q['points'];
   $toGrade[] = [$qid, $type, $val, $ok, $earned];
@@ -59,13 +61,10 @@ $isResubmit = false;
 try {
   $pdo = db();
   $pdo->beginTransaction();
-  $old = $pdo->prepare("SELECT id FROM submissions WHERE mock_id = ? AND user_id = ?");
+  // Сохраняем историю пересдач: аналитика сможет показать каждую попытку и её ответы.
+  $old = $pdo->prepare("SELECT id FROM submissions WHERE mock_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1");
   $old->execute([$mockId, $uid]);
-  if ($oldId = $old->fetchColumn()) {
-    $isResubmit = true;
-    $pdo->prepare("DELETE FROM answers WHERE submission_id = ?")->execute([$oldId]);
-    $pdo->prepare("DELETE FROM submissions WHERE id = ?")->execute([$oldId]);
-  }
+  if ($old->fetchColumn()) $isResubmit = true;
   $gradedAt = $status === 'graded' ? date('Y-m-d H:i:s') : null;
   $pdo->prepare("INSERT INTO submissions (mock_id, user_id, status, score, max_score, graded_at) VALUES (?,?,?,?,?,?)")
       ->execute([$mockId, $uid, $status, $score, $maxScore, $gradedAt]);
@@ -73,7 +72,7 @@ try {
   $ai = $pdo->prepare("INSERT INTO answers (submission_id, question_id, value, is_correct, earned) VALUES (?,?,?,?,?)");
   foreach ($toGrade as [$qid, $type, $val, $ok, $earned]) {
     $ai->execute([$subId, $qid, json_encode($val, JSON_UNESCAPED_UNICODE), $ok === null ? null : ($ok ? 1 : 0), $earned]);
-    if ($type === 'file') bind_answer_files($uid, $qid, $val, $subId);
+    if ($type === 'file' || $type === 'audio') bind_answer_files($uid, $qid, $val, $subId);
   }
   $pdo->commit();
 } catch (Exception $e) {
@@ -93,6 +92,7 @@ try {
   require_once __DIR__ . '/gamify.php';
   g_touch_streak($uid);
   g_award_mock($uid, $mockId, $autoScore, $autoMax, $autoCount);
+  g_sync_achievements($uid);
 } catch (Throwable $e) { error_log('[gamify] ' . $e->getMessage()); }
 
 ok(['submission_id' => $subId, 'status' => $status, 'score' => $score, 'max_score' => $maxScore]);

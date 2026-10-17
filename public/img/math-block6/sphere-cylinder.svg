@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Шар, вписанный в цилиндр</title>
+  <desc id="desc">Шар касается обоих оснований и боковой поверхности цилиндра.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round">
+    <ellipse cx="400" cy="92" rx="168" ry="45" stroke="#9b98bd" stroke-width="5"/>
+    <path d="M232 92v256M568 92v256" stroke="#9b98bd" stroke-width="5"/>
+    <ellipse cx="400" cy="348" rx="168" ry="45" stroke="#5b5ce2" stroke-width="6"/>
+    <circle cx="400" cy="220" r="128" fill="#7773e6" fill-opacity=".12" stroke="#5b5ce2" stroke-width="7"/>
+    <path d="M400 220h128M400 92v256" stroke="#7773de" stroke-width="4" stroke-dasharray="10 10"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-weight="850">
+    <text x="463" y="208" fill="#403db9" font-size="24">r</text>
+    <rect x="594" y="165" width="132" height="104" rx="18" fill="#eeedff"/>
+    <text x="660" y="207" fill="#242238" font-size="22" text-anchor="middle">h = 2r</text>
+    <text x="660" y="242" fill="#403db9" font-size="21" text-anchor="middle">R = r</text>
+  </g>
+</svg>

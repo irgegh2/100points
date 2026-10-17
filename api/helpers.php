@@ -33,6 +33,127 @@ function is_https() {
       || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 }
 
+// Превращает публичную ссылку на видео RUTUBE/VK Видео/YouTube/WebRestream/EduContent
+// в URL официального встраиваемого плеера. Любые другие домены возвращают null и продолжают
+// открываться обычной внешней ссылкой. Это одновременно держит iframe в
+// строгом списке доверенных видеохостингов.
+function external_stream_embed(string $value): ?array {
+  $value = trim($value);
+  if ($value === '' || !filter_var($value, FILTER_VALIDATE_URL)) return null;
+
+  $parts = parse_url($value);
+  $scheme = strtolower((string)($parts['scheme'] ?? ''));
+  $host = strtolower((string)($parts['host'] ?? ''));
+  if (!in_array($scheme, ['http', 'https'], true) || $host === '') return null;
+  $host = preg_replace('/^(?:www\.|m\.)/', '', $host);
+  $path = (string)($parts['path'] ?? '');
+  parse_str((string)($parts['query'] ?? ''), $query);
+
+  // WebRestream выдаёт подписанный URL готового плеера в формате /p/<JWT>.
+  // Разрешаем только этот точный маршрут и JWT из трёх base64url-сегментов:
+  // короткая ссылка /c/... ведёт в Telegram-бота и плеером не является.
+  if ($host === 'webrestream.site') {
+    if (!preg_match('~^/p/([a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)/?$~', $path, $match)) return null;
+    return [
+      'provider' => 'webrestream',
+      'embed_url' => 'https://webrestream.site/p/' . $match[1],
+    ];
+  }
+
+  // EduContent отдаёт готовую страницу плеера по /watch/<UUID>. Отдельного
+  // embed-маршрута у сервиса нет, а сама watch-страница разрешает iframe.
+  // Партнёрский идентификатор переносим только в ожидаемом числовом формате.
+  if ($host === 'educontent.cloud') {
+    if (!preg_match('~^/watch/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/?$~i', $path, $match)) {
+      return null;
+    }
+    $embed = 'https://educontent.cloud/watch/' . strtolower($match[1]);
+    if (isset($query['partner']) && is_scalar($query['partner']) && preg_match('/^\d+$/', (string)$query['partner'])) {
+      $embed .= '?partner=' . rawurlencode((string)$query['partner']);
+    }
+    return ['provider' => 'educontent', 'embed_url' => $embed];
+  }
+
+  if (in_array($host, ['youtube.com', 'youtube-nocookie.com', 'youtu.be'], true)) {
+    $videoId = null;
+    if ($host === 'youtu.be' && preg_match('~^/([a-zA-Z0-9_-]{11})/?$~', $path, $match)) {
+      $videoId = $match[1];
+    } elseif ($host !== 'youtu.be') {
+      if ($path === '/watch' && isset($query['v']) && is_string($query['v'])
+          && preg_match('/^[a-zA-Z0-9_-]{11}$/', $query['v'])) {
+        $videoId = $query['v'];
+      } elseif (preg_match('~^/(?:live|embed|shorts)/([a-zA-Z0-9_-]{11})/?$~', $path, $match)) {
+        $videoId = $match[1];
+      }
+    }
+    if ($videoId === null) return null;
+    return ['provider' => 'youtube', 'embed_url' => 'https://www.youtube.com/embed/' . $videoId];
+  }
+
+  if ($host === 'rutube.ru') {
+    if (!preg_match('~/(?:play/embed|video(?:/private)?|live/video)/([a-zA-Z0-9_-]{16,})~', $path, $match)) return null;
+    $embed = 'https://rutube.ru/play/embed/' . rawurlencode($match[1]);
+    // Ключ p нужен для видео/трансляций «только по ссылке»; таймкод безопасно
+    // переносим, если администратор вставил ссылку с нужного момента.
+    $params = [];
+    foreach (['p', 't'] as $key) {
+      if (isset($query[$key]) && is_scalar($query[$key]) && preg_match('/^[a-zA-Z0-9_-]+$/', (string)$query[$key])) {
+        $params[$key] = (string)$query[$key];
+      }
+    }
+    if ($params) $embed .= '/?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    return ['provider' => 'rutube', 'embed_url' => $embed];
+  }
+
+  // VK Видео Live использует отдельный домен и отдельный embed-маршрут,
+  // где идентификатором выступает короткое имя канала.
+  if (in_array($host, ['live.vkvideo.ru', 'live.vkplay.ru'], true)) {
+    $segments = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
+    if (($segments[0] ?? '') === 'app' && ($segments[1] ?? '') === 'embed') $channel = $segments[2] ?? '';
+    else $channel = $segments[0] ?? '';
+    if ($channel === '' || !preg_match('/^[a-zA-Z0-9_.-]+$/', $channel)) return null;
+    return [
+      'provider' => 'vk',
+      'embed_url' => 'https://live.vkvideo.ru/app/embed/' . rawurlencode($channel),
+    ];
+  }
+
+  $vkHosts = ['vk.com', 'vk.ru', 'vkvideo.ru'];
+  if (in_array($host, $vkHosts, true)) {
+    $ownerId = null;
+    $videoId = null;
+
+    if (preg_match('~/video_ext\.php$~', $path)
+        && isset($query['oid'], $query['id'])
+        && preg_match('/^-?\d+$/', (string)$query['oid'])
+        && preg_match('/^\d+$/', (string)$query['id'])) {
+      $ownerId = (string)$query['oid'];
+      $videoId = (string)$query['id'];
+    } else {
+      // Поддерживает vk.com/video-1_2, vkvideo.ru/video-1_2 и ссылки, где
+      // video-1_2 находится в параметре z/list либо во фрагменте после #.
+      $decoded = rawurldecode($value);
+      if (preg_match('/(?:video|live)(-?\d+)_(\d+)/i', $decoded, $match)) {
+        $ownerId = $match[1];
+        $videoId = $match[2];
+      }
+    }
+
+    if ($ownerId === null || $videoId === null) return null;
+    $params = ['oid' => $ownerId, 'id' => $videoId, 'hd' => '2'];
+    // Закрытым и доступным по ссылке роликам VK может требоваться hash.
+    if (isset($query['hash']) && is_scalar($query['hash']) && preg_match('/^[a-zA-Z0-9_-]+$/', (string)$query['hash'])) {
+      $params['hash'] = (string)$query['hash'];
+    }
+    return [
+      'provider' => 'vk',
+      'embed_url' => 'https://vk.com/video_ext.php?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986),
+    ];
+  }
+
+  return null;
+}
+
 function start_session() {
   $ttl = 60 * 60 * 24 * 90; // 90 дней
   // Чтобы сервер не удалял сессию по простою раньше срока куки.
@@ -48,9 +169,14 @@ function start_session() {
 }
 
 function body() {
+  static $loaded = false;
+  static $data = [];
+  if ($loaded) return $data;
+  $loaded = true;
   $raw = file_get_contents('php://input');
-  $data = json_decode($raw, true);
-  return is_array($data) ? $data : [];
+  $decoded = json_decode($raw, true);
+  $data = is_array($decoded) ? $decoded : [];
+  return $data;
 }
 
 // ── Единый формат ответа { ok, data, error } ────────────────
@@ -143,12 +269,23 @@ function require_admin($keepSession = false) {
 // Требует активную сессию ученика, иначе 401. Возвращает id ученика.
 function require_user($keepSession = false) {
   if (empty($_SESSION['uid'])) fail('Нужен вход', 401);
+  if (!empty($_SESSION['impersonation']['expires_at']) && $_SESSION['impersonation']['expires_at'] < gmdate('Y-m-d H:i:s')) {
+    unset($_SESSION['uid'], $_SESSION['impersonation']);
+    fail('Время просмотра кабинета истекло', 401);
+  }
+  if (is_readonly_impersonation() && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+    fail('Кабинет открыт администратором только для просмотра', 403);
+  }
   block_if_maintenance(); // во время тех.работ ученические эндпоинты закрыты
   $uid = (int)$_SESSION['uid'];
   // Отпускаем блокировку сессии сразу после авторизации (см. require_admin) — иначе
   // кабинет, шлющий ~7 запросов разом, грузится секундами из-за их сериализации.
   if (!$keepSession) release_session();
   return $uid;
+}
+
+function is_readonly_impersonation(): bool {
+  return !empty($_SESSION['impersonation']['read_only']);
 }
 
 // Есть ли у ученика доступ к курсу (Этап 3). Доступ даёт ТОЛЬКО явное зачисление
@@ -199,13 +336,37 @@ function norm_text($s) {
 }
 
 // Автопроверка одного вопроса. $correct/$value — уже декодированные из JSON.
-// Возвращает [is_correct, earned]: для textarea/file — [null, 0] (ручная проверка наставником).
+// Возвращает [is_correct, earned]: для textarea/file/audio — [null, 0] (ручная проверка наставником).
 //   single — у вопроса может быть НЕСКОЛЬКО допустимых вариантов (correct — массив индексов
 //            или одно число); ответ верный, если выбран любой из допустимых.
 //   multi  — режим $mode: 'full' (всё или ничего) | 'partial' (+1 за верный, −1 за неверный, не ниже 0).
 //   text   — несколько допустимых строк; $caseSensitive — учитывать ли регистр.
 function grade_question(string $type, $correct, $value, int $points, bool $caseSensitive = false, string $mode = 'full'): array {
-  if ($type === 'textarea' || $type === 'file') return [null, 0];
+  if (in_array($type, ['textarea', 'file', 'audio'], true)) return [null, 0];
+
+  // Задания на установление соответствия в ЕГЭ вводятся одной цифровой
+  // последовательностью. Балл считаем по официальной пороговой шкале, а не
+  // по принципу «всё или ничего».
+  if ($type === 'text' && $mode === 'sequence') {
+    $answer = preg_replace('/\s+/u', '', (string)$value);
+    $accepted = is_array($correct) ? $correct : [$correct];
+    $best = 0; $length = 0;
+    foreach ($accepted as $candidate) {
+      $candidate = preg_replace('/\s+/u', '', (string)$candidate);
+      $length = max($length, strlen($candidate));
+      $right = 0;
+      $limit = min(strlen($answer), strlen($candidate));
+      for ($i = 0; $i < $limit; $i++) if ($answer[$i] === $candidate[$i]) $right++;
+      $best = max($best, $right);
+    }
+    $earned = 0;
+    if ($length === 6 && $points === 2) $earned = $best >= 5 ? 2 : ($best >= 3 ? 1 : 0);
+    elseif ($length === 7 && $points === 3) $earned = $best >= 6 ? 3 : ($best >= 4 ? 2 : ($best >= 3 ? 1 : 0));
+    elseif ($length === 7 && $points === 4) $earned = $best >= 6 ? 4 : ($best >= 5 ? 3 : ($best >= 4 ? 2 : ($best >= 3 ? 1 : 0)));
+    elseif ($length === 6 && $points === 3) $earned = $best >= 5 ? 3 : ($best >= 4 ? 2 : ($best >= 3 ? 1 : 0));
+    else $earned = ($best === $length && $length > 0) ? $points : 0;
+    return [$earned === $points, $earned];
+  }
 
   if ($type === 'single') {
     $set = is_array($correct) ? array_map('intval', $correct) : [(int)$correct];
@@ -265,6 +426,32 @@ function canonical_file_answer(int $uid, int $questionId, $value, int $fileLimit
   return ['note' => $note, 'files' => array_map(fn($id) => $found[$id], $ids)];
 }
 
+// Голосовой ответ использует то же защищённое хранилище, но всегда содержит
+// ровно одну аудиозапись и не требует текстовой подписи.
+function canonical_audio_answer(int $uid, int $questionId, $value): array {
+  if (!is_array($value)) fail('Запиши или загрузи устный ответ', 400);
+  $incoming = is_array($value['files'] ?? null) ? $value['files'] : [];
+  $ids = [];
+  foreach ($incoming as $file) {
+    $id = is_array($file) ? (int)($file['id'] ?? 0) : (int)$file;
+    if ($id > 0 && !in_array($id, $ids, true)) $ids[] = $id;
+  }
+  if (count($ids) !== 1) fail('Для устного ответа нужна ровно одна аудиозапись', 400);
+
+  $audioMimes = [
+    'audio/mpeg','audio/mp4','video/mp4','audio/x-m4a','audio/ogg','application/ogg','audio/wav',
+    'audio/x-wav','audio/webm','video/webm','audio/aac','audio/x-hx-aac-adts',
+  ];
+  $st = db()->prepare('SELECT id, url, original_name, size, mime FROM answer_uploads WHERE id = ? AND user_id = ? AND question_id = ? AND submission_id IS NULL LIMIT 1');
+  $st->execute([$ids[0], $uid, $questionId]);
+  $r = $st->fetch();
+  if (!$r || !in_array((string)$r['mime'], $audioMimes, true)) fail('Аудиозапись не найдена или имеет неверный формат', 400);
+  return ['files' => [[
+    'id' => (int)$r['id'], 'url' => $r['url'], 'name' => $r['original_name'],
+    'size' => (int)$r['size'], 'mime' => $r['mime'],
+  ]]];
+}
+
 function bind_answer_files(int $uid, int $questionId, array $value, int $submissionId): void {
   $ids = array_values(array_filter(array_map(fn($f) => (int)($f['id'] ?? 0), $value['files'] ?? [])));
   if (!$ids) return;
@@ -311,6 +498,40 @@ function setting_set($key, $val) {
   $d = db()->getAttribute(PDO::ATTR_DRIVER_NAME);
   if ($d === 'mysql') db()->prepare("INSERT INTO app_settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)")->execute([$key, $val]);
   else db()->prepare("INSERT OR REPLACE INTO app_settings (k, v) VALUES (?, ?)")->execute([$key, $val]);
+}
+
+// Версия живых данных кабинета. Клиент запрашивает только эту короткую строку и
+// перечитывает содержимое открытого раздела лишь когда версия действительно сменилась.
+function live_content_version(): string {
+  return (string)setting_get('live_content_version', '1');
+}
+
+function live_content_touch(): void {
+  // Случайный хвост исключает совпадение двух сохранений в одну микросекунду.
+  setting_set('live_content_version', sprintf('%.6F', microtime(true)) . '-' . bin2hex(random_bytes(4)));
+}
+
+// Все успешные изменения через админские POST-эндпоинты автоматически сообщают
+// открытым кабинетам, что данные обновились. Авторизация и вход контентом не являются.
+function register_admin_live_content_touch(): void {
+  if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') return;
+  $script = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+  // Часть исторических админских мутаций названа без префикса admin_.
+  $adminMutations = ['users_create.php', 'users_update.php', 'users_delete.php', 'review_grade.php'];
+  if (!str_starts_with($script, 'admin_') && !in_array($script, $adminMutations, true)) return;
+  if (in_array($script, ['admin_login.php', 'admin_logout.php', 'admin_impersonate_start.php'], true)) return;
+
+  // Каталог читает данные POST-запросом с action=list. Это не изменение:
+  // не будим все открытые кабинеты при обычном просмотре админки.
+  if ($script === 'admin_catalog.php' && ((body()['action'] ?? '') === 'list')) return;
+
+  register_shutdown_function(function (): void {
+    $code = http_response_code();
+    if ($code === false) $code = 200;
+    if ($code < 200 || $code >= 400 || empty($_SESSION['admin_id'])) return;
+    try { live_content_touch(); }
+    catch (Throwable $e) { error_log('[live content touch] ' . $e->getMessage()); }
+  });
 }
 function is_maintenance() { return setting_get('maintenance', '0') === '1'; }
 // Закрыть ученические эндпоинты во время тех.работ (админ — мимо). Зовётся из require_user/me.

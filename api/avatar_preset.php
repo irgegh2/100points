@@ -22,12 +22,8 @@ $old->execute([$uid]);
 $oldpath = ($old->fetch()['avatar'] ?? '');
 $oldUrlPath = parse_url($oldpath, PHP_URL_PATH) ?: $oldpath;
 $ownerPrefix = 'u' . $uid . '_';
-if ($oldUrlPath
-    && strpos($oldUrlPath, '/uploads/avatars/') === 0
-    && strpos(basename($oldUrlPath), $ownerPrefix) === 0) {
-  $dir = realpath(uploads_root() . '/avatars');
-  $oldfile = $dir ? realpath($dir . '/' . basename($oldUrlPath)) : false;
-  if ($oldfile && $dir && strpos($oldfile, $dir) === 0 && is_file($oldfile)) @unlink($oldfile);
+if ($oldUrlPath && strpos(basename($oldUrlPath), $ownerPrefix) === 0) {
+  storage_delete_url($oldpath);
 }
 
 // upsert avatar

@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import {
   Users, Shapes, BookOpen, PencilLine, ClipboardCheck, FolderOpen, Dumbbell,
   Trophy, ShoppingCart, CalendarDays, Headset, Sparkles, CreditCard, Library,
-  LifeBuoy, Bell, Wrench, LogOut, Menu, X, Inbox,
+  LifeBuoy, Bell, Wrench, LogOut, Menu, X, Inbox, Video,
 } from 'lucide-react'
 import { brand } from '../data/content.js'
 import { isAdminAuthed, isAdminHost, setAdminAuthed } from '../auth.js'
 import { adminLogout, adminMe } from '../api.js'
+import { readHash, writeHash } from '../hashNav.js'
 import AdminUsers from '../components/admin/AdminUsers.jsx'
 import AdminSubjects from '../components/admin/AdminSubjects.jsx'
 import AdminCourses from '../components/admin/AdminCourses.jsx'
@@ -26,6 +27,7 @@ import AdminAiChats from '../components/admin/AdminAiChats.jsx'
 import AdminSettings from '../components/admin/AdminSettings.jsx'
 import AdminLibrary from '../components/admin/AdminLibrary.jsx'
 import AdminLeads from '../components/admin/AdminLeads.jsx'
+import AdminVideos from '../components/admin/AdminVideos.jsx'
 import AdminStub from '../components/admin/AdminStub.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import { DangerConfirmProvider } from '../components/admin/DangerConfirm.jsx'
@@ -36,6 +38,7 @@ const REAL = [
   { key: 'leads', icon: Inbox, label: 'Заявки' },
   { key: 'subjects', icon: Shapes, label: 'Предметы' },
   { key: 'courses', icon: BookOpen, label: 'Курсы' },
+  { key: 'videos', icon: Video, label: 'Видеотека' },
   { key: 'schedule', icon: CalendarDays, label: 'Расписание' },
   { key: 'mock', icon: ClipboardCheck, label: 'Пробники' },
   { key: 'bank', icon: FolderOpen, label: 'Банк заданий' },
@@ -59,8 +62,17 @@ export default function AdminPage() {
   const navigate = useNavigate()
   const loginPath = isAdminHost() ? '/login' : '/admin/login'
   const [checking, setChecking] = useState(true)
-  const [active, setActive] = useState('users')
+  // Раздел восстанавливаем из URL-хеша, чтобы перезагрузка не сбрасывала на «Ученики».
+  const [active, setActive] = useState(() => {
+    const k = readHash()[0]
+    return k && ALL.some((n) => n.key === k) ? k : 'users'
+  })
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Пишем раздел в хеш; если он не менялся — не затираем вложенный путь (#courses/11).
+  useEffect(() => {
+    if (readHash()[0] !== active) writeHash([active])
+  }, [active])
 
   // Проверяем серверную сессию админа.
   useEffect(() => {
@@ -121,6 +133,7 @@ export default function AdminPage() {
           {active === 'leads' && <AdminLeads />}
           {active === 'subjects' && <AdminSubjects />}
           {active === 'courses' && <AdminCourses />}
+          {active === 'videos' && <AdminVideos />}
           {active === 'mock' && <AdminMocks />}
           {active === 'bank' && <AdminBank />}
           {active === 'trainer' && <AdminTrainer />}

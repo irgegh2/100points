@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="650" viewBox="0 0 960 650" role="img" aria-labelledby="title desc">
+  <title id="title">Problems teenagers face when learning a language</title>
+  <desc id="desc">A grayscale pie chart: difficult grammar 38%, pronunciation 22%, feeling embarrassed 18%, confusing spelling 12%, idioms and slang 10%.</desc>
+  <rect width="960" height="650" fill="#fff"/>
+  <g fill="#111" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="480" y="47" font-size="27" font-weight="700">The survey question:</text>
+    <text x="480" y="83" font-size="29" font-weight="700">What problems do you face when learning a language?</text>
+  </g>
+  <g transform="translate(470 350) rotate(-90)">
+    <circle r="148" fill="#ddd"/>
+    <path d="M0 0 L148 0 A148 148 0 0 1 -107.6 101.6 Z" fill="#595959" stroke="#fff" stroke-width="2"/>
+    <path d="M0 0 L-107.6 101.6 A148 148 0 0 1 -145.1 -29.4 Z" fill="#a9a9a9" stroke="#fff" stroke-width="2"/>
+    <path d="M0 0 L-145.1 -29.4 A148 148 0 0 1 -63.0 -133.9 Z" fill="#8a8a8a" stroke="#fff" stroke-width="2"/>
+    <path d="M0 0 L-63.0 -133.9 A148 148 0 0 1 28.0 -145.3 Z" fill="#3f3f3f" stroke="#fff" stroke-width="2"/>
+    <path d="M0 0 L28.0 -145.3 A148 148 0 0 1 148 0 Z" fill="#c8c8c8" stroke="#fff" stroke-width="2"/>
+  </g>
+  <g fill="none" stroke="#222" stroke-width="3">
+    <path d="M590 273 L690 205 L830 205"/>
+    <path d="M326 244 L238 184 L96 184"/>
+    <path d="M319 379 L224 421 L80 421"/>
+    <path d="M430 500 L430 559 L310 559"/>
+    <path d="M596 394 L686 447 L845 447"/>
+  </g>
+  <g fill="#111" font-family="Arial, Helvetica, sans-serif" font-size="22" text-anchor="middle">
+    <text x="775" y="176"><tspan x="775">Idioms and slang</tspan><tspan x="775" dy="27" font-weight="700">10%</tspan></text>
+    <text x="155" y="151"><tspan x="155">Confusing spelling</tspan><tspan x="155" dy="27" font-weight="700">12%</tspan></text>
+    <text x="153" y="454"><tspan x="153">Feeling embarrassed</tspan><tspan x="153" dy="27" font-weight="700">18%</tspan></text>
+    <text x="425" y="594"><tspan x="425">Pronunciation</tspan><tspan x="425" dy="27" font-weight="700">22%</tspan></text>
+    <text x="783" y="481"><tspan x="783">Difficult grammar</tspan><tspan x="783" dy="27" font-weight="700">38%</tspan></text>
+  </g>
+</svg>

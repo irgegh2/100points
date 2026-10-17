@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react'
 import { Landmark, Feather, Leaf, GraduationCap, Users, Languages, BookOpen, MoreHorizontal } from 'lucide-react'
 import CourseInside from './CourseInside.jsx'
 import { coursesList } from '../api.js'
+import { readHash, writeHash } from '../hashNav.js'
+import { countRu } from '../ruPlural.js'
+import { useLiveRefresh } from '../liveUpdates.js'
 
-const TABS = ['Все', 'Летняя школа', 'Вводные', 'Основные', 'Профориентация']
+const TABS = ['Все', 'Основные', 'Летняя школа', 'Вводные', 'Профориентация']
+const TYPE_ORDER = { 'Основные': 0, 'Летняя школа': 1, 'Вводные': 2, 'Профориентация': 3 }
 
 // какие типы показывают плашку на обложке и с каким текстом
 const PLATE = { 'Вводные': 'Вводный курс', 'Летняя школа': 'Летняя школа' }
@@ -29,24 +33,41 @@ function CourseIcon({ name }) {
   return Ico ? <Ico size={26} /> : null
 }
 
-export default function Courses() {
+export default function Courses({ onNavigate }) {
   const [tab, setTab] = useState('Все')
-  const [opened, setOpened] = useState(null)
+  // Открытый курс живёт в хеше (#courses/11) — перезагрузка возвращает внутрь курса.
+  const [opened, setOpened] = useState(() => {
+    const [sec, id] = readHash()
+    return sec === 'courses' && Number(id) ? Number(id) : null
+  })
+  useEffect(() => {
+    const cur = readHash()
+    // Внутри открытого курса третий сегмент (#courses/11/33 — урок) пишет CourseInside — не затираем.
+    if (opened && cur[0] === 'courses' && Number(cur[1]) === opened) return
+    writeHash(opened ? ['courses', opened] : ['courses'])
+  }, [opened])
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const reload = () => {
     let alive = true
     coursesList()
       .then((d) => { if (alive) { setCourses(d.courses || []); setLoading(false) } })
       .catch((e) => { if (alive) { setError(e.message); setLoading(false) } })
     return () => { alive = false }
-  }, [])
+  }
+  useEffect(() => reload(), [])
+  useLiveRefresh(() => { if (!opened) reload() })
 
-  if (opened) return <CourseInside courseId={opened} onBack={() => setOpened(null)} />
+  if (opened) return <CourseInside courseId={opened} onBack={() => setOpened(null)} onNavigate={onNavigate} />
 
-  const list = tab === 'Все' ? courses : courses.filter((c) => c.type === tab)
+  const list = (tab === 'Все' ? courses : courses.filter((c) => c.type === tab))
+    .slice()
+    .sort((a, b) => {
+      const byType = (TYPE_ORDER[a.type] ?? 99) - (TYPE_ORDER[b.type] ?? 99)
+      return byType || String(a.title || '').localeCompare(String(b.title || ''), 'ru', { sensitivity: 'base', numeric: true })
+    })
 
   return (
     <div className="courses-lk">
@@ -66,7 +87,7 @@ export default function Courses() {
 
       <div className="courses-lk__grid" key={tab}>
         {list.map((c, i) => (
-          <article className="ccourse" key={c.id} style={{ animationDelay: `${i * 45}ms` }} onClick={() => setOpened(c.id)}>
+          <article className={`ccourse ${c.type === 'Основные' ? 'ccourse--primary' : ''}`} key={c.id} style={{ animationDelay: `${i * 45}ms`, '--course-color': c.color }} onClick={() => setOpened(c.id)}>
             <div className="ccourse__cover" style={{ backgroundColor: c.color, '--pat': `url('${PATTERNS[c.subject] || `/img/course-pattern.svg?v=${V}`}')` }}>
               <span className="ccourse__badge"><CourseIcon name={c.icon} /></span>
               {PLATE[c.type] && <span className="ccourse__plate">{PLATE[c.type]}</span>}
@@ -76,7 +97,7 @@ export default function Courses() {
               <div className="ccourse__row">
                 <div>
                   <h4>{c.title}</h4>
-                  <div className="ccourse__meta">{c.blocks} блоков</div>
+                  <div className="ccourse__meta">{countRu(c.blocks, 'раздел', 'раздела', 'разделов')}</div>
                 </div>
                 <button className="ccourse__more" aria-label="Меню" onClick={(e) => e.stopPropagation()}><MoreHorizontal size={18} /></button>
               </div>

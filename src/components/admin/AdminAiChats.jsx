@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Sparkles, Home, BookOpen, MessageSquare, Search } from 'lucide-react'
 import { adminAiChats, adminChatMessages } from '../../api.js'
+import MarkdownContent from '../MarkdownContent.jsx'
 
 const KIND = { platform: ['Помощь по платформе', Home], task: ['Разбор задачи', BookOpen], subject: ['По предмету', BookOpen], free: ['Свободный', Sparkles] }
 
@@ -28,7 +29,7 @@ export default function AdminAiChats() {
             {open.messages.map((m, i) => (
               m.role === 'user'
                 ? <div className="bubble me" key={i}><div className="bubble__text">{m.content}</div></div>
-                : <div className="airow" key={i}><span className="airow__ava"><Sparkles size={15} /></span><div className="bubble them"><div className="bubble__text">{m.content}</div></div></div>
+                : <div className="airow" key={i}><span className="airow__ava"><Sparkles size={15} /></span><div className="bubble them"><div className="bubble__text bubble__text--markdown"><MarkdownContent source={m.content} empty="" /></div></div></div>
             ))}
           </div>
           <div className="admin__readonly-note">Только просмотр — в ИИ-чатах отвечает искусственный интеллект.</div>

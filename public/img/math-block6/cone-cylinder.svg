@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Конус и цилиндр с общими основанием и высотой</title>
+  <desc id="desc">Конус расположен внутри цилиндра; тела имеют одинаковые основание и высоту.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="400" cy="112" rx="178" ry="52" stroke="#9b98bd" stroke-width="5"/>
+    <path d="M222 112v210M578 112v210" stroke="#9b98bd" stroke-width="5"/>
+    <path d="M222 322a178 52 0 0 0 356 0" stroke="#5b5ce2" stroke-width="6"/>
+    <path d="M222 322a178 52 0 0 1 356 0" stroke="#9b98bd" stroke-width="4" stroke-dasharray="11 11"/>
+    <path d="M400 112 222 322M400 112 578 322" stroke="#5b5ce2" stroke-width="7"/>
+    <path d="M400 112v210" stroke="#7773de" stroke-width="4" stroke-dasharray="10 10"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" fill="#242238">
+    <text x="420" y="218" font-size="24" font-weight="800">h</text>
+    <text x="462" y="339" font-size="24" font-weight="800">r</text>
+    <text x="400" y="402" font-size="25" font-weight="800" text-anchor="middle">общее основание · общая высота</text>
+  </g>
+</svg>

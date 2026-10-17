@@ -3,6 +3,7 @@ import { Plus, Trash2, Save, Check, X, Clock, Phone, Mail } from 'lucide-react'
 import { catList, catCreate, catUpdate, catDelete, adminPurchases, adminPurchaseUpdate } from '../../api.js'
 import AdminFold from './AdminFold.jsx'
 import { useDangerConfirm } from './DangerConfirm.jsx'
+import { pluralRu } from '../../ruPlural.js'
 
 const CATS = [['theme', 'Оформление'], ['privilege', 'Привилегия'], ['content', 'Контент'], ['reward', 'Цифровая награда'], ['other', 'Прочее']]
 const EMPTY = { name: '', description: '', category: 'privilege', price: 100, once_only: 0, badge: '', active: 1 }
@@ -42,7 +43,7 @@ export default function AdminShop() {
 
   // заявки
   const act = async (o, status) => {
-    if (status === 'canceled' && o.status === 'done' && !confirm(`Отменить выданную покупку «${o.item_name}» и вернуть ученику ${o.price} кристаллов?`)) return
+    if (status === 'canceled' && o.status === 'done' && !confirm(`Отменить выданную покупку «${o.item_name}» и вернуть ученику ${o.price} ${pluralRu(o.price, 'кристалл', 'кристалла', 'кристаллов')}?`)) return
     try { await adminPurchaseUpdate(o.id, status, notes[o.id] || ''); loadOrders() }
     catch (e) { alert(e.message) }
   }
@@ -123,7 +124,7 @@ export default function AdminShop() {
             <h2>Товары <span className="admin__count">{items.length}</span></h2>
             <div className="admin__list">
               {items.map((it) => (
-                <AdminFold key={it.id} title={it.name || 'Без названия'} meta={`${it.price} кристаллов · ${CATS.find(([v]) => v === it.category)?.[1] || it.category}`}>
+                <AdminFold key={it.id} title={it.name || 'Без названия'} meta={`${it.price} ${pluralRu(it.price, 'кристалл', 'кристалла', 'кристаллов')} · ${CATS.find(([v]) => v === it.category)?.[1] || it.category}`}>
                   <div className="admin__qcard-head">
                     <input className="admin__inp" style={{ flex: 1 }} value={it.name} onChange={(e) => patch(it.id, 'name', e.target.value)} />
                     <input className="admin__inp admin__inp--n" type="number" value={it.price} onChange={(e) => patch(it.id, 'price', e.target.value)} />

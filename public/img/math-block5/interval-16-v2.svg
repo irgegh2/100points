@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 330" role="img" aria-labelledby="title desc">
+  <title id="title">Разбиение исходов по массе буханки</title>
+  <desc id="desc">Три прямоугольных сегмента: масса не больше 790 граммов, от 790 до 810 и не меньше 810 граммов.</desc>
+  <defs>
+    <linearGradient id="focus" x1="0" x2="1">
+      <stop offset="0" stop-color="#6764e8"/>
+      <stop offset="1" stop-color="#4f66dd"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="916" height="326" rx="24" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <text x="54" y="54" fill="#242238" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="800">Разобьём возможные значения массы</text>
+
+  <g font-family="Inter,Arial,sans-serif">
+    <path d="M72 94H334V218H72Q58 218 58 204V108Q58 94 72 94Z" fill="#e8e8f1"/>
+    <rect x="334" y="94" width="386" height="124" fill="url(#focus)"/>
+    <path d="M720 94H848Q862 94 862 108V204Q862 218 848 218H720Z" fill="#e8e8f1"/>
+
+    <text x="196" y="137" fill="#44445b" font-size="22" font-weight="700" text-anchor="middle">X ≤ 790 г</text>
+    <text x="196" y="181" fill="#242238" font-size="29" font-weight="900" text-anchor="middle">0,17</text>
+
+    <text x="527" y="135" fill="white" font-size="23" font-weight="800" text-anchor="middle">790 г &lt; X &lt; 810 г</text>
+    <text x="527" y="181" fill="white" font-size="30" font-weight="900" text-anchor="middle">0,81</text>
+
+    <text x="791" y="137" fill="#44445b" font-size="21" font-weight="700" text-anchor="middle">X ≥ 810 г</text>
+    <text x="791" y="181" fill="#242238" font-size="29" font-weight="900" text-anchor="middle">0,02</text>
+  </g>
+
+  <rect x="238" y="246" width="444" height="54" rx="16" fill="#eeedff"/>
+  <text x="460" y="281" fill="#403db9" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="850" text-anchor="middle">0,98 − (1 − 0,83) = 0,81</text>
+  <text x="850" y="306" fill="#85859a" font-family="Inter,Arial,sans-serif" font-size="15" text-anchor="end">схема не в масштабе</text>
+</svg>

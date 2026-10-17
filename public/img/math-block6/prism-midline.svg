@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" role="img" aria-labelledby="title desc">
+  <title id="title">Сечение треугольной призмы через среднюю линию</title>
+  <desc id="desc">Плоскость через средние линии двух оснований отсекает малую треугольную призму.</desc>
+  <rect x="2" y="2" width="796" height="436" rx="26" fill="#f7f7fc" stroke="#dedee9" stroke-width="4"/>
+  <path d="M208 324 330 324 392 266 272 266Z" fill="#7773e6" opacity=".38"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M208 324 452 324 330 218 208 324ZM208 324V166L330 60 574 100V258L452 324V166L208 166M452 166 330 60M330 218V60M330 218 574 258M574 100 452 324" stroke="#5b5ce2" stroke-width="6"/>
+    <path d="M269 271 391 271M269 271V113M391 271V113M269 113 391 113" stroke="#ef6f91" stroke-width="7"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" font-weight="800">
+    <rect x="500" y="300" width="218" height="68" rx="18" fill="#fff" stroke="#dedee9" stroke-width="3"/>
+    <text x="609" y="330" fill="#242238" font-size="20" text-anchor="middle">отсечённая призма</text>
+    <text x="609" y="355" fill="#ef517d" font-size="23" text-anchor="middle">V = 5</text>
+    <text x="400" y="410" fill="#625f78" font-size="21" text-anchor="middle">сечение проходит через середины сторон</text>
+  </g>
+</svg>

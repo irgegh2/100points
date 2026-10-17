@@ -15,7 +15,7 @@ $sql =
           hw.title AS hw_title, hw.level AS hw_level, hs.name AS hw_subject,
           mk.title AS mk_title, ms.name AS mk_subject,
           (SELECT COUNT(*) FROM answers a JOIN questions q ON q.id = a.question_id
-           WHERE a.submission_id = sub.id AND q.type IN ('textarea','file')) AS open_count
+           WHERE a.submission_id = sub.id AND q.type IN ('textarea','file','audio')) AS open_count
    FROM submissions sub
    JOIN users u ON u.id = sub.user_id
    LEFT JOIN homeworks hw ON hw.id = sub.homework_id

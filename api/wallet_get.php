@@ -5,10 +5,12 @@ require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/gamify.php';
 $uid = require_user();
 
-try {
-  g_sync($uid);          // недельный сброс жизней (остаток → кристаллы) + штрафы за дедлайн
-  g_touch_streak($uid);  // вход в кабинет = активность дня (серия + дневной бонус)
-} catch (Throwable $e) { error_log('[gamify] ' . $e->getMessage()); }
+if (!is_readonly_impersonation()) {
+  try {
+    g_sync($uid);          // недельный сброс жизней (остаток → кристаллы) + штрафы за дедлайн
+    g_touch_streak($uid);  // вход в кабинет = активность дня (серия + дневной бонус)
+  } catch (Throwable $e) { error_log('[gamify] ' . $e->getMessage()); }
+}
 
 $w = g_wallet($uid);
 release_session();

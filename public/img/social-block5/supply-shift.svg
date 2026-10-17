@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">Увеличение предложения охранных услуг</title>
+  <desc id="desc">Линия предложения S смещается вправо в положение S1</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L10 5L0 10Z" fill="#5e61df"/>
+    </marker>
+    <marker id="axis-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0L10 5L0 10Z" fill="#77758f"/>
+    </marker>
+  </defs>
+  <rect x="2" y="2" width="956" height="516" rx="28" fill="#f7f6ff" stroke="#e2e1ed" stroke-width="4"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M145 420V76" stroke="#77758f" stroke-width="8" marker-end="url(#axis-arrow)"/>
+    <path d="M145 420H855" stroke="#77758f" stroke-width="8" marker-end="url(#axis-arrow)"/>
+    <path d="M260 372L600 112" stroke="#6965df" stroke-width="11"/>
+    <path d="M404 407L744 147" stroke="#9b98f1" stroke-width="11"/>
+    <path d="M536 246C584 230 626 211 669 181" stroke="#5e61df" stroke-width="8" marker-end="url(#arrow)"/>
+  </g>
+  <g font-family="Inter, Arial, sans-serif" font-weight="700" fill="#27263a">
+    <text x="96" y="83" font-size="36">P</text>
+    <text x="855" y="470" font-size="36">Q</text>
+    <text x="584" y="108" font-size="34" fill="#5552c9">S</text>
+    <text x="738" y="141" font-size="34" fill="#7772dd">S₁</text>
+  </g>
+</svg>

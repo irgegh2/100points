@@ -21,7 +21,7 @@ $all = []; // плоский список событий недели
 
 // 1) События расписания.
 $st = db()->prepare(
-  "SELECT e.id, e.type, e.title, e.starts_at, e.duration, e.link, c.title AS course, s.name AS subject, s.color AS color
+  "SELECT e.id, e.type, e.title, e.starts_at, e.duration, e.link, c.id AS course_id, c.title AS course, s.name AS subject, COALESCE(c.color, s.color) AS color
    FROM events e
    JOIN courses c ON c.id = e.course_id
    JOIN subjects s ON s.id = c.subject_id
@@ -32,13 +32,13 @@ $st->execute([$uid, $today, $monday, $sunday]);
 foreach ($st as $r) $all[] = [
   'date' => substr($r['starts_at'], 0, 10), 'time' => substr($r['starts_at'], 11, 5),
   'kind' => $r['type'] === 'practice' ? 'practice' : 'webinar', 'title' => $r['title'],
-  'subject' => $r['subject'], 'course' => $r['course'], 'color' => $r['color'] ?: '#3f9bff', 'link' => $r['link'],
+  'subject' => $r['subject'], 'course' => $r['course'], 'course_id' => (int)$r['course_id'], 'color' => $r['color'] ?: '#3f9bff', 'link' => $r['link'],
   'duration' => (int)$r['duration'] ?: 60,
 ];
 
 // 2) Уроки из программы курса (вебинар/теория/практика) с проставленной датой эфира.
 $st = db()->prepare(
-  "SELECT l.type, l.title, l.air_at, l.duration, l.kinescope_id, c.title AS course, s.name AS subject, s.color AS color
+  "SELECT l.id AS lesson_id, l.type, l.title, l.air_at, l.duration, l.kinescope_id, c.id AS course_id, c.title AS course, s.name AS subject, COALESCE(c.color, s.color) AS color
    FROM lessons l
    JOIN blocks b ON b.id = l.block_id
    JOIN courses c ON c.id = b.course_id
@@ -54,7 +54,7 @@ foreach ($st as $r) {
   $all[] = [
     'date' => substr($r['air_at'], 0, 10), 'time' => substr($r['air_at'], 11, 5),
     'kind' => in_array($r['type'], ['practice', 'theory', 'webinar'], true) ? $r['type'] : 'webinar',
-    'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'color' => $r['color'] ?: '#3f9bff',
+    'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'course_id' => (int)$r['course_id'], 'lesson_id' => (int)$r['lesson_id'], 'color' => $r['color'] ?: '#3f9bff',
     'link' => $r['kinescope_id'] ? 'https://kinescope.io/' . $r['kinescope_id'] : null,
     'duration' => $dur,
   ];
@@ -62,7 +62,7 @@ foreach ($st as $r) {
 
 // 3) Дедлайны домашних заданий.
 $st = db()->prepare(
-  "SELECT hw.id, hw.title, hw.deadline, c.title AS course, s.name AS subject, s.color AS color
+  "SELECT hw.id, hw.title, hw.deadline, c.id AS course_id, c.title AS course, s.name AS subject, COALESCE(c.color, s.color) AS color
    FROM homeworks hw
    JOIN lessons l ON l.id = hw.lesson_id
    JOIN blocks b ON b.id = l.block_id
@@ -75,15 +75,20 @@ $st = db()->prepare(
 $st->execute([$uid, $today, $deadlineStart, $sunday]);
 foreach ($st as $r) {
   $effectiveDeadline = g_effective_deadline($uid, $r['deadline'], (int)$r['id']);
+  $vipBonusDays = g_is_vip($uid) ? 1 : 0;
+  $extensionDays = g_deadline_extension_days($uid, (int)$r['id']);
+  $deadlineTime = strlen($effectiveDeadline) > 10 ? substr($effectiveDeadline, 11, 5) : '23:59';
   $all[] = [
-    'date' => substr($effectiveDeadline, 0, 10), 'time' => '', 'kind' => 'deadline', 'allday' => true,
-    'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'color' => '#e0584f', 'link' => null, 'duration' => 0,
+    'date' => substr($effectiveDeadline, 0, 10), 'time' => $deadlineTime, 'kind' => 'deadline', 'allday' => true,
+    'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'course_id' => (int)$r['course_id'], 'color' => '#e0584f', 'link' => null, 'duration' => 0,
+    'base_deadline' => $r['deadline'], 'effective_deadline' => $effectiveDeadline,
+    'vip_bonus_days' => $vipBonusDays, 'extension_days' => $extensionDays,
   ];
 }
 
 // 4) Персональные пробники с наставником.
 $st = db()->prepare(
-  "SELECT m.title, a.starts_at, a.duration, c.title AS course, s.name AS subject, s.color
+  "SELECT m.title, a.starts_at, a.duration, c.id AS course_id, c.title AS course, s.name AS subject, COALESCE(c.color, s.color) AS color
    FROM mock_assignments a
    JOIN mock_exams m ON m.id = a.mock_id AND COALESCE(m.format,'normal') = 'proctored'
    JOIN courses c ON c.id = m.course_id
@@ -93,7 +98,7 @@ $st = db()->prepare(
 $st->execute([$uid, $monday, $sunday]);
 foreach ($st as $r) $all[] = [
   'date' => substr($r['starts_at'], 0, 10), 'time' => substr($r['starts_at'], 11, 5),
-  'kind' => 'proctored', 'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'color' => $r['color'] ?: '#dd4b43',
+  'kind' => 'proctored', 'title' => $r['title'], 'subject' => $r['subject'], 'course' => $r['course'], 'course_id' => (int)$r['course_id'], 'color' => $r['color'] ?: '#dd4b43',
   'link' => null, 'duration' => (int)$r['duration'] ?: 180,
 ];
 

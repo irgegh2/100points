@@ -23,7 +23,7 @@ try {
   foreach ($grades as $g) {
     $aid = (int)($g['answer_id'] ?? 0);
     if ($aid <= 0) continue;
-    $pts = $pdo->prepare("SELECT q.points FROM answers a JOIN questions q ON q.id = a.question_id WHERE a.id = ? AND a.submission_id = ? AND q.type IN ('textarea','file')");
+    $pts = $pdo->prepare("SELECT q.points FROM answers a JOIN questions q ON q.id = a.question_id WHERE a.id = ? AND a.submission_id = ? AND q.type IN ('textarea','file','audio')");
     $pts->execute([$aid, $subId]);
     $maxRaw = $pts->fetchColumn();
     if ($maxRaw === false) continue;
@@ -38,11 +38,23 @@ try {
   $sum->execute([$subId]);
   $score = (int)$sum->fetchColumn();
 
+  // Максимум тоже считаем заново по фактически вошедшим в сдачу вопросам.
+  // Это важно, если администратор поправил стоимость вопроса уже после отправки:
+  // страница результата показывает актуальные q.points, и уведомление должно совпадать с ней.
+  $max = $pdo->prepare(
+    "SELECT COALESCE(SUM(q.points),0)
+     FROM answers a
+     JOIN questions q ON q.id = a.question_id
+     WHERE a.submission_id = ?"
+  );
+  $max->execute([$subId]);
+  $maxScore = (int)$max->fetchColumn();
+
   // Случайный эксперт.
   $expId = (int)($pdo->query("SELECT id FROM experts ORDER BY " . (db()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? 'RAND()' : 'RANDOM()') . " LIMIT 1")->fetchColumn() ?: 0);
 
-  $pdo->prepare("UPDATE submissions SET status = 'graded', score = ?, expert_id = ?, graded_at = ? WHERE id = ?")
-      ->execute([$score, $expId ?: null, date('Y-m-d H:i:s'), $subId]);
+  $pdo->prepare("UPDATE submissions SET status = 'graded', score = ?, max_score = ?, expert_id = ?, graded_at = ? WHERE id = ?")
+      ->execute([$score, $maxScore, $expId ?: null, date('Y-m-d H:i:s'), $subId]);
 
   $pdo->commit();
 } catch (Exception $e) {
@@ -51,6 +63,7 @@ try {
 }
 
 // Уведомление ученику о проверке (Этап 13).
+$row = null;
 try {
   $r = db()->prepare("SELECT user_id, homework_id, mock_id, max_score FROM submissions WHERE id = ?");
   $r->execute([$subId]);
@@ -64,4 +77,13 @@ try {
   }
 } catch (Throwable $e) { error_log('[notify] ' . $e->getMessage()); }
 
-ok(['submission_id' => $subId, 'status' => 'graded', 'score' => $score, 'expert_id' => $expId]);
+// Ручная проверка могла впервые сделать всю работу идеальной — пересчитываем
+// достижения после финальной оценки, а не ждём следующей сдачи.
+try {
+  if (!empty($row['user_id'])) {
+    require_once __DIR__ . '/gamify.php';
+    g_sync_achievements((int)$row['user_id']);
+  }
+} catch (Throwable $e) { error_log('[achievement_sync] ' . $e->getMessage()); }
+
+ok(['submission_id' => $subId, 'status' => 'graded', 'score' => $score, 'max_score' => $maxScore, 'expert_id' => $expId]);
