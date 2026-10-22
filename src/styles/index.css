@@ -4050,3 +4050,13 @@ textarea:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+/* Скачивание записей с внешних видеоплатформ. */
+.lesson-download { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; margin:14px 0 20px; }
+.lesson-download > .btn { flex-shrink:0; }
+.lesson-download__message { flex:1; min-width:180px; color:var(--muted, #777d8c); font-size:13px; line-height:1.5; }
+.lesson-download__message a { color:var(--blue, #3479df); text-decoration:underline; }
+.lesson-download__error { color:#c13b46; }
+.lesson-download__spinner { animation:lesson-download-spin 1s linear infinite; }
+@keyframes lesson-download-spin { to { transform:rotate(360deg); } }
+@media (max-width:600px) { .lesson-download { align-items:flex-start; gap:8px; } .lesson-download > .btn { width:100%; } .lesson-download__message { flex-basis:100%; } }
+@media (prefers-reduced-motion:reduce) { .lesson-download__spinner { animation:none; } }

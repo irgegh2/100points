@@ -104,6 +104,7 @@ export const coursesList = ({ type, subject } = {}) => {
 }
 export const courseGet = (id) => call(`/course_get.php?id=${id}`)
 export const lessonGet = (id) => call(`/lesson_get.php?id=${id}`)
+export const platformVideoPrepare = (lessonId) => call('/platform_video_prepare.php', { method: 'POST', body: { lesson_id: lessonId } })
 export const videoPlay = (id) => call(`/video_play.php?id=${id}`)
 export const videoProgress = (payload) => call('/video_progress.php', { method: 'POST', body: payload })
 export const adminVideoPlay = (id) => call(`/admin_video_play.php?id=${id}`)

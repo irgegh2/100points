@@ -6,6 +6,7 @@ import {
 import { courseGet, lessonGet, lessonProgressSet } from '../api.js'
 import HomeworkTest from './HomeworkTest.jsx'
 import MarkdownContent from './MarkdownContent.jsx'
+import PlatformVideoDownload from './PlatformVideoDownload.jsx'
 import { readHash, writeHash } from '../hashNav.js'
 import { loadKinescopePlayerFactory } from '../kinescope.js'
 import { pluralRu } from '../ruPlural.js'
@@ -588,6 +589,10 @@ export default function CourseInside({ courseId, onBack, onNavigate }) {
                   <b>{lessonLoading ? 'Загрузка…' : L ? 'Видео скоро появится' : 'Выберите урок в программе'}</b>
                   {L && <span>Урок доступен — смотри материалы и тест ниже.</span>}
                 </div>}
+
+          {!locked && !notOpen && !needLessons && L?.id && ['youtube', 'rutube', 'vk'].includes(externalVideo?.provider) && (
+            <PlatformVideoDownload key={L.id} lessonId={L.id} />
+          )}
 
           {!locked && lesson?.homeworks?.length > 0 && (
             <div className="lesson__hw">
