@@ -398,7 +398,7 @@ function grade_question(string $type, $correct, $value, int $points, bool $caseS
 }
 
 // Проверяет файловый ответ и заменяет присланные клиентом метаданные каноническими из БД.
-// Требуются и развёрнутая подпись, и ровно file_limit файлов этого ученика/вопроса.
+// Требуются и развёрнутая подпись, и от одного до file_limit файлов этого ученика/вопроса.
 function canonical_file_answer(int $uid, int $questionId, $value, int $fileLimit): array {
   $limit = max(1, min(10, $fileLimit));
   if (!is_array($value)) fail('Добавь файлы и подпись для проверяющего', 400);
@@ -412,7 +412,7 @@ function canonical_file_answer(int $uid, int $questionId, $value, int $fileLimit
     $id = is_array($file) ? (int)($file['id'] ?? 0) : (int)$file;
     if ($id > 0 && !in_array($id, $ids, true)) $ids[] = $id;
   }
-  if (count($ids) !== $limit) fail("Нужно прикрепить ровно $limit файл(а)", 400);
+  if (count($ids) < 1 || count($ids) > $limit) fail("Прикрепи от 1 до $limit файлов", 400);
 
   $ph = implode(',', array_fill(0, count($ids), '?'));
   $st = db()->prepare("SELECT id, url, original_name, size, mime FROM answer_uploads WHERE user_id = ? AND question_id = ? AND submission_id IS NULL AND id IN ($ph)");
@@ -422,7 +422,7 @@ function canonical_file_answer(int $uid, int $questionId, $value, int $fileLimit
     'id' => (int)$r['id'], 'url' => $r['url'], 'name' => $r['original_name'],
     'size' => (int)$r['size'], 'mime' => $r['mime'],
   ];
-  if (count($found) !== $limit) fail('Один из файлов не найден или принадлежит другой работе', 400);
+  if (count($found) !== count($ids)) fail('Один из файлов не найден или принадлежит другой работе', 400);
   return ['note' => $note, 'files' => array_map(fn($id) => $found[$id], $ids)];
 }
 
