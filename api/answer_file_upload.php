@@ -46,7 +46,7 @@ if (!empty($q['homework_id'])) {
 $limit = $isAudio ? 1 : max(1, min(10, (int)$q['file_limit']));
 $cnt = db()->prepare("SELECT COUNT(*) FROM answer_uploads WHERE user_id = ? AND question_id = ? AND submission_id IS NULL");
 $cnt->execute([$uid, $qid]);
-if ((int)$cnt->fetchColumn() >= $limit) fail("Для этого ответа нужно $limit файл(а)", 409);
+if ((int)$cnt->fetchColumn() >= $limit) fail($isAudio ? 'Для устного ответа нужна одна аудиозапись' : "Для этого ответа разрешено не больше $limit файлов", 409);
 
 $f = $_FILES['file'];
 if ((int)$f['size'] <= 0 || (int)$f['size'] > ($isAudio ? 100 : 500) * 1024 * 1024) {

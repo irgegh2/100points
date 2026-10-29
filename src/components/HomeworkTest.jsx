@@ -13,7 +13,7 @@ import KinescopeVideo from './KinescopeVideo.jsx'
 export function isAnswered(type, v) {
   if (type === 'single') return v != null
   if (type === 'multi') return Array.isArray(v) && v.length > 0
-  if (type === 'file') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length === Math.max(1, Number(v.limit || v.file_limit || 1)) && typeof v.note === 'string' && v.note.trim() !== ''
+  if (type === 'file') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length >= 1 && v.files.length <= Math.max(1, Math.min(10, Number(v.limit || v.file_limit || 1))) && typeof v.note === 'string' && v.note.trim() !== ''
   if (type === 'audio') return !!v && typeof v === 'object' && Array.isArray(v.files) && v.files.length === 1
   return typeof v === 'string' && v.trim() !== ''
 }
